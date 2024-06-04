@@ -12,7 +12,20 @@
           "package_name": "it.polito.workstream"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1075121813177-j01p8q04k2ib9302st67l5i6dtn07o03.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "it.polito.workstream",
+            "certificate_hash": "137a811d8b31e76db30257a640840e09391dfa44"
+          }
+        },
+        {
+          "client_id": "1075121813177-97tmfo3d17tjdv48vgthuhukgk5u7rfn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCi3qL61VITuxNNv8QtOfx8arCURKyG3i8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1075121813177-97tmfo3d17tjdv48vgthuhukgk5u7rfn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

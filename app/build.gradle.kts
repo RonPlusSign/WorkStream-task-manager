@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.googleGmsGoogleServices)
+
 }
 
 android {
@@ -54,6 +55,10 @@ dependencies {
 
     implementation(libs.core)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
+    implementation(libs.play.services.auth)
+    implementation(libs.barcode.scanning.common)
+    implementation(libs.play.services.code.scanner)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -79,5 +84,5 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(kotlin("reflect"))
 
-    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
 }
