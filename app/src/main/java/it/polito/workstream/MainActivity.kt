@@ -1,6 +1,7 @@
 package it.polito.workstream
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -29,7 +30,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
+import it.polito.workstream.ui.Login.LoginActivity
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.chats.Chat
@@ -58,9 +61,19 @@ class MainActivity : ComponentActivity() {
     val db = Firebase.firestore
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            WorkStreamTheme {
-                ContentView()
+
+        val currentUser = Firebase.auth.currentUser
+
+        if (currentUser == null) {
+            // Redirect to LoginActivity if the user is not authenticated
+            val loginIntent = Intent(this, LoginActivity::class.java)
+            startActivity(loginIntent)
+            finish() // Finish MainActivity so the user cannot go back to it
+        }else{
+            setContent {
+                WorkStreamTheme {
+                    ContentView()
+                }
             }
         }
     }
