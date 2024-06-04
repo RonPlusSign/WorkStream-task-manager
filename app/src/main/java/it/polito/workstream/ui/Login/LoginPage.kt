@@ -20,6 +20,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -29,6 +31,7 @@ import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import it.polito.workstream.MainActivity
 import it.polito.workstream.R
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import kotlinx.coroutines.launch
@@ -38,11 +41,14 @@ class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            WorkStreamTheme{
+            WorkStreamTheme {
                 var user by remember { mutableStateOf(Firebase.auth.currentUser) }
                 val launcher = rememberFirebaseAuthLauncher(
                     onAuthComplete = { result ->
                         user = result.user
+                        if (user != null) {
+                            navigateToTeamTaskScreen()
+                        }
                     },
                     onAuthError = {
                         user = null
@@ -50,8 +56,10 @@ class LoginActivity : ComponentActivity() {
                 )
                 val token = stringResource(R.string.web_client_id)
                 val context = LocalContext.current
-                Box(contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
@@ -117,5 +125,12 @@ class LoginActivity : ComponentActivity() {
                 onAuthError(e)
             }
         }
+    }
+
+    private fun navigateToTeamTaskScreen() {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.putExtra("navigateTo", "teamTaskScreen")
+        startActivity(intent)
+        finish()
     }
 }
