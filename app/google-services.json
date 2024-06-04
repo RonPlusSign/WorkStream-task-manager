@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1075121813177",
+    "project_id": "workstream-1e1eb",
+    "storage_bucket": "workstream-1e1eb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1075121813177:android:a7375b7634cab00dec0d68",
+        "android_client_info": {
+          "package_name": "it.polito.workstream"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi3qL61VITuxNNv8QtOfx8arCURKyG3i8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

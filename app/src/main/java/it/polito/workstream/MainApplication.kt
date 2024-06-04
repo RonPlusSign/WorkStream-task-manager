@@ -2,6 +2,7 @@ package it.polito.workstream
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -10,19 +11,52 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.update
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 
 class MainApplication : Application() {
+    lateinit var db: FirebaseFirestore
+
+    lateinit var context: Context
+    override fun onCreate() {
+        super.onCreate()
+        FirebaseApp.initializeApp(this)
+        db = Firebase.firestore
+    }
+
+    fun fetchUsers(): Flow<List<User>> = callbackFlow {
+        val listener = db.collection("users").addSnapshotListener { r, e ->
+            if (r != null) {
+                val users = r.toObjects(User::class.java)
+                trySend(users)
+                for (document in r) {
+                    Log.d("User", "${document.id} => ${document.data}")
+                }
+            } else {
+                Log.d("User", "Error getting documents: ", e)
+            }
+        }
+
+        awaitClose { listener.remove() }
+    }
+
+    val users = fetchUsers()    // TODO: ricordati di chiamarla sennò non vedi nulla!
 
     // Insert initial data here, to be fetched in the view model factory
     var _userList = MutableStateFlow(
