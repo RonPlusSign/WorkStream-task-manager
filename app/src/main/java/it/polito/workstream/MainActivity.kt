@@ -198,7 +198,7 @@ fun ContentView(
                             removeTeam = vm.removeTeam,
                             leaveTeam = vm.leaveTeam,
                             context = LocalContext.current,
-                            navController = navController
+                            navigateTo = navigateTo
                         )
                     }
 

@@ -74,7 +74,7 @@ fun TeamScreen(
     removeTeam: (teamId: Long) -> Unit,
     leaveTeam: (Team, User) -> Unit,
     context: Context,
-    navController: androidx.navigation.NavController?
+    navigateTo: (route: String) -> Any
 ) {
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
@@ -95,7 +95,7 @@ fun TeamScreen(
                 removeTeam(vm.team.id)
                 showDeleteConfirmationDialog = false
                 onTaskClick(1, null, null, null)
-                navController?.navigate(Route.TeamScreen.name)
+                navigateTo(Route.TeamScreen.name)
             }
         )
     }
@@ -106,7 +106,7 @@ fun TeamScreen(
             onConfirm = {
                 leaveTeam(vm.team, vm.currentUser)
                 showLeaveConfirmationDialog = false
-                navController?.navigate(Route.TeamScreen.name)
+                navigateTo(Route.TeamScreen.name)
             }
         )
     }
@@ -247,7 +247,7 @@ fun TeamScreen(
                     currentUser = vm.currentUser,
                     adminId = vm.team.admin?.id?.toInt(),
                     teamId = vm.team.id,
-                    navController = navController
+                    navigateTo = navigateTo
                 )
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -307,8 +307,8 @@ fun MemberList(
     currentUser: User,
     adminId: Int?,
     teamId: Long,
-    navController: androidx.navigation.NavController?
-) {
+    navigateTo: (route: String) -> Any,
+    ) {
     Column {
         members.forEach { member ->
             MemberItem(
@@ -319,7 +319,7 @@ fun MemberList(
                 isAdmin = member.id.toInt() == adminId,
                 adminId = adminId,
                 teamId = teamId,
-                navController = navController
+                navigateTo = navigateTo
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -335,8 +335,8 @@ fun MemberItem(
     isAdmin: Boolean,
     adminId: Int?,
     teamId: Long,
-    navController: androidx.navigation.NavController?
-) {
+    navigateTo: (route: String) -> Any,
+    ) {
     var RemoveMemberConfirmationDialog by remember { mutableStateOf(false) }
 
     if(RemoveMemberConfirmationDialog){
@@ -345,7 +345,7 @@ fun MemberItem(
             onConfirm = {
                 removeMember(member.id.toInt().toLong(), teamId)
                 RemoveMemberConfirmationDialog = false
-                navController?.navigate(Route.TeamScreen.name)
+                navigateTo(Route.TeamScreen.name)
             },
             memberName = "${member.firstName} ${member.lastName}"
         )
