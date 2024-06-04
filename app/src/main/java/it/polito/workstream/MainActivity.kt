@@ -2,6 +2,7 @@ package it.polito.workstream
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.chats.Chat
@@ -48,8 +51,11 @@ import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 class MainActivity : ComponentActivity() {
+    val db = Firebase.firestore
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
