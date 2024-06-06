@@ -88,26 +88,7 @@ class LoginActivity : ComponentActivity() {
                                 Text("Sign in via Google")
                             }
                         } else {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(user!!.photoUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentScale = ContentScale.Crop,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(96.dp)
-                                    .clip(CircleShape)
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text("Welcome ${user!!.displayName}")
-                            Spacer(Modifier.height(10.dp))
-                            Button(onClick = {
-                                Firebase.auth.signOut()
-                                user = null
-                            }) {
-                                Text("Sign out")
-                            }
+                            navigateToMainActivity()
                         }
                     }
                 }

@@ -7,8 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 import it.polito.workstream.MainApplication
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.userprofile.components.EditPanel
@@ -16,10 +14,9 @@ import it.polito.workstream.ui.screens.userprofile.components.PresentationPanel
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import it.polito.workstream.ui.Login.LoginActivity
 
 @Composable
-fun UserScreen(user: User, personalInfo: Boolean) {
+fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
     val vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
     vm.setUser(user)
     val context = LocalContext.current
@@ -49,16 +46,7 @@ fun UserScreen(user: User, personalInfo: Boolean) {
                 vm.tasksToComplete,
                 vm::edit,
                 { println("Changing user password") },
-                {
-                    if (personalInfo) {
-                        Firebase.auth.signOut()
-                        app._user.value = User();
-                        val loginIntent = Intent(context, LoginActivity::class.java)
-                        context.startActivity(loginIntent)
-                    } else {
-                        println("Logging out")
-                    }
-                },
+                onLogout,
                 vm.photoBitmapValue,
                 vm::setPhotoBitmap,
                 personalInfo = personalInfo

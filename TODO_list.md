@@ -3,8 +3,8 @@
 - [ ] Check if achievements are working with fetched data
 
 - [ ] User (Lore)
-    - [ ] Login with Google
-    - [ ] Profile picture
+    - [x] Login with Google
+    - [x] Profile picture
     - [ ] Edit profile
     - [ ] Edit Profile: link viewModel to model (updates are not stored inside the model)
 

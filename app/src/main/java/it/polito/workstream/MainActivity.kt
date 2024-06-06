@@ -10,12 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,25 +29,19 @@ import com.google.firebase.ktx.Firebase
 import it.polito.workstream.ui.Login.LoginActivity
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
-import it.polito.workstream.ui.screens.chats.Chat
-import it.polito.workstream.ui.screens.chats.ChatList
-import it.polito.workstream.ui.screens.chats.GroupChat
-import it.polito.workstream.ui.screens.chats.NewChat
-import it.polito.workstream.ui.screens.tasks.EditTaskScreen
-import it.polito.workstream.ui.screens.tasks.NewTaskScreen
-import it.polito.workstream.ui.screens.tasks.PersonalTasksScreenWrapper
-import it.polito.workstream.ui.screens.tasks.TeamTaskScreenWrapper
+import it.polito.workstream.ui.screens.chats.*
+import it.polito.workstream.ui.screens.tasks.*
 import it.polito.workstream.ui.screens.tasks.components.ShowTaskDetails
 import it.polito.workstream.ui.screens.team.ConfirmJoinTeamPage
 import it.polito.workstream.ui.screens.team.TeamScreen
 import it.polito.workstream.ui.screens.userprofile.UserScreen
-import it.polito.workstream.ui.shared.BottomNavbarWrapper
-import it.polito.workstream.ui.shared.NavDrawer
-import it.polito.workstream.ui.shared.TopBarWrapper
+import it.polito.workstream.ui.shared.*
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val db = Firebase.firestore
@@ -65,16 +54,19 @@ class MainActivity : ComponentActivity() {
                 val currentUser by rememberUpdatedState(newValue = Firebase.auth.currentUser)
                 val context = LocalContext.current
                 val app = context.applicationContext as MainApplication
+                val scope = rememberCoroutineScope()
 
                 var user by remember { mutableStateOf<User?>(null) }
 
-                LaunchedEffect(currentUser) {
-                    if (currentUser == null) {
-                        // Redirect to LoginActivity if the user is not authenticated
+                if (currentUser == null) {
+                    // Redirect to LoginActivity if the user is not authenticated
+                    LaunchedEffect(Unit) {
                         val loginIntent = Intent(context, LoginActivity::class.java)
                         context.startActivity(loginIntent)
                         finish() // Finish MainActivity so the user cannot go back to it
-                    } else {
+                    }
+                } else {
+                    LaunchedEffect(currentUser) {
                         checkOrCreateUserInFirestore(currentUser!!) { retrievedUser ->
                             user = retrievedUser
                             app._user.value = retrievedUser
@@ -83,7 +75,12 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (user != null) {
-                    ContentView()
+                    ContentView {
+                        // Pass logout callback
+                        scope.launch {
+                            performLogout(context, app)
+                        }
+                    }
                 } else {
                     // Show a loading screen or similar while the user is being initialized
                     LoadingScreen()
@@ -126,8 +123,17 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
+    private suspend fun performLogout(context: android.content.Context, app: MainApplication) {
+        Firebase.auth.signOut()
+        app._user.value = User()
+        delay(1000) // Add delay to ensure Firebase completes sign out
+        val loginIntent = Intent(context, LoginActivity::class.java)
+        loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        context.startActivity(loginIntent)
+        finish() // Ensure the current activity is finished
+    }
+}
 
 @Composable
 fun LoadingScreen() {
@@ -143,12 +149,12 @@ fun LoadingScreen() {
     }
 }
 
-
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun ContentView(
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+    taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    onLogout: () -> Unit
 ) {
     val tasksList = vm.activeTeam.collectAsState().value.tasks
     val sections = vm.activeTeam.collectAsState().value.sections
@@ -359,12 +365,12 @@ fun ContentView(
                         if (index != null) {
                             user = vm.activeTeam.collectAsState().value.members.find { it.id.toInt() == index }!!
                         }
-                        UserScreen(user = user, personalInfo = false)
+                        UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }
 
                     composable(route = Route.UserView.name) {
                         vm.setActivePage(Route.UserView.title)
-                        app.user.value?.let { it1 -> UserScreen(user = it1, personalInfo = true) }
+                        app.user.value?.let { it1 -> UserScreen(user = it1, personalInfo = true, onLogout = onLogout) }
                     }
 
                     composable(
