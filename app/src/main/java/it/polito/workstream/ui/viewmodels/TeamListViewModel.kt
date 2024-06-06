@@ -26,13 +26,15 @@ class TeamListViewModel(
     val createEmptyTeam: (name: String) -> Unit,
 ) : ViewModel() {
 
-    fun teamsToDrawerMenu(user:  StateFlow<User>): List<DrawerMenu> {
+    fun teamsToDrawerMenu(user:  StateFlow<User?>): List<DrawerMenu> {
         return teams.value.filter { u-> u.members.contains(user.value) }.map { DrawerMenu(Icons.Filled.Face, it.name , it.id.toString(), it.members.size) }
     }
 
-    fun joinTeam(team: Team, user: StateFlow<User>) {
-        user.value.let { currentUser ->
-            team.addMember(currentUser)
+    fun joinTeam(team: Team, user: StateFlow<User?>) {
+        user.value?.let { currentUser ->
+            if (currentUser != null) {
+                team.addMember(currentUser)
+            }
             currentUser.teams.add(team)
         }
     }

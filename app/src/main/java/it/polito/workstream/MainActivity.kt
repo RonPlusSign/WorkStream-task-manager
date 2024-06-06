@@ -6,20 +6,18 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,9 +27,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import it.polito.workstream.ui.Login.LoginActivity
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
@@ -54,30 +53,96 @@ import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 
 class MainActivity : ComponentActivity() {
-    val db = Firebase.firestore
+    private val db = Firebase.firestore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val currentUser = Firebase.auth.currentUser
+        setContent {
+            WorkStreamTheme {
+                val currentUser by rememberUpdatedState(newValue = Firebase.auth.currentUser)
+                val context = LocalContext.current
+                val app = context.applicationContext as MainApplication
 
-        if (currentUser == null) {
-            // Redirect to LoginActivity if the user is not authenticated
-            val loginIntent = Intent(this, LoginActivity::class.java)
-            startActivity(loginIntent)
-            finish() // Finish MainActivity so the user cannot go back to it
-        }else{
-            setContent {
-                WorkStreamTheme {
+                var user by remember { mutableStateOf<User?>(null) }
+
+                LaunchedEffect(currentUser) {
+                    if (currentUser == null) {
+                        // Redirect to LoginActivity if the user is not authenticated
+                        val loginIntent = Intent(context, LoginActivity::class.java)
+                        context.startActivity(loginIntent)
+                        finish() // Finish MainActivity so the user cannot go back to it
+                    } else {
+                        checkOrCreateUserInFirestore(currentUser!!) { retrievedUser ->
+                            user = retrievedUser
+                            app._user.value = retrievedUser
+                        }
+                    }
+                }
+
+                if (user != null) {
                     ContentView()
+                } else {
+                    // Show a loading screen or similar while the user is being initialized
+                    LoadingScreen()
                 }
             }
         }
     }
+
+    private fun checkOrCreateUserInFirestore(firebaseUser: FirebaseUser, onComplete: (User) -> Unit) {
+        val userRef = firebaseUser.email?.let { db.collection("users").document(it) }
+        if (userRef != null) {
+            userRef.get().addOnSuccessListener { document ->
+                if (document.exists()) {
+                    // Ottieni i dati dal documento
+                    val firstName = document.getString("firstName") ?: ""
+                    val lastName = document.getString("lastName") ?: ""
+                    val email = document.getString("email") ?: ""
+                    val id = document.getLong("id") ?: User.getNewId()
+                    val location = document.getString("location")
+
+                    // Crea l'oggetto User
+                    val user = User(
+                        id = id,
+                        firstName = firstName,
+                        lastName = lastName,
+                        email = email,
+                        location = location,
+                        profilePicture = firebaseUser.photoUrl.toString()
+                    )
+
+                    // Completa l'operazione con il callback
+                    onComplete(user)
+                } else {
+                    Log.d("ERROR", "User not signed in yet")
+                    onComplete(User()) // Return a default user object if not found
+                }
+            }.addOnFailureListener { e ->
+                Log.e("ERROR", "Error fetching user document", e)
+                onComplete(User()) // Return a default user object on error
+            }
+        }
+    }
 }
+
+
+@Composable
+fun LoadingScreen() {
+    // You can customize this with a proper loading indicator
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        // For example, a CircularProgressIndicator in the center of the screen
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    }
+}
+
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
@@ -173,7 +238,8 @@ fun ContentView(
 
                     composable(route = Route.MyTasks.name) {
                         vm.setActivePage(Route.MyTasks.title)
-                        PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.getFirstAndLastName())
+                        app.user.value?.getFirstAndLastName()
+                            ?.let { it1 -> PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = it1) }
                     }
 
                     composable(route = Route.ChatScreen.name) {
@@ -298,7 +364,7 @@ fun ContentView(
 
                     composable(route = Route.UserView.name) {
                         vm.setActivePage(Route.UserView.title)
-                        UserScreen(user = app.user.value, personalInfo = true)
+                        app.user.value?.let { it1 -> UserScreen(user = it1, personalInfo = true) }
                     }
 
                     composable(

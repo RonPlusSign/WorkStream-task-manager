@@ -38,20 +38,24 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
-            modelClass.isAssignableFrom(TeamViewModel::class.java) -> TeamViewModel(
-                activeTeam.value,
-                user.value,
-                teamIdsetProfileBitmap,
-                teamIdsetProfilePicture,
-                removeMemberFromTeam
-            ) as T
+            modelClass.isAssignableFrom(TeamViewModel::class.java) -> user.value?.let {
+                TeamViewModel(
+                    activeTeam.value,
+                    it,
+                    teamIdsetProfileBitmap,
+                    teamIdsetProfilePicture,
+                    removeMemberFromTeam
+                )
+            } as T
 
-            modelClass.isAssignableFrom(UserViewModel::class.java) -> UserViewModel(
-                user.value,
-                activeTeam.value.id,
-                userList,
-                chatModel
-            ) as T
+            modelClass.isAssignableFrom(UserViewModel::class.java) -> user.value?.let {
+                UserViewModel(
+                    it,
+                    activeTeam.value.id,
+                    userList,
+                    chatModel
+                )
+            } as T
 
             modelClass.isAssignableFrom(TaskListViewModel::class.java) -> TaskListViewModel(
                 tasksList,

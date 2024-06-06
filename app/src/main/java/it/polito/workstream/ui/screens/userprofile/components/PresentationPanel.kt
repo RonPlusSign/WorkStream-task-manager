@@ -181,7 +181,7 @@ fun UserInfoWithButtons(
                         .size(6.dp),
                     color = Color(0xFF43A047),
                     trackColor = Color(0xFFE53935),
-                    strokeCap = StrokeCap.Round
+                    strokeCap = StrokeCap.Round,
                 )
             }
         }
@@ -216,7 +216,7 @@ fun UserInfoWithButtons(
                     Text("Logout")
                     Icon(
                         Icons.AutoMirrored.Filled.ExitToApp,
-                        contentDescription = "edit",
+                        contentDescription = "logout",
                         modifier = Modifier
                             .padding(start = 8.dp)
                             .size(16.dp)
@@ -226,4 +226,5 @@ fun UserInfoWithButtons(
         }
     }
 }
+
 

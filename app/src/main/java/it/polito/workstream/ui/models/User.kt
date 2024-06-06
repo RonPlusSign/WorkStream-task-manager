@@ -1,9 +1,7 @@
 package it.polito.workstream.ui.models
 
 import android.graphics.Bitmap
-import java.sql.Timestamp
 import java.time.LocalDateTime
-import java.time.ZonedDateTime
 
 class User(
     val id: Long = getNewId(),
@@ -44,12 +42,12 @@ class User(
 
     companion object {  // To generate unique identifiers for teams
         private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
+        fun getNewId() = idCounter++
     }
 }
 
 class ChatMessage(
-    val id: Long = ChatMessage.getNewId(),
+    val id: Long = getNewId(),
     var text: String,
     val author: User,
     val isFromMe: Boolean,

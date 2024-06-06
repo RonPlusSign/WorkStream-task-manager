@@ -84,7 +84,7 @@ private fun DrawerContent(
     onJoinTeam: (Long) -> Unit,
     addNewTeam: (String) -> Unit,
     activeTeamId: String,
-    activeUser: StateFlow<User>,
+    activeUser: StateFlow<User?>,
     myProfile: () -> Unit,
 ) {
 
@@ -303,7 +303,7 @@ fun NavDrawer(
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     navigateTo: (String) -> Any,
     drawerState: DrawerState,
-    activeUser: StateFlow<User>,
+    activeUser: StateFlow<User?>,
     content: @Composable () -> Unit = {},
 ) {
     val activeTeamId: String = vm.activeTeam.collectAsState().value.id.toString()
