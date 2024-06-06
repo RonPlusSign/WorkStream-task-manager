@@ -301,8 +301,8 @@ class MainApplication : Application() {
         val newTeam = Team(name, sections = mutableListOf("General"))
         newTeam.admin = user.value
 
-        newTeam.addMember(user.value)
-        user.value.teams.add(newTeam)
+        user.value?.let { newTeam.addMember(it) }
+        user.value?.teams?.add(newTeam)
 
         _teams.value.add(newTeam)
     }
@@ -350,7 +350,7 @@ class MainApplication : Application() {
                 member.tasks.removeAll(tasksToRemove)
             }
         }
-        changeActiveTeamId(user.value.teams[0].id)
+        user.value?.teams?.get(0)?.let { changeActiveTeamId(it.id) }
         _teams.value.remove(_teams.value.find { it.id == teamId }!!)
 
     }
@@ -369,8 +369,8 @@ class MainApplication : Application() {
         activePageValue.value = page
     }
 
-    val _user = MutableStateFlow(_userList.value[1])
-    val user: StateFlow<User> = _user
+    val _user = MutableStateFlow(User())
+    val user: StateFlow<User?> = _user
 
     val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
     fun setSortOrder(newSortOrder: String) {

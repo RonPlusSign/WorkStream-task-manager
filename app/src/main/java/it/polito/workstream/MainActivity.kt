@@ -6,20 +6,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,52 +22,129 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import it.polito.workstream.ui.Login.LoginActivity
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
-import it.polito.workstream.ui.screens.chats.Chat
-import it.polito.workstream.ui.screens.chats.ChatList
-import it.polito.workstream.ui.screens.chats.GroupChat
-import it.polito.workstream.ui.screens.chats.NewChat
-import it.polito.workstream.ui.screens.tasks.EditTaskScreen
-import it.polito.workstream.ui.screens.tasks.NewTaskScreen
-import it.polito.workstream.ui.screens.tasks.PersonalTasksScreenWrapper
-import it.polito.workstream.ui.screens.tasks.TeamTaskScreenWrapper
+import it.polito.workstream.ui.screens.chats.*
+import it.polito.workstream.ui.screens.tasks.*
 import it.polito.workstream.ui.screens.tasks.components.ShowTaskDetails
 import it.polito.workstream.ui.screens.team.ConfirmJoinTeamPage
 import it.polito.workstream.ui.screens.team.TeamScreen
 import it.polito.workstream.ui.screens.userprofile.UserScreen
-import it.polito.workstream.ui.shared.BottomNavbarWrapper
-import it.polito.workstream.ui.shared.NavDrawer
-import it.polito.workstream.ui.shared.TopBarWrapper
+import it.polito.workstream.ui.shared.*
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    val db = Firebase.firestore
+    private val db = Firebase.firestore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val currentUser = Firebase.auth.currentUser
+        setContent {
+            WorkStreamTheme {
+                val currentUser by rememberUpdatedState(newValue = Firebase.auth.currentUser)
+                val context = LocalContext.current
+                val app = context.applicationContext as MainApplication
+                val scope = rememberCoroutineScope()
 
-        if (currentUser == null) {
-            // Redirect to LoginActivity if the user is not authenticated
-            val loginIntent = Intent(this, LoginActivity::class.java)
-            startActivity(loginIntent)
-            finish() // Finish MainActivity so the user cannot go back to it
-        }else{
-            setContent {
-                WorkStreamTheme {
-                    ContentView()
+                var user by remember { mutableStateOf<User?>(null) }
+
+                if (currentUser == null) {
+                    // Redirect to LoginActivity if the user is not authenticated
+                    LaunchedEffect(Unit) {
+                        val loginIntent = Intent(context, LoginActivity::class.java)
+                        context.startActivity(loginIntent)
+                        finish() // Finish MainActivity so the user cannot go back to it
+                    }
+                } else {
+                    LaunchedEffect(currentUser) {
+                        checkOrCreateUserInFirestore(currentUser!!) { retrievedUser ->
+                            user = retrievedUser
+                            app._user.value = retrievedUser
+                        }
+                    }
+                }
+
+                if (user != null) {
+                    ContentView {
+                        // Pass logout callback
+                        scope.launch {
+                            performLogout(context, app)
+                        }
+                    }
+                } else {
+                    // Show a loading screen or similar while the user is being initialized
+                    LoadingScreen()
                 }
             }
+        }
+    }
+
+    private fun checkOrCreateUserInFirestore(firebaseUser: FirebaseUser, onComplete: (User) -> Unit) {
+        val userRef = firebaseUser.email?.let { db.collection("users").document(it) }
+        if (userRef != null) {
+            userRef.get().addOnSuccessListener { document ->
+                if (document.exists()) {
+                    // Ottieni i dati dal documento
+                    val firstName = document.getString("firstName") ?: ""
+                    val lastName = document.getString("lastName") ?: ""
+                    val email = document.getString("email") ?: ""
+                    val id = document.getLong("id") ?: User.getNewId()
+                    val location = document.getString("location")
+
+                    // Crea l'oggetto User
+                    val user = User(
+                        id = id,
+                        firstName = firstName,
+                        lastName = lastName,
+                        email = email,
+                        location = location,
+                        profilePicture = firebaseUser.photoUrl.toString()
+                    )
+
+                    // Completa l'operazione con il callback
+                    onComplete(user)
+                } else {
+                    Log.d("ERROR", "User not signed in yet")
+                    onComplete(User()) // Return a default user object if not found
+                }
+            }.addOnFailureListener { e ->
+                Log.e("ERROR", "Error fetching user document", e)
+                onComplete(User()) // Return a default user object on error
+            }
+        }
+    }
+
+    private suspend fun performLogout(context: android.content.Context, app: MainApplication) {
+        Firebase.auth.signOut()
+        app._user.value = User()
+        delay(1000) // Add delay to ensure Firebase completes sign out
+        val loginIntent = Intent(context, LoginActivity::class.java)
+        loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        context.startActivity(loginIntent)
+        finish() // Ensure the current activity is finished
+    }
+}
+
+@Composable
+fun LoadingScreen() {
+    // You can customize this with a proper loading indicator
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        // For example, a CircularProgressIndicator in the center of the screen
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
     }
 }
@@ -83,7 +153,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ContentView(
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+    taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    onLogout: () -> Unit
 ) {
     val tasksList = vm.activeTeam.collectAsState().value.tasks
     val sections = vm.activeTeam.collectAsState().value.sections
@@ -173,7 +244,8 @@ fun ContentView(
 
                     composable(route = Route.MyTasks.name) {
                         vm.setActivePage(Route.MyTasks.title)
-                        PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.getFirstAndLastName())
+                        app.user.value?.getFirstAndLastName()
+                            ?.let { it1 -> PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = it1) }
                     }
 
                     composable(route = Route.ChatScreen.name) {
@@ -293,12 +365,12 @@ fun ContentView(
                         if (index != null) {
                             user = vm.activeTeam.collectAsState().value.members.find { it.id.toInt() == index }!!
                         }
-                        UserScreen(user = user, personalInfo = false)
+                        UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }
 
                     composable(route = Route.UserView.name) {
                         vm.setActivePage(Route.UserView.title)
-                        UserScreen(user = app.user.value, personalInfo = true)
+                        app.user.value?.let { it1 -> UserScreen(user = it1, personalInfo = true, onLogout = onLogout) }
                     }
 
                     composable(
