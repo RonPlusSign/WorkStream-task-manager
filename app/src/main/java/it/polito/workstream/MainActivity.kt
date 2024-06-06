@@ -48,6 +48,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val app = applicationContext as MainApplication
+        //Firebase.auth.signOut()
+        //app._user.value = User()
 
         setContent {
             WorkStreamTheme {
@@ -127,11 +130,11 @@ class MainActivity : ComponentActivity() {
     private suspend fun performLogout(context: android.content.Context, app: MainApplication) {
         Firebase.auth.signOut()
         app._user.value = User()
-        delay(1000) // Add delay to ensure Firebase completes sign out
+        delay(1000)
         val loginIntent = Intent(context, LoginActivity::class.java)
         loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         context.startActivity(loginIntent)
-        finish() // Ensure the current activity is finished
+        finish()
     }
 }
 

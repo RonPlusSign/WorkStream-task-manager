@@ -35,6 +35,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val teamIdsetProfilePicture = app::teamIdsetProfilePicture
     private val chatModel = app.chatModel
     private val removeMemberFromTeam = app::removeMemberFromTeam
+    private val editUser = app::editUser
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
@@ -53,7 +54,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     it,
                     activeTeam.value.id,
                     userList,
-                    chatModel
+                    chatModel,
+                    editUser
                 )
             } as T
 

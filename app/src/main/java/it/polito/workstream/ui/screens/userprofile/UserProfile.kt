@@ -1,13 +1,11 @@
 package it.polito.workstream.ui.screens.userprofile
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import it.polito.workstream.MainApplication
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.userprofile.components.EditPanel
 import it.polito.workstream.ui.screens.userprofile.components.PresentationPanel
@@ -19,12 +17,9 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
     val vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
     vm.setUser(user)
-    val context = LocalContext.current
-    val app = context.applicationContext as MainApplication
 
     WorkStreamTheme {
         Column(modifier = Modifier.fillMaxSize()) {
-
             if (vm.isEditing) EditPanel(
                 vm.firstNameValue, vm.firstNameError, vm::setFirstName,
                 vm.lastNameValue, vm.lastNameError, vm::setLastName,
@@ -32,7 +27,8 @@ fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
                 vm.locationValue ?: "", vm::setLocation,
                 vm.profilePictureValue, vm::setProfilePicture,
                 vm.photoBitmapValue, vm::setPhotoBitmap,
-                vm::validate
+                vm::validate,
+                vm::save,
             )
             else PresentationPanel(
                 vm.firstNameValue,

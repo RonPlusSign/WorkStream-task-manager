@@ -30,6 +30,7 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 
+
 class MainApplication : Application() {
     lateinit var db: FirebaseFirestore
 
@@ -371,6 +372,22 @@ class MainApplication : Application() {
 
     val _user = MutableStateFlow(User())
     val user: StateFlow<User?> = _user
+
+    fun updateUserInFirestore(user: User) {
+        db.collection("users").document(user.email).set(user)
+            .addOnSuccessListener {
+                Log.d("UserProfile", "User profile updated successfully")
+            }
+            .addOnFailureListener { e ->
+                Log.e("UserProfile", "Error updating user profile", e)
+            }
+    }
+    fun editUser(firstName : String, lastName : String, email : String, location : String) {
+        _user.value.firstName = firstName
+        _user.value.lastName = lastName
+        _user.value.location = location
+        updateUserInFirestore(_user.value)
+    }
 
     val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
     fun setSortOrder(newSortOrder: String) {
