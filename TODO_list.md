@@ -5,8 +5,8 @@
 - [ ] User (Lore)
     - [x] Login with Google
     - [x] Profile picture
-    - [ ] Edit profile
-    - [ ] Edit Profile: link viewModel to model (updates are not stored inside the model)
+    - [x] Edit profile
+    - [x] Edit Profile: link viewModel to model (updates are not stored inside the model)
 
 - Tasks (Andre)
     - [ ] Create a task

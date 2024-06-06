@@ -12,7 +12,7 @@ import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.StateFlow
 
-class UserViewModel(user: User, activeTeamId: Long, val usersList: StateFlow<List<User>>, val chatModel: ChatModel) : ViewModel() {
+class UserViewModel(user: User, activeTeamId: Long, val usersList: StateFlow<List<User>>, val chatModel: ChatModel, val editUser : (String, String, String, String )-> Unit) : ViewModel() {
 
     var isEditing by mutableStateOf(false)
         private set
@@ -25,6 +25,13 @@ class UserViewModel(user: User, activeTeamId: Long, val usersList: StateFlow<Lis
         lastNameBeforeEdit = lastNameValue
         emailBeforeEdit = emailValue
         locationBeforeEdit = locationValue
+    }
+
+    fun save() {
+        validate()
+        if (firstNameError.isBlank() && lastNameError.isBlank() && emailError.isBlank()) {
+            editUser(firstNameValue, lastNameValue, emailValue, locationValue ?: "")
+        }
     }
 
     /* Check if all fields are valid, and if so, stop editing */

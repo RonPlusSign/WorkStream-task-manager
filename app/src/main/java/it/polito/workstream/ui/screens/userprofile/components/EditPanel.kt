@@ -49,7 +49,8 @@ fun EditPanel(
     setProfilePicture: (String) -> Unit,
     photoBitmapValue: MutableState<Bitmap?>,
     setPhotoBitmap: (Bitmap?) -> Unit,
-    validate: () -> Unit
+    validate: () -> Unit,
+    save: () -> Unit,
 ) {
 
     // Responsive layout: 1 column with 2 rows for vertical screens, 2 columns with 1 row for horizontal screens
@@ -144,7 +145,7 @@ fun EditPanel(
                     modifier = Modifier
                         .padding(16.dp)
                         .fillMaxWidth(),
-                    onClick = { validate() }
+                    onClick = { save() }
                 ) {
                     Text("Save", color = MaterialTheme.colorScheme.onPrimary)
                     Icon(
