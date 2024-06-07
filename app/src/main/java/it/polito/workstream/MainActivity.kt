@@ -40,7 +40,6 @@ import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -48,9 +47,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val app = applicationContext as MainApplication
-        //Firebase.auth.signOut()
-        //app._user.value = User()
 
         setContent {
             WorkStreamTheme {
@@ -127,11 +123,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun performLogout(context: android.content.Context, app: MainApplication) {
+    private fun performLogout(context: android.content.Context, app: MainApplication) {
         Firebase.auth.signOut()
         app._user.value = User()
-        delay(1000)
-        val loginIntent = Intent(context, LoginActivity::class.java)
+        //delay(1000)
+        val loginIntent = Intent(context, MainActivity::class.java)
         loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         context.startActivity(loginIntent)
         finish()

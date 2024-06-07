@@ -1,29 +1,16 @@
 package it.polito.workstream.ui.screens.userprofile.components
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,7 +18,19 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.MutableState
+import androidx.compose.ui.text.style.TextAlign
 import it.polito.workstream.ui.shared.ProfilePicture
+
 
 @Composable
 fun PresentationPanel(
@@ -51,7 +50,6 @@ fun PresentationPanel(
     setPhotoBitmap: (Bitmap?) -> Unit,
     personalInfo: Boolean
 ) {
-    // Responsive layout: 1 column with 2 rows for vertical screens, 2 columns with 1 row for horizontal screens
     val configuration = LocalConfiguration.current
     if (configuration.screenWidthDp > configuration.screenHeightDp) {
         Row(modifier = Modifier.fillMaxSize()) {
@@ -96,7 +94,6 @@ fun PresentationPanel(
     }
 }
 
-
 @Composable
 fun UserInfoWithButtons(
     fullName: String,
@@ -110,7 +107,51 @@ fun UserInfoWithButtons(
     tasksToComplete: Int,
     personalInfo: Boolean
 ) {
-    // 3 text fields: full name, email, location
+    val showLogoutDialog = remember { mutableStateOf(false) }
+
+    if (showLogoutDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog.value = false },
+            confirmButton = {},
+            dismissButton = {},
+            title = {
+                Text(
+                    "Logout Confirmation",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Are you sure you want to logout?", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Button(
+                            onClick = {
+                                showLogoutDialog.value = false
+                                logout()
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White, containerColor =  Color.Red)
+                        ) {
+                            Text("Confirm")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        OutlinedButton(
+                            onClick = { showLogoutDialog.value = false },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE53935))
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
+                }
+            },
+            modifier = Modifier.padding(16.dp)
+        )
+    }
     Column(
         modifier = Modifier
             .padding(16.dp)
@@ -119,7 +160,6 @@ fun UserInfoWithButtons(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Full name
         Text(
             fullName,
             style = MaterialTheme.typography.headlineLarge,
@@ -127,10 +167,8 @@ fun UserInfoWithButtons(
             fontWeight = FontWeight.Bold
         )
 
-        // Email
         Text(email, style = MaterialTheme.typography.headlineSmall)
 
-        // Location
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.Place,
@@ -142,11 +180,6 @@ fun UserInfoWithButtons(
             Text(location ?: "Location not set", style = MaterialTheme.typography.bodyLarge)
         }
 
-        // ---------------
-        // ----- KPI -----
-        // ---------------
-
-        // The number of teams is written in primary color, and the rest of the text is secondary
         if (numberOfTeams > 0) {
             Row {
                 Text("Member of ", style = MaterialTheme.typography.bodyLarge)
@@ -160,7 +193,6 @@ fun UserInfoWithButtons(
             }
         } else Text("You're not part of any team")
 
-        // Progress bar of tasks completed vs tasks to complete
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -186,10 +218,8 @@ fun UserInfoWithButtons(
             }
         }
 
-        // Spacer to push the buttons to the bottom of the column
         Spacer(modifier = Modifier.weight(1f))
         if (personalInfo) {
-            // 3 buttons: "Edit password" & "Edit profile" on one line, "Logout" on another
             Column {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -212,7 +242,7 @@ fun UserInfoWithButtons(
                         )
                     }
                 }
-                OutlinedButton(onClick = logout, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = { showLogoutDialog.value = true }, modifier = Modifier.fillMaxWidth()) {
                     Text("Logout")
                     Icon(
                         Icons.AutoMirrored.Filled.ExitToApp,
