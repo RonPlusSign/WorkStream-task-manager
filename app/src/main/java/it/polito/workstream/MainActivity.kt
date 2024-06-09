@@ -26,7 +26,7 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import it.polito.workstream.ui.Login.LoginActivity
+import it.polito.workstream.ui.login.LoginActivity
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.chats.*
