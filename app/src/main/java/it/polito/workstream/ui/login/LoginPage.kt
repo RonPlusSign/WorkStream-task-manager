@@ -112,19 +112,25 @@ class LoginActivity : ComponentActivity() {
             val app = applicationContext as MainApplication
             if (document.exists()) {
                 // Ottieni i dati dal documento
-                val user = document.toObject(User::class.java)!!
-                user.profilePicture = firebaseUser.photoUrl.toString()
+                val user = document.toObject(User::class.java)?.apply {
+                    profilePicture = firebaseUser.photoUrl.toString()
+                }
 
-                // Set the user in the MainApplication instance
-                app._user.value = user
-                navigateToMainActivity()
+                if (user != null) {
+                    // Setta l'utente nell'istanza di MainApplication
+                    app._user.value = user
+                    navigateToMainActivity()
+                } else {
+                    // Gestisci l'errore di deserializzazione (opzionale)
+                    Log.e("ERROR", "Errore durante la deserializzazione dell'utente")
+                }
             } else {
                 registerUserInFirestore(firebaseUser)
             }
         }.addOnFailureListener { e ->
-            Log.e("ERROR", "Error fetching user document", e)
+            Log.e("ERROR", "Errore durante il recupero del documento utente", e)
             Firebase.auth.signOut()
-            // Optionally show an error message to the user
+            // Mostra un messaggio di errore all'utente (opzionale)
         }
     }
 

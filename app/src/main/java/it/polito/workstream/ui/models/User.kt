@@ -11,10 +11,10 @@ class User(
     var location: String? = null,
     var profilePicture: String = "",
     var BitmapValue: Bitmap? = null,
-    //list of teams the user is part of
+    // lista dei team a cui l'utente appartiene
     var teams: MutableList<Team> = mutableListOf(),
     var tasks: MutableList<Task> = mutableListOf(),
-    var chats: MutableMap<User, List<ChatMessage>> = mutableMapOf() //list of chats the user has created
+    var chats: MutableMap<String, List<ChatMessage>> = mutableMapOf() // lista delle chat create dall'utente
 ) {
 
     fun addTeam(team: Team) {
@@ -30,6 +30,7 @@ class User(
     }
 
     //secondary constructor to create a user without specifying the id
+// costruttore secondario per creare un utente senza specificare l'id
     constructor(
         firstName: String,
         lastName: String,
@@ -37,7 +38,7 @@ class User(
         location: String? = null,
         profilePicture: String = "",
         BitmapValue: Bitmap? = null,
-        chats: MutableMap<User, List<ChatMessage>>
+        chats: MutableMap<String, List<ChatMessage>>
     ) : this(getNewId(), firstName, lastName, email, location, profilePicture, BitmapValue)
 
     companion object {  // To generate unique identifiers for teams
