@@ -40,6 +40,7 @@ class Task(
     var comments: MutableList<Comment> = mutableListOf(),
     var history: MutableMap<Timestamp, String> = mutableMapOf(), // list of status changes, can be represented as a list of pairs of "change description" and timestamp
     var team: Team? = null,
+    val taskId : String = ""
 ) {
     init {
         //if (assignee==null) this.assignee=userAssigneName?.let { (context?.applicationContext as? MainApplication)?._userList?.value?.find { (it.firstName+" "+it.lastName) == userAssigneName } }

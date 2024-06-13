@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.models
 
 import android.graphics.Bitmap
+import com.google.firebase.firestore.DocumentReference
 import java.time.LocalDateTime
 
 class User(
@@ -11,6 +12,8 @@ class User(
     var location: String? = null,
     var profilePicture: String = "",
     var BitmapValue: Bitmap? = null,
+    var activeTeam :  DocumentReference? = null,
+    var userId : String = "",
     // lista dei team a cui l'utente appartiene
     var teams: MutableList<Team> = mutableListOf(),
     var tasks: MutableList<Task> = mutableListOf(),

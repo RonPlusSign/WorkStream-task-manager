@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.viewmodels
 
 import android.graphics.Bitmap
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -8,10 +9,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import kotlinx.coroutines.flow.Flow
 
 
 class TeamViewModel(
-    val team: Team,
+    val team: Flow<Team?>,
     val currentUser: User,
     private val teamIdsetProfileBitmap: (teamId: Long, b: Bitmap?) -> Unit,
     private val teamIdsetProfilePicture: (teamId: Long, n: String) -> Unit,

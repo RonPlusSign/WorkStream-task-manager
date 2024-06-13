@@ -155,11 +155,12 @@ fun ContentView(
     taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
-    val tasksList = vm.activeTeam.collectAsState().value.tasks
-    val sections = vm.activeTeam.collectAsState().value.sections
+    val activeTeam = vm.activeTeam.collectAsState(null).value !!
+    val tasksList = vm.getTask(activeTeam.teamId).collectAsState(initial = emptyList()) //vm.activeTeam.collectAsState().value.tasks
+    val sections = activeTeam.sections //vm.activeTeam.collectAsState().value.sections
 
     val navController = rememberNavController()
-    val activeTeamId = vm.activeTeam.collectAsState().value.id
+    val activeTeamId = activeTeam.id//vm.activeTeam.collectAsState().value.id
     var canNavigateBack: Boolean by remember { mutableStateOf(false) }
     navController.addOnDestinationChangedListener { controller, _, _ ->
         canNavigateBack = controller.previousBackStackEntry != null
@@ -263,7 +264,7 @@ fun ContentView(
                         )
                     ) { entry ->
                         val index = entry.arguments?.getLong("index")
-                        val destUser = index?.let { vm.activeTeam.value.members.find { it.id == index } }
+                        val destUser = index?.let { activeTeam.members.find { it.id == index } }
 
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
@@ -272,7 +273,7 @@ fun ContentView(
                     }
 
                     composable(route = "${Route.ChatScreen.name}/group") {
-                        vm.setActivePage(Route.ChatScreen.title + "/" + vm.activeTeam.collectAsState().value.name)
+                        vm.setActivePage(Route.ChatScreen.title + "/" + activeTeam.name)
                         GroupChat()
                     }
 
@@ -314,11 +315,11 @@ fun ContentView(
                         /*vm.tasksList.find { it.id.toInt() == index }?.let {
                             vm.setActivePage(it.title)
                         }*/
-                        tasksList.find { it.id.toInt() == index }?.let {
+                        tasksList.value.find { it.id.toInt() == index }?.let {
                             vm.setActivePage(it.title)
                         }
 
-                        ShowTaskDetails(tasksList, index = index ?: 1, onComplete = {
+                        ShowTaskDetails(tasksList.value.toMutableList(), index = index ?: 1, onComplete = {
                             it.complete()
                             onItemSelect(1, null, null, null)
                         })
@@ -335,9 +336,9 @@ fun ContentView(
                         )
                     ) { entry ->
                         val index = entry.arguments?.getInt("index")
-                        val taskEditing = tasksList.find { it.id.toInt() == index }
+                        val taskEditing = tasksList.value.find { it.id.toInt() == index }
 
-                        tasksList.find { it.id.toInt() == index }?.let {
+                        tasksList.value.find { it.id.toInt() == index }?.let {
                             vm.setActivePage(it.title)
                             if (taskVM.task.id != it.id)
                                 taskVM.setTask(it)
@@ -362,7 +363,7 @@ fun ContentView(
                         val index = entry.arguments?.getInt("index")
                         var user = User()
                         if (index != null) {
-                            user = vm.activeTeam.collectAsState().value.members.find { it.id.toInt() == index }!!
+                            user = activeTeam.members.find { it.id.toInt() == index }!!
                         }
                         UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }

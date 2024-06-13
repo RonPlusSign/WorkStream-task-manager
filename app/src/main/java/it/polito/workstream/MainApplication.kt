@@ -14,7 +14,10 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.firestore
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Comment
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
@@ -44,46 +48,142 @@ class MainApplication : Application() {
 
     }
 
-    fun fetchUsers(): Flow<List<User>> = callbackFlow {
-        val listener = db.collection("users").addSnapshotListener { r, e ->
-            if (r != null) {
-                val users = r.toObjects(User::class.java)
-                trySend(users)
-                for (document in r) {
-                    Log.d("User", "${document.id} => ${document.data}")
+    val _user = MutableStateFlow(User())
+    val user: StateFlow<User> = _user
+
+    private var activeTeamId = MutableStateFlow(0L)
+    fun getActiveTeam(): Flow<Team?> = callbackFlow {
+        db.collection("Teams").whereEqualTo("id", activeTeamId).limit(1)
+            .addSnapshotListener { value, error ->
+                if (value != null) {
+                    val team = value.documents[0].toObject(Team::class.java)
+                    trySend(team)
+                } else {
+                    trySend(null)
                 }
-            } else {
-                Log.d("User", "Error getting documents: ", e)
+
+            }
+    }
+
+    val activeTeam = getActiveTeam()
+
+    fun getTeams() : Flow<List<Team>> = callbackFlow {
+        val userId:String = user.value.userId
+       val listener = db.collection("Teams").whereArrayContains("members", listOf(userId)).addSnapshotListener{r,e->
+           if (r != null) {
+               val teams = r.toObjects(Team::class.java)
+               trySend(teams)
+           }else{
+               trySend(emptyList())
+           }
+       }
+        awaitClose { listener.remove() }
+    }
+    fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
+            val listener =
+                db.collection("tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
+                    if (r != null) {
+                        val tasks = r.toObjects(Task::class.java)
+                        trySend(tasks)
+                    }
+                }
+            awaitClose { listener.remove() }
+        }
+    fun fetchUsers(teamId: String): Flow<List<User>> = callbackFlow {
+            val listener = db.collection("Teams").whereEqualTo("teamId", "teamId")
+                .addSnapshotListener { r, e ->
+                    if (r != null) {
+                        val users = r.toObjects(User::class.java)
+                        trySend(users)
+
+                    } else {
+                        trySend(emptyList())
+                    }
+                }
+
+            awaitClose { listener.remove() }
+    }
+
+    fun createTask(task: Task) {
+        db.collection("tasks").add(task)
+            .addOnSuccessListener { documentReference ->
+            Log.d("Firestore", "DocumentSnapshot written with ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                Log.w("Firestore", "Error adding document", e)
+            }
+
+    }
+
+    fun createTeam(team: Team) {
+        db.collection("Teams").add(team)
+            .addOnSuccessListener { documentReference ->
+                Log.d("Firestore", "DocumentSnapshot written with ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                Log.w("Firestore", "Error adding document", e)
+            }
+    }
+
+    var activePageValue =
+        MutableStateFlow(Route.TeamTasks.name)
+        private set
+
+    fun setActivePage(page: String) {
+        activePageValue.value = page
+    }
+
+    fun changeActiveTeamId(teamId: Long){
+        activeTeamId .value = teamId
+    }
+    //TODO
+    fun leaveTeam(team: Team, user: User) {
+        // Rimuovi il team dalla lista di team dell'utente
+        db.collection("users").document(user.email).update("teams", FieldValue.arrayRemove(team.teamId))
+
+
+        // Rimuovi i task dell'utente associati al team
+        val taskToRemove: MutableList<String> = mutableListOf()
+        db.collection("tasks").whereEqualTo("assignee", user.email).addSnapshotListener { value, error ->
+            value?.documents?.forEach{
+                taskToRemove.add(it.id)
+            }
+        }
+        taskToRemove.forEach {
+            db.collection("tasks").document(it).delete()
+        }
+
+        db.collection("users").document(user.email).update("teams", FieldValue.arrayRemove(team.teamId))
+
+        val taskIds = team.tasks.filter { it.assignee?.email == user.email }.map { it.taskId }
+        for (taskId in taskIds) {
+            db.collection("tasks").document(taskId).update("assignee", null)
+        }
+
+        _tasksList.value.forEach() {
+            if (it.team?.id == team.id && it.assignee?.id == user.id) {
+                it.assignee = null
             }
         }
 
-        awaitClose { listener.remove() }
-    }
 
-    fun fetchTeams(): Flow<List<Team>> = callbackFlow {
-        val listener = db.collection("Teams").addSnapshotListener { r, e ->
-            if (r != null) {
-                val teams = r.documents.map { val result = it.toObject(TeamDTO::class.java)!!; result.teamId=it.id; result }
+        // Rimuovi l'utente dalla lista di membri del team
+        _teams.value.find { it.id == team.id }?.members?.remove(user)
 
-                trySend(teams.map {  it.toTeam() })
-
-
-            } else {
-                Log.d("Team", "Error getting documents: ", e)
-            }
+        // Cambia il team attivo se necessario
+        if (user.teams.isNotEmpty()) {
+            changeActiveTeamId(
+                _userList.value.find { it.id == user.id }?.teams?.get(0)?.id ?: 0
+            )
+        } else {
+            changeActiveTeamId(0)
         }
-
-        awaitClose { listener.remove() }
     }
-    val users = fetchUsers()    // TODO: ricordati di chiamarla sennò non vedi nulla!
-    val teamsasdasd = fetchTeams()
 
 
 
-
-
-    // Insert initial data here, to be fetched in the view model factory
-    var _userList = MutableStateFlow(
+        // Insert initial data here, to be fetched in the view model factory
+        /*    var _userList = MutableStateFlow(
         mutableListOf(
             User(
                 firstName = "Cristoforo",
@@ -112,14 +212,16 @@ class MainApplication : Application() {
             ),
         )
     )
-        private set
+
 
     val userList: StateFlow<List<User>> = _userList
+*/
 
-    private fun getUserByName(name: String): User {
+        /*private fun getUserByName(name: String): User {
         return _userList.value.filter { (it.firstName + " " + it.lastName) == name }[0]
-    }
+    }*/
 
+        /*
     @SuppressLint("SimpleDateFormat")
     var _tasksList = MutableStateFlow(
         mutableListOf(
@@ -317,8 +419,8 @@ class MainApplication : Application() {
         _teams.value.add(team)
     }
 
-    val _activeTeam: MutableStateFlow<Team> = MutableStateFlow(_teams.value[0])
-    val activeTeam: StateFlow<Team> = _activeTeam
+    //val _activeTeam: MutableStateFlow<Team> = MutableStateFlow(_teams.value[0])
+    //val activeTeam: StateFlow<Team> = _activeTeam
 
 
     fun createEmptyTeam(name: String) {
@@ -393,8 +495,7 @@ class MainApplication : Application() {
         activePageValue.value = page
     }
 
-    val _user = MutableStateFlow(User())
-    val user: StateFlow<User?> = _user
+
 
     fun updateUserInFirestore(user: User) {
         db.collection("users").document(user.email).set(user)
@@ -437,10 +538,10 @@ class MainApplication : Application() {
         _teams.value.find { it.id == teamId }?.members?.remove(teams.value.find { it.id == teamId }?.members?.find { it.id == userId })
     }
 
-    val chatModel = ChatModel(_userList.value)
+    val chatModel = ChatModel(_userList.value)*/
+
 
 }
-
 class ChatModel(userList: List<User>) {
     private val _chats: MutableStateFlow<MutableMap<User, MutableList<ChatMessage>>> =
         MutableStateFlow(

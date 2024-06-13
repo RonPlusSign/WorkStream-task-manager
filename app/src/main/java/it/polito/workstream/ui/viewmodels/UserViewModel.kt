@@ -9,10 +9,12 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import it.polito.workstream.ChatModel
 import it.polito.workstream.ui.models.ChatMessage
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
-class UserViewModel(user: User, activeTeamId: Long, val usersList: StateFlow<List<User>>, val chatModel: ChatModel, val editUser : (String, String, String, String )-> Unit) : ViewModel() {
+class UserViewModel(user: User, activeTeamId: Flow<Team?>, val usersList: StateFlow<List<User>>, val chatModel: ChatModel, val editUser: (String, String, String, String )-> Unit) : ViewModel() {
 
     var isEditing by mutableStateOf(false)
         private set

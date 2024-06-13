@@ -2,6 +2,7 @@ package it.polito.workstream.ui.models
 
 import android.util.Log
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import kotlinx.coroutines.channels.awaitClose
@@ -56,11 +57,13 @@ override fun toString(): String {
 
 
     fun toTeam() : Team {
+
         return Team(
             name= teamName,
             teamId = teamId,
             adminFlow = fetchAdmin(),
-
+            sections =  sections,
+            profilePicture = mutableStateOf(teamPhoto)
 
         )
 
