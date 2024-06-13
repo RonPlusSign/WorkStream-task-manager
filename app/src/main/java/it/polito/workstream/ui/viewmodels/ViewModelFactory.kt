@@ -37,6 +37,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val removeMemberFromTeam = app::removeMemberFromTeam
     private val editUser = app::editUser
 
+    private val teamsasdasd = app.teamsasdasd
+
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         return when {
             modelClass.isAssignableFrom(TeamViewModel::class.java) -> user.value?.let {
@@ -82,7 +84,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 leaveTeam,
                 searchQuery,
                 setSearchQuery,
-                createEmptyTeam
+                createEmptyTeam,
+                teamsasdasd
             ) as T
 
             modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.shared.DrawerMenu
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.reflect.KFunction1
@@ -24,6 +25,7 @@ class TeamListViewModel(
     val searchQuery: MutableState<String>,
     val setSearchQuery: (newQuery: String) -> Unit,
     val createEmptyTeam: (name: String) -> Unit,
+    val teamsasdasd: Flow<List<Team>>,
 ) : ViewModel() {
 
     fun teamsToDrawerMenu(user:  StateFlow<User?>): List<DrawerMenu> {

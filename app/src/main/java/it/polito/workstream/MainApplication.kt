@@ -13,12 +13,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
+import it.polito.workstream.ui.models.TeamDTO
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +41,7 @@ class MainApplication : Application() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         db = Firebase.firestore
+
     }
 
     fun fetchUsers(): Flow<List<User>> = callbackFlow {
@@ -57,7 +60,27 @@ class MainApplication : Application() {
         awaitClose { listener.remove() }
     }
 
+    fun fetchTeams(): Flow<List<Team>> = callbackFlow {
+        val listener = db.collection("Teams").addSnapshotListener { r, e ->
+            if (r != null) {
+                val teams = r.documents.map { val result = it.toObject(TeamDTO::class.java)!!; result.teamId=it.id; result }
+
+                trySend(teams.map {  it.toTeam() })
+
+
+            } else {
+                Log.d("Team", "Error getting documents: ", e)
+            }
+        }
+
+        awaitClose { listener.remove() }
+    }
     val users = fetchUsers()    // TODO: ricordati di chiamarla sennò non vedi nulla!
+    val teamsasdasd = fetchTeams()
+
+
+
+
 
     // Insert initial data here, to be fetched in the view model factory
     var _userList = MutableStateFlow(

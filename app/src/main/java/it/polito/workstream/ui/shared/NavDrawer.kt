@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.shared
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -309,6 +310,16 @@ fun NavDrawer(
     val activeTeamId: String = vm.activeTeam.collectAsState().value.id.toString()
     val teams = vm.teams.collectAsState().value
     val scope = rememberCoroutineScope()
+    val teamsadas =vm.teamsasdasd.collectAsState(initial = listOf())
+    val membersasd = teamsadas.value.firstOrNull()?.membersFlow?.collectAsState(initial = listOf())
+    val admin = teamsadas.value.firstOrNull()?.adminFlow?.collectAsState(initial = null)
+    if (membersasd != null) {
+        if (membersasd.value.isNotEmpty()) {
+                Log.d("membersasd", membersasd.value[0].email)
+        }
+    }
+
+    Log.d("admin" , admin?.value?.email.toString() )
 
     ModalNavigationDrawer(
         drawerState = drawerState,
