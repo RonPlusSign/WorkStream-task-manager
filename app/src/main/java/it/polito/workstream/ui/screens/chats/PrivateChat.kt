@@ -1,17 +1,13 @@
 package it.polito.workstream.ui.screens.chats
 
-import android.graphics.drawable.shapes.Shape
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +20,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -39,23 +34,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.Timestamp
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.Purple80
 import it.polito.workstream.ui.theme.PurpleGrey80
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlinx.coroutines.delay
-import java.lang.Thread.sleep
+import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun Chat(
@@ -64,7 +58,9 @@ fun Chat(
 //    messages: List<ChatMessage>?,
 //    sendMessage: (User, ChatMessage) -> Unit
 ) {
-    val chats by vm.chats.collectAsState();
+    val chat = vm.chats.collectAsState(listOf()).value.find {
+        it.user1Id == destUser.email || it.user2Id == destUser.email
+    };
 
     Column {
         // The list of messages
@@ -75,7 +71,7 @@ fun Chat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            chats[destUser]?.reversed()?.forEach { mex ->
+            chat?.messages?.reversed()?.forEach { mex ->
                 item {
                     ChatMessageBox(mex, destUser, vm);
                 }
@@ -129,12 +125,10 @@ fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = vie
                         .align(if (message.isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
-                    message.timestamp?.let {
-                        Text(
-                            text = it.format(DateTimeFormatter.ofPattern("HH:mm")),
-                            fontSize = 12.sp
-                        )
-                    }
+                    Text(
+                        text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
+                        fontSize = 12.sp
+                    )
                 }
 
             }
@@ -165,7 +159,7 @@ fun ChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalC
                 Icon(Icons.AutoMirrored.Filled.Send,
                     contentDescription = "",
                     modifier = Modifier.clickable {
-                        vm.sendMessage(destUser, ChatMessage(newMessage, destUser, true, LocalDateTime.now()));
+                        vm.sendMessage(destUser, ChatMessage(newMessage, destUser, true, Timestamp.now()));
                         newMessage = "";
 //                        sleep(5000);
 //                        sendMessage(destUser, ChatMessage("Risposta di prova", "Autore", false))

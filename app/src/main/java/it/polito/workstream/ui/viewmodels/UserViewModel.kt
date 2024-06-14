@@ -2,6 +2,7 @@ package it.polito.workstream.ui.viewmodels
 
 import android.graphics.Bitmap
 import android.util.Patterns
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -9,10 +10,20 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import it.polito.workstream.ChatModel
 import it.polito.workstream.ui.models.ChatMessage
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.toList
 
-class UserViewModel(user: User, activeTeamId: Long, val usersList: StateFlow<List<User>>, val chatModel: ChatModel, val editUser : (String, String, String, String )-> Unit) : ViewModel() {
+class UserViewModel(
+    val user: User,
+    val activeTeam: Team,
+    val activeTeamId: Long,
+    val usersList: Flow<List<User>>,
+    val chatModel: ChatModel,
+    val editUser : (String, String, String, String )-> Unit
+) : ViewModel() {
 
     var isEditing by mutableStateOf(false)
         private set
@@ -143,20 +154,45 @@ class UserViewModel(user: User, activeTeamId: Long, val usersList: StateFlow<Lis
 
     // Chats
     val chats = chatModel.chats
+    fun getChatsOfTeamAndUser(): MutableMap<Pair<User, User>, MutableList<ChatMessage>>? {
+//        return chats[activeTeam]?.filter {
+//            it.key.first == user || it.key.second == user
+//        }?.filter {
+//            val firstFullName = it.key.first.firstName + " " + it.key.first.lastName
+//            val secondFullName = it.key.second.firstName + " " + it.key.second.lastName
+//            firstFullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true) || secondFullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true)
+//        }?.toMutableMap()
+        return null
+    }
+
     fun newChat(user: User) = chatModel.newChat(user)
     fun sendMessage(user: User, message: ChatMessage) = chatModel.sendMessage(user, message)
     fun editMessage(user: User, messageId: Long, newText: String) = chatModel.editMessage(user, messageId, newText)
     fun deleteMessage(user: User, messageId: Long) = chatModel.deleteMessage(user, messageId)
+    fun setMessageAsSeen(destUser: User, messageId: Long) = chatModel.setMessageAsSeen(destUser, messageId)
+    fun countUnseenChatMessages(destUser: User) = chatModel.countUnseenChatMessages(destUser)
+    fun sendTestMessage() = chatModel.sendTestMessage()
+
     var showEditDialog by mutableStateOf(false)
     fun toggleShowEditDialog() {
         showEditDialog = !showEditDialog
     }
 
     // Group chat
-    val groupChat = chatModel.groupChat
+    val groupChats = chatModel.groupChats.value
+    fun getGroupChatsOfTeam(): MutableList<ChatMessage>? {
+        return groupChats[activeTeam]?.filter {
+            val fullName = it.author.firstName + " " + it.author.lastName
+            fullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true)
+        }?.toMutableList()
+    }
+
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
     fun editGroupMessage(messageId: Long, newText: String) = chatModel.editGroupMessage(messageId, newText)
     fun deleteGroupMessage(messageId: Long) = chatModel.deleteGroupMessage(messageId)
+    fun setGroupMessageAsSeen(messageId: Long) = chatModel.setGroupMessageAsSeen(messageId)
+    fun countUnseenGroupMessages() = chatModel.countUnseenGroupMessages()
+    fun countAllUnseenMessages() = chatModel.countAllUnseenMessages()
 
     /* Number of teams */
     var numberOfTeams by mutableIntStateOf(user.teams.size)
@@ -170,8 +206,8 @@ class UserViewModel(user: User, activeTeamId: Long, val usersList: StateFlow<Lis
     var tasksToComplete by mutableIntStateOf(user.tasks.filter { !it.completed && (it.team?.id ?: -1) == activeTeamId }.size)
         private set
 
-    fun getUsers(): List<User> {
-        return usersList.value
+    fun getUsers(): Flow<List<User>> {
+        return usersList
     }
 
 

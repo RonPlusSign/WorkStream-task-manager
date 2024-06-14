@@ -31,7 +31,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun PersonalTasksScreen(
     getOfUser: (String) -> List<Task>,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     ActiveUser: String
 ) {
     WorkStreamTheme {
@@ -40,7 +40,7 @@ fun PersonalTasksScreen(
                 ExtendedFloatingActionButton(
                     text = { Text("Add new task") },
                     icon = { Icon(Icons.Default.Add, contentDescription = "Add Task") },
-                    { onTaskClick(3, null, null, null) },
+                    { onTaskClick(3, null, null, null, null) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -61,10 +61,10 @@ fun PersonalTasksScreen(
                     getOfUser(ActiveUser).forEach { task ->
                         item {
                             Column(
-                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null) }
+                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null, null) }
                             ) {
                                 SmallTaskBox(title = task.title, section = task.section, assignee = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                    onTaskClick(4, task.id.toInt(), task.title, null)
+                                    onTaskClick(4, task.id.toInt(), task.title, null, null)
                                 })
                             }
 
@@ -83,7 +83,7 @@ fun PersonalTasksScreenWrapper(
             LocalContext.current
         )
     ),
-    onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     activeUser: String
 ) {
     PersonalTasksScreen(

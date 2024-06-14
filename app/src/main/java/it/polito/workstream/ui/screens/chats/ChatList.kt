@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.chats
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.Timestamp
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -31,16 +32,16 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun ChatList(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
-    val chats by vm.chats.collectAsState()
-    val groupChat by vm.groupChat.collectAsState()
+    val chats by vm.chats.collectAsState(initial = listOf())
+    val groupChat = vm.getGroupChatsOfTeam()
 
     WorkStreamTheme {
         Scaffold (
             floatingActionButton = {
                ExtendedFloatingActionButton(
-                   onClick = { onChatClick(9, null, null, null) },
+                   onClick = { onChatClick(9, null, null, null, null) },
                    text = { Text("New chat") },
                    icon = { Icon(Icons.Default.Add, contentDescription = "Add Task") },
                    containerColor = MaterialTheme.colorScheme.primary,
@@ -62,12 +63,12 @@ fun ChatList(
                         Column(
                             modifier = Modifier
                                 .padding(top = 5.dp, bottom = 5.dp)
-                                .clickable { onChatClick(8, null, null, -1) }
+                                .clickable { onChatClick(8, null, null, -1, null) }
                         ) {
                             SmallChatBox(
                                 userName = "Team chat",
-                                lastMessage = groupChat.last().author.firstName + ": " + groupChat.last().text,
-                                timestamp = groupChat.last().timestamp,
+                                lastMessage = groupChat?.last()?.author?.firstName + ": " + groupChat?.last()?.text,
+                                timestamp = groupChat?.last()?.timestamp,
                                 isGroup = true
                             )
                         }
@@ -76,18 +77,26 @@ fun ChatList(
                     // Private chats
                     item { Text(text = "Private chats", fontSize = 20.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 8.dp)) }
                     chats.forEach { chat ->
+                        Log.d("Chat", "Chat with id " + chat.user1Id + " " + chat.user2Id)
                         item {
+                            val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
+                            val destUser = vm.usersList.collectAsState(listOf()).value.find {
+                                it.email == destUserId
+                            }
                             Column(
                                 modifier = Modifier
                                     .padding(top = 5.dp, bottom = 5.dp)
-                                    .clickable { onChatClick(8, null, null, chat.key.id) }
+                                    .clickable {
+                                        onChatClick(8, null, null, null, destUserId)
+                                    }
                             ) {
                                 SmallChatBox(
-                                    userName = chat.key.firstName + " " + chat.key.lastName,
-                                    lastMessage = chat.value.last().text,
-                                    timestamp = chat.value.last().timestamp,
+                                    userName = destUser?.firstName + " " + destUser?.lastName,
+                                    lastMessage = chat.messages.lastOrNull()?.text?:"No message",
+                                    timestamp = chat.messages.lastOrNull()?.timestamp?: Timestamp.now(),
                                     isGroup = false
                                 )
+
                             }
                         }
                     }

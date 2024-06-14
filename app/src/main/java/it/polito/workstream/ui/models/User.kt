@@ -47,20 +47,4 @@ class User(
     }
 }
 
-class ChatMessage(
-    val id: Long = getNewId(),
-    var text: String,
-    val author: User,
-    val isFromMe: Boolean,
-    val timestamp: LocalDateTime? = LocalDateTime.now().withSecond(0),
-) {
-    // Secondary constructor, which allows to create a comment without specifying the id
-    constructor(text: String, author: User, isFromMe: Boolean, timestamp: LocalDateTime?) : this(getNewId(), text, author, isFromMe, timestamp)
-
-    companion object {  // To generate unique identifiers for comments
-        private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
-    }
-}
-
 

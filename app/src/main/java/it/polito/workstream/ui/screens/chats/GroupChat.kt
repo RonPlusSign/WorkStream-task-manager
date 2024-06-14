@@ -43,19 +43,22 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.Timestamp
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.theme.Purple80
 import it.polito.workstream.ui.theme.PurpleGrey80
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val groupChat by vm.groupChat.collectAsState()
+    val groupChat = vm.getGroupChatsOfTeam()
 
     Column (
         modifier = Modifier.fillMaxSize()
@@ -67,7 +70,7 @@ fun GroupChat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            groupChat.reversed().forEach { mex ->
+            groupChat?.reversed()?.forEach { mex ->
                 item {
                     GroupChatMessageBox(message = mex, vm)
                 }
@@ -124,7 +127,7 @@ fun GroupChatMessageBox(message: ChatMessage, vm: UserViewModel = viewModel(fact
                 ) {
                     message.timestamp?.let {
                         Text(
-                            text = it.format(DateTimeFormatter.ofPattern("HH:mm")),
+                            text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(it),
                             fontSize = 12.sp
                         )
                     }
@@ -159,7 +162,7 @@ fun GroupChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(L
                     Icons.AutoMirrored.Filled.Send,
                     contentDescription = "",
                     modifier = Modifier.clickable {
-                        vm.sendGroupMessage(ChatMessage(newMessage, vm.getUsers()[0], true, LocalDateTime.now()))
+                        vm.sendGroupMessage(ChatMessage(newMessage, vm.user, true, Timestamp.now()))
                         newMessage = ""
 //                        sleep(5000);
 //                        sendMessage(destUser, ChatMessage("Risposta di prova", "Autore", false))

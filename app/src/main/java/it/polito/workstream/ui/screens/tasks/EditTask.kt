@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AvTimer
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material3.Button
@@ -51,10 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
-import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TaskViewModel
-import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import java.sql.Timestamp
@@ -72,7 +69,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTaskScreen(
-    changeRoute: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    changeRoute: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     teamVM: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
@@ -300,7 +297,7 @@ fun EditTaskScreen(
         OutlinedButton(
             onClick = {
                 taskListVM.deleteTask(vm.task)
-                changeRoute(1, null, null, null)
+                changeRoute(1, null, null, null, null)
             },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.outlinedButtonColors().copy(contentColor = MaterialTheme.colorScheme.error),
@@ -320,7 +317,7 @@ fun EditTaskScreen(
             onClick = {
                 if (vm.isTaskValid()) {
                     saveTask(vm.save())
-                    changeRoute(1, null, null, null)
+                    changeRoute(1, null, null, null, null)
                 }
             },
             modifier = Modifier.fillMaxWidth(),

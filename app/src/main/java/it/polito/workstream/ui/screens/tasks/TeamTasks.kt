@@ -64,7 +64,7 @@ fun TeamTasksScreen(
     deleteSection: (String) -> Unit,
     setNewSection: (String) -> Unit,
     newSectionError: String,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     toggleAddSection: () -> Unit,
     validateSection: () -> Unit,
     currentSortOrder: MutableStateFlow<String>
@@ -83,7 +83,7 @@ fun TeamTasksScreen(
                     icon = { Icon(Icons.Default.Add, contentDescription = "Add Task") },
                     onClick = {
                         //onAddTask("General")
-                        onTaskClick(3, null, null, null)
+                        onTaskClick(3, null, null, null, null)
                     },
 
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -189,12 +189,12 @@ fun TeamTasksScreen(
                                         getOfSection(section, sortOrder).forEach { task ->
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
-                                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null) }//navigation
+                                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null, null) }//navigation
                                             ) {
                                                 SmallTaskBox(title = task.title, assignee = (task.assignee?.firstName
                                                     ?: "") + " " + (task.assignee?.lastName ?: ""), section = null, dueDate = task.dueDate, task = task, onEditClick = {
                                                     //editTask(task)
-                                                    onTaskClick(4, task.id.toInt(), task.title, null)
+                                                    onTaskClick(4, task.id.toInt(), task.title, null, null)
                                                 })
                                                 Spacer(modifier = Modifier.weight(1f))
                                             }
@@ -268,7 +268,7 @@ fun TeamTasksScreen(
 }
 
 @Composable
-fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit) {
+fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit) {
     TeamTasksScreen(
         sections = vm.sections,
         getOfSection = vm::getOfSection,

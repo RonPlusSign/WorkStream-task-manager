@@ -39,6 +39,7 @@ import it.polito.workstream.ui.shared.*
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
+import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.launch
 
@@ -153,6 +154,7 @@ fun LoadingScreen() {
 fun ContentView(
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    userVM: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
     val tasksList = vm.activeTeam.collectAsState().value.tasks
@@ -166,7 +168,13 @@ fun ContentView(
     }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-    val onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit = { route: Int, taskId: Int?, taskName: String?, userId: Long? ->
+    val onItemSelect: (
+        route: Int,
+        taskId: Int?,
+        taskName: String?,
+        userId: Long?,
+        userMail: String?
+    ) -> Unit = { route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String? ->
 
         val routeName = when (route) {
             1 -> when (taskId) {
@@ -188,10 +196,11 @@ fun ContentView(
             }
 
             7 -> Route.Back.name
-            8 -> when (userId) {
-                null -> Route.ChatScreen.name
-                (-1).toLong() -> "${Route.ChatScreen.name}/group"
-                else -> "${Route.ChatScreen.name}/${userId}"
+            8 -> when {
+                userId == null && userMail == null -> Route.ChatScreen.name
+                userId == (-1).toLong() && userMail == null -> "${Route.ChatScreen.name}/group"
+                userId == null && userMail != null -> "${Route.ChatScreen.name}/${userMail}"
+                else -> Route.ChatScreen.name
             }
 
             9 -> Route.NewChat.name
@@ -256,14 +265,17 @@ fun ContentView(
                         route = "${Route.ChatScreen.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.LongType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
-                        val index = entry.arguments?.getLong("index")
-                        val destUser = index?.let { vm.activeTeam.value.members.find { it.id == index } }
+                        val index = entry.arguments?.getString("index")
+                        val destUser = index?.let {
+                            userVM.getUsers().collectAsState(initial = listOf()).value.find { it.email==index }
+                        }
+                        Log.d("Chat", destUser?.email?:"destuser not found")
 
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
@@ -320,7 +332,7 @@ fun ContentView(
 
                         ShowTaskDetails(tasksList, index = index ?: 1, onComplete = {
                             it.complete()
-                            onItemSelect(1, null, null, null)
+                            onItemSelect(1, null, null, null, null)
                         })
                     }
 

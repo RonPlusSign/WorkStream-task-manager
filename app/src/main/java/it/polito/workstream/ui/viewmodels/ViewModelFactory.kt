@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import it.polito.workstream.MainApplication
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -14,7 +15,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val app = (context.applicationContext as? MainApplication) ?: throw IllegalArgumentException("Bad Application class")
 
     private val tasksList: MutableStateFlow<MutableList<Task>> = app.tasksList
-    private val userList: StateFlow<List<User>> = app.userList
+    private val userList: Flow<List<User>> = app.users
     private val teams = app.teams
     private val addTeam = app::addTeam
     private val removeTeam = app::removeTeam
@@ -52,6 +53,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
             modelClass.isAssignableFrom(UserViewModel::class.java) -> user.value?.let {
                 UserViewModel(
                     it,
+                    activeTeam.value,
                     activeTeam.value.id,
                     userList,
                     chatModel,

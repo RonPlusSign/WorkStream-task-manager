@@ -30,14 +30,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.Timestamp
+import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun SmallChatBox(
     userName: String,
     lastMessage: String,
-    timestamp: LocalDateTime?,
+    timestamp: Timestamp?,
     isGroup: Boolean
 ) {
     Card(
@@ -78,7 +83,10 @@ fun SmallChatBox(
                 horizontalAlignment = Alignment.End,
                 modifier = Modifier.padding(end = 5.dp)
             ) {
-                timestamp?.format(DateTimeFormatter.ofPattern("HH:mm"))?.let { Text(text = it) }
+                if (timestamp != null) {
+                    Text(text = DateTimeFormatter.ofPattern("HH:mm").format(timestamp.toDate().toInstant().atZone(
+                        ZoneId.systemDefault()).toLocalDateTime()))
+                }
             }
         }
     }

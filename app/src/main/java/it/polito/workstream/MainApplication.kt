@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -15,6 +16,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import it.polito.workstream.ui.models.Chat
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
@@ -25,20 +27,25 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import kotlin.random.Random
 
 
 class MainApplication : Application() {
     lateinit var db: FirebaseFirestore
+    lateinit var chatModel: ChatModel
 
     lateinit var context: Context
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         db = Firebase.firestore
+        chatModel = ChatModel(users, teams.value, _user, _activeTeam, db)
     }
 
     fun fetchUsers(): Flow<List<User>> = callbackFlow {
@@ -57,7 +64,7 @@ class MainApplication : Application() {
         awaitClose { listener.remove() }
     }
 
-    val users = fetchUsers()    // TODO: ricordati di chiamarla sennò non vedi nulla!
+    val users: Flow<List<User>> = fetchUsers()  // TODO: ricordati di chiamarla sennò non vedi nulla!
 
     // Insert initial data here, to be fetched in the view model factory
     var _userList = MutableStateFlow(
@@ -414,107 +421,295 @@ class MainApplication : Application() {
         _teams.value.find { it.id == teamId }?.members?.remove(teams.value.find { it.id == teamId }?.members?.find { it.id == userId })
     }
 
-    val chatModel = ChatModel(_userList.value)
-
 }
 
-class ChatModel(userList: List<User>) {
-    private val _chats: MutableStateFlow<MutableMap<User, MutableList<ChatMessage>>> =
-        MutableStateFlow(
-            mutableStateMapOf(
-                (userList[1] to mutableStateListOf(
-                    ChatMessage(
-                        "Buongiorno! Quando possiamo organizzare un meeting?",
-                        userList[1],
-                        false,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Buondì, io sono sempre disponibile!",
-                        userList[0],
-                        true,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Perfetto, allora contatto il manager e cerco di programmarlo per la prossima settimana",
-                        userList[1],
-                        false,
-                        LocalDateTime.now()
-                    )
-                )),
-                userList[2] to mutableStateListOf(
-                    ChatMessage(
-                        "Mi sono stancato della democrazia",
-                        userList[2],
-                        false,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Dovresti andare un po' in vacanza",
-                        userList[0],
-                        true,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Oppure fare una dittatura",
-                        userList[2],
-                        false,
-                        LocalDateTime.now()
-                    )
-                )
-            )
+
+class ChatModel(
+    val userList: Flow<List<User>>,
+    val teamList: List<Team>,
+    val currentUser: MutableStateFlow<User>,
+    val currentTeam: MutableStateFlow<Team>,
+    val db: FirebaseFirestore
+) {
+//    private val _chats: MutableStateFlow<MutableMap<Team, MutableMap<Pair<User, User>, MutableList<ChatMessage>>>> = MutableStateFlow(
+//        mutableStateMapOf(
+//            teamList[0] to
+//                    mutableStateMapOf(
+//                        Pair(userList[0], userList[1]) to mutableStateListOf(
+//                            ChatMessage(
+//                                "Buongiorno! Quando possiamo organizzare un meeting?",
+//                                userList[1],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[0], userList[1])
+//                            ),
+//                            ChatMessage(
+//                                "Buondì, io sono sempre disponibile!",
+//                                userList[0],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[0], userList[1])
+//                            ),
+//                            ChatMessage(
+//                                "Perfetto, allora contatto il manager e cerco di programmarlo per la prossima settimana",
+//                                userList[1],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[1])
+//                            )
+//                        ),
+//                        Pair(userList[2], userList[3]) to mutableStateListOf(
+//                            ChatMessage(
+//                                "Hey, non dovresti poter vedere questa chat tu!",
+//                                userList[2],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[2], userList[3])
+//                            )
+//                        ),
+//                        Pair(userList[0], userList[2]) to mutableStateListOf(
+//                            ChatMessage(
+//                                "Mi sono stancato della democrazia",
+//                                userList[2],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[0], userList[2])
+//                            ),
+//                            ChatMessage(
+//                                "Dovresti andare un po' in vacanza",
+//                                userList[0],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[0], userList[2])
+//                            ),
+//                            ChatMessage(
+//                                "Oppure fare una dittatura",
+//                                userList[2],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[0], userList[2])
+//                            )
+//                        ),
+//                        Pair(userList[0], userList[3]) to mutableStateListOf(
+//                            ChatMessage(
+//                                "Che noia queste chat di prova",
+//                                userList[2],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[0], userList[3])
+//                            ),
+//                            ChatMessage(
+//                                "Non me ne parlare",
+//                                userList[0],
+//                                LocalDateTime.now(),
+//                                mutableListOf(userList[0], userList[3])
+//                            ),
+//                        )
+//                    )
+//        )
+//    )
+
+    //val chats: StateFlow<MutableMap<Team, MutableMap<Pair<User, User>, MutableList<ChatMessage>>>> = _chats
+
+    private fun fetchChats(): Flow<List<Chat>> = callbackFlow {
+        val listener = db.collection("chats").addSnapshotListener { r, e ->
+            if (r != null) {
+                val chats = mutableListOf<Chat>()
+
+                for (document in r) {
+                    val chat = document.toObject(Chat::class.java)
+
+                    Log.d("Chat", "${document.id} => ${document.data}")
+                    document.reference.collection("messages").get().addOnSuccessListener {
+                        val messages = it.toObjects(ChatMessage::class.java)
+                        chat.messages.addAll(messages)
+                    }
+
+                    chats.add(chat)
+                }
+
+                trySend(chats)
+            } else {
+                Log.d("Chat", "Error getting documents: ", e)
+            }
+        }
+
+        awaitClose { listener.remove() }
+    }
+    val chats: Flow<List<Chat>> = fetchChats()
+
+    fun addExampleChatToFirebase() {
+        Log.d("aaa", currentUser.value?.firstName + " " + currentUser.value?.lastName + " " + currentUser.value?.email)
+
+        val chatId = currentUser.value?.email + "_" + "" + "_" + "teamIDdiprova"
+        val chatData = hashMapOf(
+            "teamId" to "teamIDdiprova",
+            "user1Id" to currentUser.value?.email,
+            "user2Id" to "emaildiprova@gmail.com"
         )
-    val chats: StateFlow<MutableMap<User, MutableList<ChatMessage>>> = _chats
-    fun newChat(user: User) {
-        _chats.value.put(user, mutableStateListOf())
+
+        db.collection("chats")
+            .document(chatId)
+            .set(chatData)
+            .addOnSuccessListener {
+                Log.d("chat", "Chat creata con successo")
+            }
+            .addOnFailureListener { e ->
+                Log.d("chat","Errore nella creazione della chat: $e")
+            }
+    }
+
+    fun newChat(destUser: User) {
+        //_chats.value[currentTeam.value]?.put(Pair(currentUser.value, destUser), mutableListOf())
+        val chatId = currentUser.value.email + "_" + destUser.email + "_" + currentTeam.value.name
+        val chatData = hashMapOf(
+            "teamId" to currentTeam.value.name,
+            "user1Id" to currentUser.value.email,
+            "user2Id" to destUser.email
+        )
+
+        db.collection("chats")
+            .document(chatId)
+            .set(chatData)
+            .addOnSuccessListener {
+                Log.d("chat", "Chat creata con successo")
+            }
+            .addOnFailureListener { e ->
+                Log.d("chat","Errore nella creazione della chat: $e")
+            }
     }
 
     fun sendMessage(destUser: User, message: ChatMessage) {
-        _chats.value[destUser]?.add(message)
+//        _chats.value[currentTeam.value]?.entries?.find {
+//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
+//        }?.value?.add(message)
+        //val mychats = chats.filter { it.find { it.user1Id == currentUser.value.email && it.user2Id == destUser.email } != null } } }
     }
 
     fun editMessage(destUser: User, messageId: Long, newText: String) {
-        _chats.value[destUser]?.find { it.id == messageId }?.text = newText
+        //_chats.value[destUser]?.find { it.id == messageId }?.text = newText
     }
 
-    fun deleteMessage(user: User, messageId: Long) {
-        _chats.value[user]?.removeIf { it.id == messageId }
+    fun deleteMessage(destUser: User, messageId: Long) {
+//        _chats.value[currentTeam.value]?.entries?.find {
+//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
+//        }?.value?.removeIf { it.id == messageId }
     }
 
-    private val _groupChat: MutableStateFlow<MutableList<ChatMessage>> = MutableStateFlow(
-        mutableStateListOf(
-            ChatMessage(
-                "Benvenuti a tutti nella chat di gruppo!",
-                userList[0],
-                true,
-                LocalDateTime.now()
-            ),
-            ChatMessage("Ciao ragazzi!", userList[1], false, LocalDateTime.now()),
-            ChatMessage(
-                "Non scrivete troppi messaggi",
-                userList[2],
-                false,
-                LocalDateTime.now()
-            ),
-            ChatMessage(
-                "Sennimondoesistesseunpodibene",
-                userList[3],
-                false,
-                LocalDateTime.now()
-            ),
+    fun setMessageAsSeen(destUser: User, messageId: Long) {
+//        _chats.value[currentTeam.value]?.entries?.find {
+//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
+//        }?.value?.find { it.id == messageId }?.seenBy?.add(currentUser.value)
+
+    }
+
+    fun countUnseenChatMessages(destUser: User): Int {
+//        var count = 0
+//        _chats.value[currentTeam.value]?.entries?.find {
+//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
+//        }?.value?.forEach {
+//            if(!it.seenBy.contains(currentUser.value))
+//                count++
+//        }
+//        return count
+        return 0
+    }
+
+    fun sendTestMessage() {
+//        val list = listOf("Ciao bel maschione", "Smettila di drogarti", "Mandami il tuo numero di conto corrente, serve per salvare il paese", "Aiuto sono stato rapito.......dal tuo sguardo pupa", "Mattarella non esiste, sono il suo sostituto robotico, MatTechRella", "Fi falve buonafera, fono proprio io Fergione")
+//        val randomIndex = Random.nextInt(list.size)
+//        val randomElement = list[randomIndex]
+//
+//        _chats.value[currentTeam.value]?.entries?.find {
+//            it.key.first == currentUser.value && it.key.second == userList[1] || it.key.first == userList[1] && it.key.second == currentUser.value
+//        }?.value?.add(ChatMessage(randomElement, userList[1], LocalDateTime.now(), mutableListOf(userList[1])))
+    }
+
+    private val _groupChats: MutableStateFlow<MutableMap<Team, MutableList<ChatMessage>>> = MutableStateFlow(
+        mutableStateMapOf(
+//            teamList[0] to
+//                    mutableStateListOf(
+//                        ChatMessage(
+//                            "Benvenuti a tutti nella chat di gruppo!",
+//                            userList[0],
+//                            LocalDateTime.now(),
+//                            mutableListOf(userList[0], userList[1], userList[2], userList[3])
+//                        ),
+//                        ChatMessage(
+//                            "Ciao ragazzi!",
+//                            userList[1],
+//                            LocalDateTime.now(),
+//                            mutableListOf(userList[0], userList[1], userList[2], userList[3])
+//                        ),
+//                        ChatMessage(
+//                            "Non scrivete troppi messaggi",
+//                            userList[2],
+//                            LocalDateTime.now(),
+//                            mutableListOf(userList[0], userList[1], userList[2], userList[3])
+//                        ),
+//                        ChatMessage(
+//                            "Sennimondoesistesseunpodibene",
+//                            userList[3],
+//                            LocalDateTime.now(),
+//                            mutableListOf(userList[1], userList[2], userList[3])
+//                        ),
+//                    ),
+//            teamList[1] to
+//                    mutableStateListOf(
+//                        ChatMessage(
+//                            "Un'altra chat di gruppo",
+//                            userList[0],
+//                            LocalDateTime.now(),
+//                            mutableListOf(userList[0], userList[1], userList[2])
+//                        ),
+//                        ChatMessage(
+//                            "Di nuovo",
+//                            userList[2],
+//                            LocalDateTime.now(),
+//                            mutableListOf(userList[1], userList[2])
+//                        ),
+//                    )
         )
     )
-    val groupChat: StateFlow<MutableList<ChatMessage>> = _groupChat
+    val groupChats: StateFlow<MutableMap<Team, MutableList<ChatMessage>>> = _groupChats
+
+    fun getGroupChatOfTeam(): MutableStateFlow<MutableList<ChatMessage>?> {
+        return MutableStateFlow(_groupChats.value[currentTeam.value])
+    }
     fun sendGroupMessage(message: ChatMessage) {
-        _groupChat.value.add(message)
+        _groupChats.value[currentTeam.value]?.add(message)
     }
 
     fun editGroupMessage(messageId: Long, newText: String) {
-        _groupChat.value[messageId.toInt()].text = newText
+        //_groupChat.value[messageId.toInt()].text = newText
     }
 
     fun deleteGroupMessage(messageId: Long) {
-        _groupChat.value.removeIf { it.id == messageId }
+        _groupChats.value[currentTeam.value]?.removeIf { it.id == messageId }
+    }
+
+    fun setGroupMessageAsSeen(messageId: Long) {
+        //_groupChats.value[currentTeam.value]?.find { it.id == messageId }?.seenBy?.add(currentUser.value)
+    }
+
+    fun countUnseenGroupMessages(): Int {
+//        Log.d("unseen", currentTeam.value.name)
+//        var count = 0
+//        _groupChats.value[currentTeam.value]?.forEach {
+//            if (!it.seenBy.contains(currentUser.value)) {
+//                count++
+//            }
+//        }
+//        return count
+        return 0
+    }
+
+    fun countAllUnseenMessages(): Int {
+//        var count = 0;
+//        for (chat in _chats.value[currentTeam.value]?.entries?.filter { it.key.first == currentUser.value || it.key.second == currentUser.value }!!) {
+//            val destUser = if (chat.key.first == currentUser.value) chat.key.second else chat.key.first
+//            count += countUnseenChatMessages(destUser)
+//        }
+//        count += countUnseenGroupMessages()
+//        return count
+        return 0
+    }
+
+    val chatsSearchQuery = mutableStateOf("")
+    fun setChatsSearchQuery(newQuery: String) {
+        chatsSearchQuery.value = newQuery
     }
 }
 

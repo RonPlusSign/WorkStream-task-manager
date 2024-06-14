@@ -19,6 +19,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,9 +35,10 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun NewChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit
+    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit
 ) {
-    val users = vm.getUsers()
+    val users by vm.getUsers().collectAsState(initial = listOf())
+    val chats by vm.chats.collectAsState(initial = listOf())
 
     Column {
         LazyColumn (
@@ -51,12 +54,12 @@ fun NewChat(
                             .fillMaxWidth()
                             .padding(top = 5.dp, bottom = 5.dp)
                             .clickable {
-                               if(vm.chats.value[user] != null)
-                                   onChatClick(8, null, null, user.id)
-                               else {
-                                   vm.newChat(user)
-                                   onChatClick(8, null, null, user.id)
-                               }
+                                if (chats.find { it.user1Id == user.email || it.user2Id == user.email } != null)
+                                    onChatClick(8, null, null, null, user.email)
+                                else {
+                                    vm.newChat(user)
+                                    onChatClick(8, null, null, null, user.email)
+                                }
                             },
                         border = BorderStroke(0.5.dp, Color.Black),
                         shape = RoundedCornerShape(6.dp),
