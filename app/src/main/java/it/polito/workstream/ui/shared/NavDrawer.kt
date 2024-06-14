@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
@@ -69,6 +70,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import it.polito.workstream.Route
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -88,6 +90,7 @@ private fun DrawerContent(
     activeUser: StateFlow<User?>,
     myProfile: () -> Unit,
 ) {
+    val teams = vm.getTeams().collectAsState(initial = emptyList() ).value
 
 
     var active by rememberSaveable { mutableStateOf(false) }
@@ -191,8 +194,8 @@ private fun DrawerContent(
             )
         }
 
-        vm.teamsToDrawerMenu(activeUser).filter { it.title.contains(searchQuery) }.forEach {
-            val team = vm.teams.value.find { team -> team.id.toString() == it.route }!!
+        teamsToDrawerMenu(teams, activeUser).filter { it.title.contains(searchQuery) }.forEach {
+            val team = teams.find { team -> team.id.toString() == it.route }!!
             OutlinedCard(
                 colors = CardDefaults.cardColors(
                     containerColor = if (activeTeamId == it.route) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
@@ -307,19 +310,10 @@ fun NavDrawer(
     activeUser: StateFlow<User?>,
     content: @Composable () -> Unit = {},
 ) {
-    val activeTeamId: String = vm.activeTeam.collectAsState().value.id.toString()
-    val teams = vm.teams.collectAsState().value
+    val activeTeamId: String = vm.activeTeam.collectAsState(initial = null ).value?.id.toString()
     val scope = rememberCoroutineScope()
-    val teamsadas =vm.teamsasdasd.collectAsState(initial = listOf())
-    val membersasd = teamsadas.value.firstOrNull()?.membersFlow?.collectAsState(initial = listOf())
-    val admin = teamsadas.value.firstOrNull()?.adminFlow?.collectAsState(initial = null)
-    if (membersasd != null) {
-        if (membersasd.value.isNotEmpty()) {
-                Log.d("membersasd", membersasd.value[0].email)
-        }
-    }
 
-    Log.d("admin" , admin?.value?.email.toString() )
+
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -349,4 +343,9 @@ fun NavDrawer(
     ) {
         content()
     }
+}
+
+
+fun teamsToDrawerMenu(teams: List<Team>, user:  StateFlow<User?>): List<DrawerMenu> {
+    return teams.filter { u-> u.members.contains(user.value) }.map { DrawerMenu(Icons.Filled.Face, it.name , it.id.toString(), it.members.size) }
 }

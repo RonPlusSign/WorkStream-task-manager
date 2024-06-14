@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +52,9 @@ fun ConfirmJoinTeamPage(
     onCancel: () -> Unit,
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
 ) {
-    val team = teamId?.let { id -> vm.teams.value.find { it.id == id.toLong() } }
+    val teams = vm.getTeams().collectAsState(initial = emptyList())
+
+    val team = teamId?.let { id -> teams.value.find { it.id == id.toLong() } }
 
     Column(
         modifier = Modifier
@@ -86,7 +89,10 @@ fun ConfirmJoinTeamPage(
                                 Image(
                                     bitmap = bitmap.asImageBitmap(), contentDescription = null, modifier = Modifier
                                         .size(30.dp)
-                                        .background(MaterialTheme.colorScheme.onSurface, shape = CircleShape)
+                                        .background(
+                                            MaterialTheme.colorScheme.onSurface,
+                                            shape = CircleShape
+                                        )
                                 )
                             } ?: Box(
                                 modifier = Modifier

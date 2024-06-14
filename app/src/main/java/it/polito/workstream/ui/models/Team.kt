@@ -21,7 +21,8 @@ class Team(
     var membersFlow : Flow<List<User>> = flowOf(),
     var tasksFlow : Flow<List<Task>> = flowOf(),
     var adminFlow : Flow<User> = flowOf(),
-    var membersRef: CollectionReference? = null
+    var membersRef: CollectionReference? = null,
+    var adminEmail : String = ""
 
 ) {
     init {

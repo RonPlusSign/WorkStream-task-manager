@@ -16,9 +16,24 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val  createTask = app::createTask
     private val  createTeam = app::createTeam
 
+
     private val activePageValue = app.activePageValue
     private val setActivePage = app::setActivePage
     private val changeActiveTeamId = app::changeActiveTeamId
+
+    private val removeTeam =  app::removeTeam
+    private val leaveTeam = app::leaveTeam
+    private val joinTeam = app::joinTeam
+    private val createEmptyTeam = app::createEmptyTeam
+
+    private val  onTaskUpdated = app:: onTaskUpdated
+    private val deleteTask = app::deleteTask
+    private val onTaskCreated = app::onTaskCreated
+    private val currentSortOrder = app.currentSortOrder
+    private val setSortOrder = app::setSortOrder
+    private val filterParams = app.filterParams
+    private val searchQuery = app.searchQuery
+    private val setSearchQuery = app::setSearchQuery
 
     /*private val tasksList: MutableStateFlow<MutableList<Task>> = app.tasksList
     private val userList: StateFlow<List<User>> = app.userList
@@ -69,7 +84,21 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 )
             } as T
 
-            modelClass.isAssignableFrom(TaskListViewModel::class.java) -> TaskListViewModel(
+            modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
+                TaskListViewModel(
+                    activeTeam,
+                    onTaskUpdated,
+                    deleteTask,
+                    onTaskCreated,
+                    getTasks,
+                    currentSortOrder,
+                    setSortOrder,
+                    filterParams,
+                    searchQuery,
+                    setSearchQuery
+                ) as T
+                /*
+                TaskListViewModel(
                 tasksList,
                 sections,
                 activePageValue,
@@ -79,15 +108,22 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 filterParams,
                 searchQuery,
                 setSearchQuery
-            ) as T
+            ) as T*/
+
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->
+                //in teroria completo
                 TeamListViewModel(
                     activeTeam,
+                    getTeams,
                     getTasks,
                     activePageValue,
                     setActivePage,
-                    changeActiveTeamId
+                    changeActiveTeamId,
+                    removeTeam,
+                    leaveTeam,
+                    joinTeam,
+                    createEmptyTeam
                 ) as T
                 /*TeamListViewModel(
                 teams,

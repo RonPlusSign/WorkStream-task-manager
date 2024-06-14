@@ -52,11 +52,14 @@ class MainApplication : Application() {
     val user: StateFlow<User> = _user
 
     private var activeTeamId = MutableStateFlow(0L)
+    private var activeTeamIdString = MutableStateFlow("")
     fun getActiveTeam(): Flow<Team?> = callbackFlow {
         db.collection("Teams").whereEqualTo("id", activeTeamId).limit(1)
             .addSnapshotListener { value, error ->
                 if (value != null) {
                     val team = value.documents[0].toObject(Team::class.java)
+                    activeTeamId.value = team?.id!!
+                    activeTeamIdString.value  =  value.documents[0].id
                     trySend(team)
                 } else {
                     trySend(null)
@@ -89,6 +92,8 @@ class MainApplication : Application() {
                 }
             awaitClose { listener.remove() }
         }
+
+
     fun fetchUsers(teamId: String): Flow<List<User>> = callbackFlow {
             val listener = db.collection("Teams").whereEqualTo("teamId", "teamId")
                 .addSnapshotListener { r, e ->
@@ -138,46 +143,86 @@ class MainApplication : Application() {
     }
     //TODO
     fun leaveTeam(team: Team, user: User) {
-        // Rimuovi il team dalla lista di team dell'utente
-        db.collection("users").document(user.email).update("teams", FieldValue.arrayRemove(team.teamId))
+
+    }
+
+    //TODO e anche da cambiare
+    fun removeTeam(teamId: Long) {
+
+    }
+    //TODO e anche da cambiare
+    fun joinTeam(team : Team, user : User){
+
+    }
+
+    fun createEmptyTeam(nameTeam: String) {
+        val newTeam = Team(nameTeam, sections = mutableListOf("General"))
+        newTeam.adminEmail = user.value.email
+
+        val newTeamRef  =  db.collection("Teams").document()
+        val userRef = db.collection("users").document(user.value.email)
+
+        db.runTransaction {t->
+            t.update(userRef,"teams", FieldValue.arrayUnion(newTeamRef.id) )
+            t.set(newTeamRef,newTeam)
+        }
+        .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+        .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
 
-        // Rimuovi i task dell'utente associati al team
-        val taskToRemove: MutableList<String> = mutableListOf()
-        db.collection("tasks").whereEqualTo("assignee", user.email).addSnapshotListener { value, error ->
-            value?.documents?.forEach{
-                taskToRemove.add(it.id)
+    }
+
+    //TaskListViewModel
+
+    //update task
+    fun onTaskUpdated(updatedTask: Task) {
+        db.collection("task").document(updatedTask.taskId).set(updatedTask)
+    }
+
+    //TODO attenzione non elimina il task dal campo tasks del Team da fare!!!
+    fun deleteTask(task: Task) {
+        val taskRef = db.collection("task").document(task.taskId)
+        val userRef = task.assignee?.let { db.collection("users").document(it.email) }
+        db.runTransaction { t->
+
+            t.delete(taskRef)
+            task.assignee?.let {
+                if (userRef != null) {
+                    t.update(userRef, "tasks", FieldValue.arrayRemove(task.taskId))
+                }
             }
         }
-        taskToRemove.forEach {
-            db.collection("tasks").document(it).delete()
+        .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+        .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+
+
+
+    }
+    //TODO attenzione non aggiunge il task nel campo tasks del Team da fare!!!
+    fun onTaskCreated(task1: Task) {
+        val task= task1.copy()
+        val userRef = db.collection("users").document(task1.assignee?.email!!)
+        val taskRef = db.collection("task").document()
+        db.runTransaction {
+            it.update(userRef,"tasks", FieldValue.arrayUnion(taskRef.id))
+            it.set(taskRef, task)
         }
-
-        db.collection("users").document(user.email).update("teams", FieldValue.arrayRemove(team.teamId))
-
-        val taskIds = team.tasks.filter { it.assignee?.email == user.email }.map { it.taskId }
-        for (taskId in taskIds) {
-            db.collection("tasks").document(taskId).update("assignee", null)
-        }
-
-        _tasksList.value.forEach() {
-            if (it.team?.id == team.id && it.assignee?.id == user.id) {
-                it.assignee = null
-            }
-        }
+        .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+        .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
 
-        // Rimuovi l'utente dalla lista di membri del team
-        _teams.value.find { it.id == team.id }?.members?.remove(user)
 
-        // Cambia il team attivo se necessario
-        if (user.teams.isNotEmpty()) {
-            changeActiveTeamId(
-                _userList.value.find { it.id == user.id }?.teams?.get(0)?.id ?: 0
-            )
-        } else {
-            changeActiveTeamId(0)
-        }
+    }
+
+    val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
+    fun setSortOrder(newSortOrder: String) {
+        currentSortOrder.update { newSortOrder }
+    }
+    val filterParams = mutableStateOf(FilterParams())
+    val searchQuery = mutableStateOf("")
+
+    fun setSearchQuery(newQuery: String) {
+        searchQuery.value = newQuery
     }
 
 

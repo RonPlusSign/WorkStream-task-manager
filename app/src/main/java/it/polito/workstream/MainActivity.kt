@@ -382,7 +382,7 @@ fun ContentView(
                             navController = navController,
                             teamId = teamId,
                             onConfirm = { team ->
-                                vm.joinTeam(team, app.user)
+                                vm.joinTeam(team, app.user.value)
                                 navController.navigate("/${team.id}/${Route.TeamTasks.name}")
                             },
                             onCancel = {

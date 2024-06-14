@@ -51,10 +51,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
-import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TaskViewModel
-import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import java.sql.Timestamp
@@ -76,7 +74,7 @@ fun EditTaskScreen(
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     teamVM: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    saveTask: (Task) -> Unit = taskListVM::onTaskUpdated,
+    saveTask: (Task) -> Unit = taskListVM::onTaskUpdated.get(),
 ) {
     val datePickerState = rememberDatePickerState(initialDisplayMode = DisplayMode.Picker)
 
