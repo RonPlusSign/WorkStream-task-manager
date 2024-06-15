@@ -16,7 +16,6 @@ class Team(
     var admin: User? = null,
     var profilePicture: MutableState<String> = mutableStateOf(""),
     var profileBitmap: MutableState<Bitmap?> = mutableStateOf(null),
-    var teamId : String ="",
     var membersFlow : Flow<List<User>> = flowOf(),
     var tasksFlow : Flow<List<Task>> = flowOf(),
     var adminFlow : Flow<User> = flowOf(),

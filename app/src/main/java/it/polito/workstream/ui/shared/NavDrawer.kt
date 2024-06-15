@@ -1,8 +1,5 @@
 package it.polito.workstream.ui.shared
 
-import android.content.Context
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,12 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.PeopleAlt
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.AddReaction
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerState
@@ -36,13 +29,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,9 +56,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
-import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import it.polito.workstream.Route
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
@@ -84,58 +71,20 @@ data class DrawerMenu(val icon: ImageVector, val title: String, val route: Strin
 private fun DrawerContent(
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onMenuClick: (String) -> Unit,
-    onJoinTeam: (Long) -> Unit,
-    addNewTeam: (String) -> Unit,
     activeTeamId: String,
     activeUser: StateFlow<User?>,
     myProfile: () -> Unit,
+    drawerState: DrawerState,
+    navigateTo: (String) -> Any,
 ) {
-    val teams = vm.getTeams().collectAsState(initial = emptyList() ).value
-
-
+    val teams = vm.getTeams().collectAsState(initial = emptyList()).value
     var active by rememberSaveable { mutableStateOf(false) }
-    // New Team Dialog variables
-    var showNewTeamDialog by remember { mutableStateOf(false) }
-    var newTeamName by remember { mutableStateOf("") }
-    var newTeamNameError by remember { mutableStateOf("") }
-    var searchQuery by remember { mutableStateOf("") }
 
+    var searchQuery by remember { mutableStateOf("") }
     fun setSearchQuery(newQuery: String) {
         searchQuery = newQuery
     }
 
-    fun saveNewTeam() {
-        if (newTeamName.isBlank()) {
-            newTeamNameError = "Team name cannot be empty"
-        } else { // Save the new team
-            addNewTeam(newTeamName)
-            showNewTeamDialog = false
-        }
-    }
-
-    fun scanInviteLinkQR(context: Context, onJoinTeam: (teamId: Long) -> Unit, onCancel: () -> Unit) {
-        val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build()
-        val scanner = GmsBarcodeScanning.getClient(context, options)
-        scanner.startScan()
-            .addOnSuccessListener { barcode: Barcode -> // QR Scanned successfully: get the parameters from the barcode and join the team
-                val qrResult = barcode.rawValue
-                if (!qrResult.isNullOrEmpty()) {
-                    // The string should have the format "https://www.workstream.it/{teamId}"
-                    if (!qrResult.startsWith("https://www.workstream.it/")) {
-                        Toast.makeText(context, "Invalid QR code", Toast.LENGTH_SHORT).show()
-                        onCancel()
-                    } else {
-                        val teamId = qrResult.split("/").last()
-                        onJoinTeam(teamId.toLong())
-                    }
-                } else Toast.makeText(context, "Invalid QR code", Toast.LENGTH_SHORT).show()
-            }
-            .addOnCanceledListener { onCancel() }   // User canceled the operation
-            .addOnFailureListener { _ -> // Task failed with an exception
-                Toast.makeText(context, "Error scanning QR code", Toast.LENGTH_SHORT).show()
-                onCancel()
-            }
-    }
 
     Column(
         modifier = Modifier
@@ -170,29 +119,6 @@ private fun DrawerContent(
             content = {}
         )
 
-        // New Team Dialog
-        if (showNewTeamDialog) {
-            AlertDialog(onDismissRequest = { showNewTeamDialog = false },
-                title = { Text("Choose the team name") },
-                text = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        OutlinedTextField(
-                            value = newTeamName,
-                            onValueChange = { newTeamName = it; newTeamNameError = "" },
-                            label = { Text("Team Name") },
-                            isError = newTeamNameError.isNotBlank(),
-                            leadingIcon = { Icon(Icons.Default.PeopleAlt, contentDescription = "Team Name") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        if (newTeamNameError.isNotBlank()) { // Small text with error
-                            Text(text = newTeamNameError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                },
-                confirmButton = { TextButton(onClick = { saveNewTeam() }) { Text("Save") } },
-                dismissButton = { TextButton(onClick = { showNewTeamDialog = false }) { Text("Cancel") } }
-            )
-        }
 
         teamsToDrawerMenu(teams, activeUser).filter { it.title.contains(searchQuery) }.forEach {
             val team = teams.find { team -> team.id.toString() == it.route }!!
@@ -265,32 +191,16 @@ private fun DrawerContent(
         }
         Spacer(modifier = Modifier.weight(1f))
 
-        // Join Team and Create Team buttons
-        Row(modifier = Modifier.fillMaxWidth()) {
-            val context = LocalContext.current
-            OutlinedButton(modifier = Modifier
-                .padding(5.dp)
-                .weight(1f),
-                onClick = { scanInviteLinkQR(context = context, onJoinTeam = onJoinTeam, onCancel = { showNewTeamDialog = false }) }
-            ) {
-                Text(text = "Join a team")
-                Icon(
-                    Icons.Default.PersonAdd, contentDescription = "Save changes", modifier = Modifier
-                        .padding(start = 8.dp)
-                        .size(20.dp)
-                )
-            }
-            OutlinedButton(modifier = Modifier
-                .padding(5.dp)
-                .weight(1f), onClick = { showNewTeamDialog = true; newTeamName = ""; newTeamNameError = "" }) {
-                Text(text = "Create Team")
-                Icon(
-                    Icons.Outlined.AddReaction, contentDescription = "Save changes", modifier = Modifier
-                        .padding(start = 8.dp)
-                        .size(20.dp)
-                )
-            }
-        }
+        val scope = rememberCoroutineScope()
+        JoinOrCreateTeam(
+            onJoinTeam = {
+                scope.launch { drawerState.close() }
+                navigateTo("profile?id=$it")
+            },
+
+            addNewTeam = { teamName -> vm.createEmptyTeam(teamName) },
+        )
+
 
         // My Account button
         Button(onClick = { myProfile() }, modifier = Modifier.fillMaxWidth()) {
@@ -310,10 +220,8 @@ fun NavDrawer(
     activeUser: StateFlow<User?>,
     content: @Composable () -> Unit = {},
 ) {
-    val activeTeamId: String = vm.activeTeam.collectAsState(initial = null ).value?.id.toString()
+    val activeTeamId: String = vm.activeTeam.collectAsState(initial = null).value?.id.toString()
     val scope = rememberCoroutineScope()
-
-
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -326,17 +234,13 @@ fun NavDrawer(
                         navigateTo("/${it}/${Route.TeamTasks.name}")
                     },
 
-                    onJoinTeam = {
-                        scope.launch { drawerState.close() }
-                        navigateTo("profile?id=$it")
-                    },
-
                     myProfile = {
                         scope.launch { drawerState.close() }
                         navigateTo(Route.UserView.name)
                     },
-                    addNewTeam = { teamName -> vm.createEmptyTeam(teamName) },
-                    activeUser = activeUser
+                    activeUser = activeUser,
+                    drawerState = drawerState,
+                    navigateTo = navigateTo
                 )
             }
         },
@@ -346,6 +250,6 @@ fun NavDrawer(
 }
 
 
-fun teamsToDrawerMenu(teams: List<Team>, user:  StateFlow<User?>): List<DrawerMenu> {
-    return teams.filter { u-> u.members.contains(user.value) }.map { DrawerMenu(Icons.Filled.Face, it.name , it.id.toString(), it.members.size) }
+fun teamsToDrawerMenu(teams: List<Team>, user: StateFlow<User?>): List<DrawerMenu> {
+    return teams.filter { u -> u.members.contains(user.value) }.map { DrawerMenu(Icons.Filled.Face, it.name, it.id.toString(), it.members.size) }
 }

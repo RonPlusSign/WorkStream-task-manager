@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.update
-import java.time.LocalDateTime
 
 
 class MainApplication : Application() {
@@ -42,7 +41,7 @@ class MainApplication : Application() {
 
     private var activeTeamId = MutableStateFlow("")
     fun fetchActiveTeam(): Flow<Team?> = callbackFlow {
-        db.collection("Teams").whereEqualTo("id", activeTeamId).limit(1)
+        db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
             .addSnapshotListener { value, error ->
                 if (value != null) {
                     val team = value.documents[0].toObject(Team::class.java)
@@ -606,51 +605,8 @@ val chatModel = ChatModel(_userList.value)*/
 }
 
 class ChatModel(userList: List<User>) {
-    private val _chats: MutableStateFlow<MutableMap<User, MutableList<ChatMessage>>> =
-        MutableStateFlow(
-            mutableStateMapOf(
-                (userList[1] to mutableStateListOf(
-                    ChatMessage(
-                        "Buongiorno! Quando possiamo organizzare un meeting?",
-                        userList[1],
-                        false,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Buondì, io sono sempre disponibile!",
-                        userList[0],
-                        true,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Perfetto, allora contatto il manager e cerco di programmarlo per la prossima settimana",
-                        userList[1],
-                        false,
-                        LocalDateTime.now()
-                    )
-                )),
-                userList[2] to mutableStateListOf(
-                    ChatMessage(
-                        "Mi sono stancato della democrazia",
-                        userList[2],
-                        false,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Dovresti andare un po' in vacanza",
-                        userList[0],
-                        true,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Oppure fare una dittatura",
-                        userList[2],
-                        false,
-                        LocalDateTime.now()
-                    )
-                )
-            )
-        )
+    private val _chats: MutableStateFlow<MutableMap<User, MutableList<ChatMessage>>> = MutableStateFlow(mutableStateMapOf())
+
     val chats: StateFlow<MutableMap<User, MutableList<ChatMessage>>> = _chats
     fun newChat(user: User) {
         _chats.value.put(user, mutableStateListOf())
@@ -668,29 +624,7 @@ class ChatModel(userList: List<User>) {
         _chats.value[user]?.removeIf { it.id == messageId }
     }
 
-    private val _groupChat: MutableStateFlow<MutableList<ChatMessage>> = MutableStateFlow(
-        mutableStateListOf(
-            ChatMessage(
-                "Benvenuti a tutti nella chat di gruppo!",
-                userList[0],
-                true,
-                LocalDateTime.now()
-            ),
-            ChatMessage("Ciao ragazzi!", userList[1], false, LocalDateTime.now()),
-            ChatMessage(
-                "Non scrivete troppi messaggi",
-                userList[2],
-                false,
-                LocalDateTime.now()
-            ),
-            ChatMessage(
-                "Sennimondoesistesseunpodibene",
-                userList[3],
-                false,
-                LocalDateTime.now()
-            ),
-        )
-    )
+    private val _groupChat: MutableStateFlow<MutableList<ChatMessage>> = MutableStateFlow(mutableStateListOf())
     val groupChat: StateFlow<MutableList<ChatMessage>> = _groupChat
     fun sendGroupMessage(message: ChatMessage) {
         _groupChat.value.add(message)

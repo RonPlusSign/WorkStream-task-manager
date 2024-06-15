@@ -87,7 +87,7 @@ fun PersonalTasksScreenWrapper(
     activeUser: String
 ) {
     val activeTeam = vm.activeTeam.collectAsState(null).value!!
-    val tasksList = vm.getTasks(activeTeam.teamId).collectAsState(initial = emptyList())
+    val tasksList = vm.getTasks(activeTeam.id).collectAsState(initial = emptyList())
 
     PersonalTasksScreen(getOfUser = vm::getOfUser, onItemSelect, activeUser, tasksList)
 }

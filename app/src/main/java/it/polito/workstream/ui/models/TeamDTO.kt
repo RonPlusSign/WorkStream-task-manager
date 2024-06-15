@@ -1,7 +1,6 @@
 package it.polito.workstream.ui.models
 
 import android.util.Log
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
@@ -50,21 +49,18 @@ class TeamDTO {
             }
         }
 
-        awaitClose {
-            listener?.remove()
-        }
+        awaitClose { listener?.remove() }
     }
 
 
     fun toTeam(): Team {
 
         return Team(
+            id = teamId,
             name = teamName,
-            teamId = teamId,
             adminFlow = fetchAdmin(),
             sections = sections,
             profilePicture = mutableStateOf(teamPhoto)
-
         )
 
     }
