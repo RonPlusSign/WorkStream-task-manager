@@ -174,6 +174,18 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
     }
 
+    fun addSectionToTeam(section: String) {
+        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayUnion(section))
+            .addOnSuccessListener { Log.d("Firestore", "Section added to team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error adding section to team", e) }
+    }
+
+    fun removeSectionFromTeam(section: String) {
+        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayRemove(section))
+            .addOnSuccessListener { Log.d("Firestore", "Section removed from team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing section from team", e) }
+    }
+
     //TaskListViewModel
 
     //update task
