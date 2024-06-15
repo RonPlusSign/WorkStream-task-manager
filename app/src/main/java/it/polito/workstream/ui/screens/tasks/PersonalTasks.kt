@@ -31,7 +31,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun PersonalTasksScreen(
     getOfUser: (String) -> List<Task>,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     ActiveUser: String
 ) {
     WorkStreamTheme {
@@ -61,10 +61,10 @@ fun PersonalTasksScreen(
                     getOfUser(ActiveUser).forEach { task ->
                         item {
                             Column(
-                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null, null) }
+                                modifier = Modifier.clickable { onTaskClick(1, task.title, task.title, null, null) }
                             ) {
                                 SmallTaskBox(title = task.title, section = task.section, assignee = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                    onTaskClick(4, task.id.toInt(), task.title, null, null)
+                                    onTaskClick(4, task.title, task.title, null, null)
                                 })
                             }
 
@@ -83,7 +83,7 @@ fun PersonalTasksScreenWrapper(
             LocalContext.current
         )
     ),
-    onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     activeUser: String
 ) {
     PersonalTasksScreen(

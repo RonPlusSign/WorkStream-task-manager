@@ -69,7 +69,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTaskScreen(
-    changeRoute: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    changeRoute: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     teamVM: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),

@@ -170,11 +170,11 @@ fun ContentView(
 
     val onItemSelect: (
         route: Int,
-        taskId: Int?,
+        taskId: String?,
         taskName: String?,
         userId: Long?,
         userMail: String?
-    ) -> Unit = { route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String? ->
+    ) -> Unit = { route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String? ->
 
         val routeName = when (route) {
             1 -> when (taskId) {

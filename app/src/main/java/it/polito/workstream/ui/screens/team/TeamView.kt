@@ -70,7 +70,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun TeamScreen(
     vm: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     removeTeam: (teamId: Long) -> Unit,
     leaveTeam: (Team, User) -> Unit,
     context: Context,
@@ -303,7 +303,7 @@ fun TeamScreen(
 fun MemberList(
     members: List<User>,
     removeMember: (Long, Long)-> Unit,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     currentUser: User,
     adminId: Int?,
     teamId: Long,
@@ -330,7 +330,7 @@ fun MemberList(
 fun MemberItem(
     member: User,
     removeMember: (Long, Long)-> Unit,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     currentUser: User,
     isAdmin: Boolean,
     adminId: Int?,
@@ -355,7 +355,7 @@ fun MemberItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onTaskClick(6, member.id.toInt(), null, null, null) }
+            .clickable { onTaskClick(6, member.email, null, null, null) }
             .background(
                 MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(16.dp)

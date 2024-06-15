@@ -8,12 +8,15 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ChatModel
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.toList
 
 class UserViewModel(
@@ -164,6 +167,12 @@ class UserViewModel(
 //        }?.toMutableMap()
         return null
     }
+
+    val chatty = chatModel.chats.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Lazily,
+        initialValue = emptyList()
+    )
 
     fun newChat(user: User) = chatModel.newChat(user)
     fun sendMessage(user: User, message: ChatMessage) = chatModel.sendMessage(user, message)

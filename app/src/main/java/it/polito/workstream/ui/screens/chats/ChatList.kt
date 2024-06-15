@@ -32,7 +32,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun ChatList(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
     val chats by vm.chats.collectAsState(initial = listOf())
     val groupChat = vm.getGroupChatsOfTeam()
