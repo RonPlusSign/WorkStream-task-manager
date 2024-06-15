@@ -252,7 +252,7 @@ fun ContentView(
                     ) { entry ->
                         val index = entry.arguments?.getString("index")
                         val destUser = index?.let {
-                            userVM.getUsers().collectAsState(initial = listOf()).value.find { it.email==index }
+                            userVM.getUsers().find { it.email == index }
                         }
                         Log.d("Chat", destUser?.email?:"destuser not found")
 

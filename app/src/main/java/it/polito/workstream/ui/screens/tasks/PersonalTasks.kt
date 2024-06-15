@@ -29,12 +29,11 @@ import it.polito.workstream.ui.screens.tasks.components.SmallTaskBox
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlin.reflect.KFunction2
 
 @Composable
 fun PersonalTasksScreen(
     getOfUser: (String, List<Task>) -> List<Task>,
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     ActiveUser: String,
     tasksList: State<List<Task>>
 ) {
@@ -65,10 +64,10 @@ fun PersonalTasksScreen(
                     getOfUser(ActiveUser, tasksList.value).forEach { task ->
                         item {
                             Column(
-                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) }
+                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) }
                             ) {
                                 SmallTaskBox(title = task.title, section = task.section, assignee = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                    onTaskClick(4, task.id, task.title, null)
+                                    onTaskClick(4, task.id, task.title, null, null)
                                 })
                             }
 

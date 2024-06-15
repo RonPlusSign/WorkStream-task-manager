@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 
-class UserViewModel(user: User, activeTeamFlow: Flow<Team?>, val chatModel: ChatModel, val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit) : ViewModel() {
+class UserViewModel(val user: User, activeTeamFlow: Flow<Team?>, val chatModel: ChatModel, val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit) : ViewModel() {
 
     var isEditing by mutableStateOf(false)
         private set
@@ -185,10 +185,11 @@ class UserViewModel(user: User, activeTeamFlow: Flow<Team?>, val chatModel: Chat
     // Group chat
     val groupChats = chatModel.groupChats.value
     fun getGroupChatsOfTeam(): MutableList<ChatMessage>? {
-        return groupChats[activeTeam]?.filter {
-            val fullName = it.author.firstName + " " + it.author.lastName
-            fullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true)
-        }?.toMutableList()
+//        return groupChats[activeTeam]?.filter {
+//            val fullName = it.author.firstName + " " + it.author.lastName
+//            fullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true)
+//        }?.toMutableList()
+        return null
     }
 
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)

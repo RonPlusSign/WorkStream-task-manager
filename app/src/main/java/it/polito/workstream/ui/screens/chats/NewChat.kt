@@ -37,7 +37,7 @@ fun NewChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit
 ) {
-    val users by vm.getUsers().collectAsState(initial = listOf())
+    val users = vm.getUsers()
     val chats by vm.chats.collectAsState(initial = listOf())
 
     Column {

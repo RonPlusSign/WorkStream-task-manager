@@ -189,11 +189,11 @@ fun TeamTasksScreen(
                                         getOfSection(section, sortOrder).forEach { task ->
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
-                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) }//navigation
+                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) }//navigation
                                             ) {
                                                 SmallTaskBox(title = task.title, assignee = (task.assignee?.firstName
                                                     ?: "") + " " + (task.assignee?.lastName ?: ""), section = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                                    onTaskClick(4, task.id, task.title, null)
+                                                    onTaskClick(4, task.id, task.title, null, null)
                                                 })
                                                 Spacer(modifier = Modifier.weight(1f))
                                             }

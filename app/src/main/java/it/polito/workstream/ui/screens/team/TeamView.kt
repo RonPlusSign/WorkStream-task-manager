@@ -73,7 +73,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun TeamScreen(
     vm: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     removeTeam: (teamId: String) -> Unit,
     leaveTeam: (teamId: String, userId: String) -> Unit,
     context: Context,
@@ -314,7 +314,7 @@ fun TeamScreen(
 fun MemberList(
     members: List<User>,
     removeMember: (teamId: String, userId: String) -> Unit,
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     currentUser: User,
     adminId: String,
     teamId: String,
@@ -341,7 +341,7 @@ fun MemberList(
 fun MemberItem(
     member: User,
     removeMember: (String, String) -> Unit,
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     currentUser: User,
     isAdmin: Boolean,
     adminId: String?,

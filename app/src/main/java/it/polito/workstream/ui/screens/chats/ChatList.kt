@@ -80,7 +80,7 @@ fun ChatList(
                         Log.d("Chat", "Chat with id " + chat.user1Id + " " + chat.user2Id)
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
-                            val destUser = vm.usersList.collectAsState(listOf()).value.find {
+                            val destUser = vm.usersList.find {
                                 it.email == destUserId
                             }
                             Column(

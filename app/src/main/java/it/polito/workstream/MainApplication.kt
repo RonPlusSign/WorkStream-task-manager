@@ -42,7 +42,7 @@ class MainApplication : Application() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         db = Firebase.firestore
-        chatModel = ChatModel(users, teams.value, _user, _activeTeam, db)
+        chatModel = ChatModel(_user, activeTeamId, db)
     }
 
     val _user = MutableStateFlow(User())
@@ -101,6 +101,8 @@ class MainApplication : Application() {
 
         awaitClose { listener.remove() }
     }
+
+    val users = fetchUsers(activeTeamId.value)
 
     fun createTask(task: Task) {
         db.collection("tasks").add(task)
@@ -270,10 +272,8 @@ class MainApplication : Application() {
 
 
 class ChatModel(
-    val userList: Flow<List<User>>,
-    val teamList: List<Team>,
     val currentUser: MutableStateFlow<User>,
-    val currentTeam: MutableStateFlow<Team>,
+    val currentTeamId: MutableStateFlow<String>,
     val db: FirebaseFirestore
 ) {
 //    private val _chats: MutableStateFlow<MutableMap<Team, MutableMap<Pair<User, User>, MutableList<ChatMessage>>>> = MutableStateFlow(
@@ -375,32 +375,11 @@ class ChatModel(
     }
     val chats: Flow<List<Chat>> = fetchChats()
 
-    fun addExampleChatToFirebase() {
-        Log.d("aaa", currentUser.value?.firstName + " " + currentUser.value?.lastName + " " + currentUser.value?.email)
-
-        val chatId = currentUser.value?.email + "_" + "" + "_" + "teamIDdiprova"
-        val chatData = hashMapOf(
-            "teamId" to "teamIDdiprova",
-            "user1Id" to currentUser.value?.email,
-            "user2Id" to "emaildiprova@gmail.com"
-        )
-
-        db.collection("chats")
-            .document(chatId)
-            .set(chatData)
-            .addOnSuccessListener {
-                Log.d("chat", "Chat creata con successo")
-            }
-            .addOnFailureListener { e ->
-                Log.d("chat","Errore nella creazione della chat: $e")
-            }
-    }
-
     fun newChat(destUser: User) {
         //_chats.value[currentTeam.value]?.put(Pair(currentUser.value, destUser), mutableListOf())
-        val chatId = currentUser.value.email + "_" + destUser.email + "_" + currentTeam.value.name
+        val chatId = currentUser.value.email + "_" + destUser.email + "_" + currentTeamId.value
         val chatData = hashMapOf(
-            "teamId" to currentTeam.value.name,
+            "teamId" to currentTeamId.value,
             "user1Id" to currentUser.value.email,
             "user2Id" to destUser.email
         )
@@ -510,11 +489,12 @@ class ChatModel(
     )
     val groupChats: StateFlow<MutableMap<Team, MutableList<ChatMessage>>> = _groupChats
 
-    fun getGroupChatOfTeam(): MutableStateFlow<MutableList<ChatMessage>?> {
-        return MutableStateFlow(_groupChats.value[currentTeam.value])
+    fun getGroupChatOfTeam(): MutableStateFlow<MutableList<ChatMessage>?>? {
+        //return MutableStateFlow(_groupChats.value[currentTeam.value])
+        return null
     }
     fun sendGroupMessage(message: ChatMessage) {
-        _groupChats.value[currentTeam.value]?.add(message)
+        //_groupChats.value[currentTeam.value]?.add(message)
     }
 
     fun editGroupMessage(messageId: Long, newText: String) {
@@ -522,7 +502,7 @@ class ChatModel(
     }
 
     fun deleteGroupMessage(messageId: Long) {
-        _groupChats.value[currentTeam.value]?.removeIf { it.id == messageId }
+        //_groupChats.value[currentTeam.value]?.removeIf { it.id == messageId }
     }
 
     fun setGroupMessageAsSeen(messageId: Long) {
