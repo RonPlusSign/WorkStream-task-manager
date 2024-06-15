@@ -90,36 +90,34 @@ class MainActivity : ComponentActivity() {
 
     private fun checkOrCreateUserInFirestore(firebaseUser: FirebaseUser, onComplete: (User) -> Unit) {
         val userRef = firebaseUser.email?.let { db.collection("users").document(it) }
-        if (userRef != null) {
-            userRef.get().addOnSuccessListener { document ->
-                if (document.exists()) {
-                    // Ottieni i dati dal documento
-                    val firstName = document.getString("firstName") ?: ""
-                    val lastName = document.getString("lastName") ?: ""
-                    val email = document.getString("email") ?: ""
-                    val id = document.getLong("id") ?: User.getNewId()
-                    val location = document.getString("location")
+        userRef?.get()?.addOnSuccessListener { document ->
+            if (document.exists()) {
+                // Ottieni i dati dal documento
+                val firstName = document.getString("firstName") ?: ""
+                val lastName = document.getString("lastName") ?: ""
+                val email = document.getString("email") ?: ""
+                val id = document.getLong("id") ?: User.getNewId()
+                val location = document.getString("location")
 
-                    // Crea l'oggetto User
-                    val user = User(
-                        id = id,
-                        firstName = firstName,
-                        lastName = lastName,
-                        email = email,
-                        location = location,
-                        profilePicture = firebaseUser.photoUrl.toString()
-                    )
+                // Crea l'oggetto User
+                val user = User(
+                    id = id,
+                    firstName = firstName,
+                    lastName = lastName,
+                    email = email,
+                    location = location,
+                    profilePicture = firebaseUser.photoUrl.toString()
+                )
 
-                    // Completa l'operazione con il callback
-                    onComplete(user)
-                } else {
-                    Log.d("ERROR", "User not signed in yet")
-                    onComplete(User()) // Return a default user object if not found
-                }
-            }.addOnFailureListener { e ->
-                Log.e("ERROR", "Error fetching user document", e)
-                onComplete(User()) // Return a default user object on error
+                // Completa l'operazione con il callback
+                onComplete(user)
+            } else {
+                Log.d("ERROR", "User not signed in yet")
+                onComplete(User()) // Return a default user object if not found
             }
+        }?.addOnFailureListener { e ->
+            Log.e("ERROR", "Error fetching user document", e)
+            onComplete(User()) // Return a default user object on error
         }
     }
 
@@ -155,8 +153,8 @@ fun ContentView(
     taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(null).value !!
-    val tasksList = vm.getTask(activeTeam.teamId).collectAsState(initial = emptyList()) //vm.activeTeam.collectAsState().value.tasks
+    val activeTeam = vm.activeTeam.collectAsState(null).value!!
+    val tasksList = vm.getTasks(activeTeam.teamId).collectAsState(initial = emptyList()) //vm.activeTeam.collectAsState().value.tasks
     val sections = activeTeam.sections //vm.activeTeam.collectAsState().value.sections
 
     val navController = rememberNavController()
@@ -244,8 +242,7 @@ fun ContentView(
 
                     composable(route = Route.MyTasks.name) {
                         vm.setActivePage(Route.MyTasks.title)
-                        app.user.value?.getFirstAndLastName()
-                            ?.let { it1 -> PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = it1) }
+                        PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.getFirstAndLastName())
                     }
 
                     composable(route = Route.ChatScreen.name) {
@@ -370,7 +367,7 @@ fun ContentView(
 
                     composable(route = Route.UserView.name) {
                         vm.setActivePage(Route.UserView.title)
-                        app.user.value?.let { it1 -> UserScreen(user = it1, personalInfo = true, onLogout = onLogout) }
+                        UserScreen(user = app.user.value, personalInfo = true, onLogout = onLogout)
                     }
 
                     composable(
@@ -382,7 +379,7 @@ fun ContentView(
                             navController = navController,
                             teamId = teamId,
                             onConfirm = { team ->
-                                vm.joinTeam(team, app.user.value)
+                                vm.joinTeam(team.id, app.user.value.email)
                                 navController.navigate("/${team.id}/${Route.TeamTasks.name}")
                             },
                             onCancel = {

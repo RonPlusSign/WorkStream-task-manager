@@ -3,13 +3,10 @@ package it.polito.workstream.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
-import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlin.reflect.KFunction1
 
 /*
-
 class TeamListViewModel(
     val teams: StateFlow<List<Team>>,
     val addTeam: (Team) -> Unit,
@@ -42,14 +39,12 @@ class TeamListViewModel(
 class TeamListViewModel(
     val activeTeam: Flow<Team?>,
     val getTeams: () -> Flow<List<Team>>,
-    val getTask: KFunction1<String, Flow<List<Task>>>,
+    val getTasks: (String) -> Flow<List<Task>>,
     val activePageValue: MutableStateFlow<String>,
     val setActivePage: (page: String) -> Unit,
-    val changeActiveTeamId: (teamId: Long) -> Unit,
-    val removeTeam: (teamId: Long) -> Unit,
-    val leaveTeam: (team: Team, user: User) -> Unit,
-    val joinTeam: (team: Team, user: User) -> Unit,
+    val changeActiveTeamId: (teamId: String) -> Unit,
+    val removeTeam: (teamId: String) -> Unit,
+    val leaveTeam: (teamId: String, userId: String) -> Unit,
+    val joinTeam: (teamId: String, userId: String) -> Unit,
     val createEmptyTeam: (nameTeam: String) -> Unit,
-):ViewModel(){
-
-}
+) : ViewModel()

@@ -8,25 +8,25 @@ import it.polito.workstream.MainApplication
 class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val app = (context.applicationContext as? MainApplication) ?: throw IllegalArgumentException("Bad Application class")
 
-    private val  activeTeam  = app.activeTeam
-    private val  user = app.user
-    private val  fetchUsers = app::fetchUsers
-    private val  getTeams = app::getTeams
-    private val  getTasks = app::getTasks
-    private val  createTask = app::createTask
-    private val  createTeam = app::createTeam
+    private val activeTeam = app.activeTeam
+    private val user = app.user
+    private val fetchUsers = app::fetchUsers
+    private val getTeams = app::getTeams
+    private val getTasks = app::getTasks
+    private val createTask = app::createTask
+    private val createTeam = app::createTeam
 
 
     private val activePageValue = app.activePageValue
     private val setActivePage = app::setActivePage
     private val changeActiveTeamId = app::changeActiveTeamId
 
-    private val removeTeam =  app::removeTeam
+    private val removeTeam = app::removeTeam
     private val leaveTeam = app::leaveTeam
     private val joinTeam = app::joinTeam
     private val createEmptyTeam = app::createEmptyTeam
 
-    private val  onTaskUpdated = app:: onTaskUpdated
+    private val onTaskUpdated = app::onTaskUpdated
     private val deleteTask = app::deleteTask
     private val onTaskCreated = app::onTaskCreated
     private val currentSortOrder = app.currentSortOrder
@@ -67,9 +67,10 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 TeamViewModel(
                     activeTeam,
                     it,
+                    updateTeam = app::updateTeam,
+                    removeMember = app::leaveTeam,
                     teamIdsetProfileBitmap,
                     teamIdsetProfilePicture,
-                    removeMemberFromTeam
                 )
             } as T
 
@@ -97,22 +98,21 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     searchQuery,
                     setSearchQuery
                 ) as T
-                /*
-                TaskListViewModel(
-                tasksList,
-                sections,
-                activePageValue,
-                setActivePage,
-                currentSortOrder,
-                setSortOrder,
-                filterParams,
-                searchQuery,
-                setSearchQuery
-            ) as T*/
+            /*
+            TaskListViewModel(
+            tasksList,
+            sections,
+            activePageValue,
+            setActivePage,
+            currentSortOrder,
+            setSortOrder,
+            filterParams,
+            searchQuery,
+            setSearchQuery
+        ) as T*/
 
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->
-                //in teroria completo
                 TeamListViewModel(
                     activeTeam,
                     getTeams,
@@ -125,26 +125,23 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     joinTeam,
                     createEmptyTeam
                 ) as T
-                /*TeamListViewModel(
-                teams,
-                addTeam,
-                removeTeam,
-                activeTeam,
-                activePageValue,
-                setActivePage,
-                changeActiveTeamId,
-                leaveTeam,
-                searchQuery,
-                setSearchQuery,
-                createEmptyTeam,
-                app::getTeams,
-                getTasks
-            ) as T*/
+            /*TeamListViewModel(
+            teams,
+            addTeam,
+            removeTeam,
+            activeTeam,
+            activePageValue,
+            setActivePage,
+            changeActiveTeamId,
+            leaveTeam,
+            searchQuery,
+            setSearchQuery,
+            createEmptyTeam,
+            app::getTeams,
+            getTasks
+        ) as T*/
 
-            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(
-                sections,
-                activeTeam
-            ) as T
+            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(activeTeam) as T
 
             else -> throw IllegalArgumentException("ViewModel class not found")
         }

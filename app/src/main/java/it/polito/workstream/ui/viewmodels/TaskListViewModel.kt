@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 class TaskListViewModel(
     val activeTeam: Flow<Team?>,
+    val activePageValue: MutableStateFlow<String>,
+    val setActivePage: (page: String) -> Unit,
     val onTaskUpdated: (updatedTask: Task) -> Unit,
     val deleteTask: (task: Task) -> Unit,
     val onTaskCreated: (task1: Task) -> Unit,
@@ -19,32 +21,31 @@ class TaskListViewModel(
     filterParams: MutableState<FilterParams>,
     val searchQuery: MutableState<String>,
     setSearchQuery: (newQuery: String) -> Unit
-)
-    : ViewModel() {
+) : ViewModel() {
     val filterParams = filterParams.value
 
-    fun getOfUser(user: String, tasksList: List<Task> ): List<Task> {
+    fun getOfUser(user: String, tasksList: List<Task>): List<Task> {
         var tempTaskList = when (currentSortOrder.value) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
-            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName +" "+ it.assignee?.lastName }
+            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName + " " + it.assignee?.lastName }
             "Section" -> tasksList.sortedBy { it.section }
             else -> {
                 tasksList
             }
         }
         tempTaskList = customFilter(tempTaskList)
-        return tempTaskList.filter {  it.assignee?.firstName +" "+ it.assignee?.lastName == user && it.title.contains(searchQuery.value, ignoreCase = true) }
+        return tempTaskList.filter { it.assignee?.firstName + " " + it.assignee?.lastName == user && it.title.contains(searchQuery.value, ignoreCase = true) }
     }
+
     private fun customFilter(inputList: List<Task>): List<Task> {
         return inputList.filter {
             (filterParams.section == "" || it.section.contains(filterParams.section, ignoreCase = true))
-                    && (filterParams.assignee == "" || (it.assignee?.firstName +" "+ it.assignee?.lastName).contains(filterParams.assignee, ignoreCase = true))
+                    && (filterParams.assignee == "" || (it.assignee?.firstName + " " + it.assignee?.lastName).contains(filterParams.assignee, ignoreCase = true))
                     && (filterParams.status == "" || it.status == filterParams.status) && ((filterParams.completed && it.completed) || (!filterParams.completed && !it.completed))
         }
-
-
+    }
 }
 /*
 class TaskListViewModel(

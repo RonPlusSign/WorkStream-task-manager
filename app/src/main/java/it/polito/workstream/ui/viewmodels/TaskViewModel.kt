@@ -13,13 +13,12 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>) : ViewModel() {
+class TaskViewModel(val activeTeam: StateFlow<Team>) : ViewModel() {    // TODO: Should be a StateFlow<Team> ?
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
     val statuses = listOf("To do", "In progress", "Paused", "On review", "Completed")
 
-
-    var task = Task(title = "New Task", section = sections[0])
+    var task = Task(title = "New Task", section = activeTeam.value.sections[0])
         private set
 
     fun setTask(value: Task) {

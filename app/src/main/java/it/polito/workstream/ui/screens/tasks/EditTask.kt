@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
@@ -121,8 +123,8 @@ fun EditTaskScreen(
                     onDismissRequest = vm::toggleUserExpanded,
                     modifier = Modifier.wrapContentSize(Alignment.Center)
                 ) {
-                    teamVM.team.members.forEach() { m->
-                        DropdownMenuItem(text = { Text(text = m.firstName+" "+m.lastName) }, onClick = { vm.setAssignee(m); vm.toggleUserExpanded() })
+                    teamVM.team.collectAsState(initial = null).value?.members?.forEach() { m ->
+                        DropdownMenuItem(text = { Text(text = m.firstName + " " + m.lastName) }, onClick = { vm.setAssignee(m); vm.toggleUserExpanded() })
                     }
                 }
             }

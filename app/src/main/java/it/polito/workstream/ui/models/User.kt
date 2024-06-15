@@ -14,10 +14,9 @@ class User(
     var BitmapValue: Bitmap? = null,
     var activeTeam :  DocumentReference? = null,
     var userId : String = "",
-    // lista dei team a cui l'utente appartiene
-    var teams: MutableList<Team> = mutableListOf(),
-    var tasks: MutableList<Task> = mutableListOf(),
-    var chats: MutableMap<String, List<ChatMessage>> = mutableMapOf() // lista delle chat create dall'utente
+    var teams: MutableList<Team> = mutableListOf(), // List of teams to which the user belongs
+    var tasks: MutableList<Task> = mutableListOf(), // List of tasks assigned to the user
+    var chats: MutableMap<String, List<ChatMessage>> = mutableMapOf() // Map of chat messages
 ) {
 
     fun addTeam(team: Team) {
@@ -33,7 +32,6 @@ class User(
     }
 
     //secondary constructor to create a user without specifying the id
-// costruttore secondario per creare un utente senza specificare l'id
     constructor(
         firstName: String,
         lastName: String,

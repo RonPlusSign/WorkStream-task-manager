@@ -41,9 +41,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,13 +68,14 @@ import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.shared.ProfilePicture
 import it.polito.workstream.ui.viewmodels.TeamViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import kotlinx.coroutines.launch
 
 @Composable
 fun TeamScreen(
     vm: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
-    removeTeam: (teamId: Long) -> Unit,
-    leaveTeam: (Team, User) -> Unit,
+    removeTeam: (teamId: String) -> Unit,
+    leaveTeam: (teamId: String, userId: String) -> Unit,
     context: Context,
     navigateTo: (route: String) -> Any
 ) {
@@ -80,9 +83,15 @@ fun TeamScreen(
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var showLeaveConfirmationDialog by remember { mutableStateOf(false) }
 
+    val team = vm.team.collectAsState(initial = null).value ?: Team("Loading...")
 
-    val link = "https://www.workstream.it/${vm.team.id}"
+    val numMembers = team.members.size  // Number of members
+    val tasksCompleted = team.tasks.filter { it.completed }.size    // Total number of tasks completed
+    val tasksToComplete = team.tasks.size - tasksCompleted // Number of tasks to complete
+    val top3Users = (team.members.sortedByDescending { it.tasks.filter { it.completed }.size }.take(3))
 
+    val link = "https://www.workstream.it/${team.id}"
+    val scope = rememberCoroutineScope()
 
     if (showDialog) {
         InviteMemberDialog(onDismiss = { showDialog = false }, qrCodeBitmap = getQrCodeBitmap(link), link = link, context = context)
@@ -92,7 +101,7 @@ fun TeamScreen(
         DeleteTeamConfirmationDialog(
             onDismiss = { showDeleteConfirmationDialog = false },
             onConfirm = {
-                removeTeam(vm.team.id)
+                removeTeam(team.id)
                 showDeleteConfirmationDialog = false
                 onTaskClick(1, null, null, null)
                 navigateTo(Route.TeamScreen.name)
@@ -104,7 +113,7 @@ fun TeamScreen(
         LeaveTeamConfirmationDialog(
             onDismiss = { showLeaveConfirmationDialog = false },
             onConfirm = {
-                leaveTeam(vm.team, vm.currentUser)
+                leaveTeam(team.id, vm.currentUser.email)
                 showLeaveConfirmationDialog = false
                 navigateTo(Route.TeamScreen.name)
             }
@@ -121,17 +130,17 @@ fun TeamScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     ProfilePicture(
-                        profilePicture = vm.team.profilePicture,
-                        photoBitmapValue = vm.team.profileBitmap,
-                        isEditing = (vm.currentUser.id.toInt() == vm.team.admin?.id?.toInt()),
-                        name = vm.team.name,
-                        edit = vm::setProfilePicture,
-                        setPhotoBitmap = vm::setProfileBitmap//TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
+                        profilePicture = team.profilePicture,
+                        photoBitmapValue = team.profileBitmap,
+                        isEditing = (vm.currentUser.id == team.admin?.id),
+                        name = team.name,
+                        edit = { scope.launch { vm.setProfilePicture(it) } },
+                        setPhotoBitmap = { scope.launch { vm.setProfileBitmap(it) } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = vm.team.name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        if (vm.currentUser.id.toInt() == vm.team.admin?.id?.toInt()) {
+                        Text(text = team.name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                        if (vm.currentUser.id.toInt() == team.admin?.id?.toInt()) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit team name",
@@ -161,7 +170,7 @@ fun TeamScreen(
                                         }
                                     }
                                 },
-                                confirmButton = { TextButton(onClick = vm::save) { Text("Save") } },
+                                confirmButton = { TextButton(onClick = { scope.launch { vm.save() } }) { Text("Save") } },
                                 dismissButton = { TextButton(onClick = vm::discard) { Text("Cancel") } }
                             )
                         }
@@ -176,12 +185,12 @@ fun TeamScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 30.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    if (vm.tasksToComplete == 0 && vm.tasksCompleted == 0) Text("No tasks assigned yet!", style = MaterialTheme.typography.bodyLarge)
+                    if (tasksToComplete == 0 && tasksCompleted == 0) Text("No tasks assigned yet!", style = MaterialTheme.typography.bodyLarge)
                     else {
-                        val progress = if (vm.tasksToComplete > 0) vm.tasksCompleted.toFloat() / (vm.tasksToComplete + vm.tasksCompleted) else 1f
+                        val progress = if (tasksToComplete > 0) tasksCompleted.toFloat() / (tasksToComplete + tasksCompleted) else 1f
                         val progressPercentage = (progress * 100).toInt()
                         if (progressPercentage == 100) Text("All tasks completed!", style = MaterialTheme.typography.bodyLarge)
-                        else Text(text = "Tasks completed: ${vm.tasksCompleted}/${vm.tasksToComplete + vm.tasksCompleted} ($progressPercentage%)", style = MaterialTheme.typography.bodyLarge)
+                        else Text(text = "Tasks completed: ${tasksCompleted}/${tasksToComplete + tasksCompleted} ($progressPercentage%)", style = MaterialTheme.typography.bodyLarge)
                         LinearProgressIndicator(
                             progress = { progress },
                             modifier = Modifier
@@ -200,7 +209,7 @@ fun TeamScreen(
                 Text(text = "Top 3 members by completed tasks", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
-                    vm.top3Users.forEachIndexed { index, user ->
+                    top3Users.forEachIndexed { index, user ->
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                             Box {
                                 Text(
@@ -224,7 +233,7 @@ fun TeamScreen(
                                         .size(16.dp)
                                 )
                                 Text(
-                                    text = "${user.tasks.filter { it.completed && (it.team?.id ?: -1) == vm.team.id }.size} tasks",
+                                    text = "${user.tasks.filter { it.completed && (it.team?.id ?: "") == team.id }.size} tasks",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Light,
                                     textAlign = TextAlign.Center,
@@ -241,12 +250,12 @@ fun TeamScreen(
                 Text(text = "Manage members", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 MemberList(
-                    members = vm.team.members,
-                    removeMember = vm::removeMember,
+                    members = team.members,
+                    removeMember = leaveTeam,
                     onTaskClick = onTaskClick,
                     currentUser = vm.currentUser,
-                    adminId = vm.team.admin?.id?.toInt(),
-                    teamId = vm.team.id,
+                    adminId = team.admin?.email ?: "",
+                    teamId = team.id,
                     navigateTo = navigateTo
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -254,7 +263,7 @@ fun TeamScreen(
         }
 
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-            if (vm.currentUser.id.toInt() == vm.team.admin?.id?.toInt()) {
+            if (vm.currentUser.id.toInt() == team.admin?.id?.toInt()) {
                 OutlinedButton(
                     onClick = { showDeleteConfirmationDialog = true },
                     modifier = Modifier.weight(1f),
@@ -302,13 +311,13 @@ fun TeamScreen(
 @Composable
 fun MemberList(
     members: List<User>,
-    removeMember: (Long, Long)-> Unit,
+    removeMember: (teamId: String, userId: String) -> Unit,
     onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
     currentUser: User,
-    adminId: Int?,
-    teamId: Long,
+    adminId: String,
+    teamId: String,
     navigateTo: (route: String) -> Any,
-    ) {
+) {
     Column {
         members.forEach { member ->
             MemberItem(
@@ -316,7 +325,7 @@ fun MemberList(
                 removeMember = removeMember,
                 onTaskClick = onTaskClick,
                 currentUser = currentUser,
-                isAdmin = member.id.toInt() == adminId,
+                isAdmin = member.email == adminId,
                 adminId = adminId,
                 teamId = teamId,
                 navigateTo = navigateTo
@@ -329,22 +338,22 @@ fun MemberList(
 @Composable
 fun MemberItem(
     member: User,
-    removeMember: (Long, Long)-> Unit,
+    removeMember: (String, String) -> Unit,
     onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
     currentUser: User,
     isAdmin: Boolean,
-    adminId: Int?,
-    teamId: Long,
+    adminId: String?,
+    teamId: String,
     navigateTo: (route: String) -> Any,
-    ) {
-    var RemoveMemberConfirmationDialog by remember { mutableStateOf(false) }
+) {
+    var removeMemberConfirmationDialog by remember { mutableStateOf(false) }
 
-    if(RemoveMemberConfirmationDialog){
+    if (removeMemberConfirmationDialog) {
         RemoveMemberConfirmationDialog(
-            onDismiss = { RemoveMemberConfirmationDialog = false },
+            onDismiss = { removeMemberConfirmationDialog = false },
             onConfirm = {
-                removeMember(member.id.toInt().toLong(), teamId)
-                RemoveMemberConfirmationDialog = false
+                removeMember(member.email, teamId)
+                removeMemberConfirmationDialog = false
                 navigateTo(Route.TeamScreen.name)
             },
             memberName = "${member.firstName} ${member.lastName}"
@@ -418,8 +427,8 @@ fun MemberItem(
                 }
             }
         }
-        if (currentUser.id.toInt() != member.id.toInt() && currentUser.id.toInt() == adminId){
-            IconButton(onClick = { /*removeMember(member.id, teamId)*/ RemoveMemberConfirmationDialog = true }) {
+        if (currentUser.email != member.email && currentUser.email == adminId) {
+            IconButton(onClick = { removeMemberConfirmationDialog = true }) {
                 Icon(Icons.Default.Delete, contentDescription = "Remove member")
             }
         }

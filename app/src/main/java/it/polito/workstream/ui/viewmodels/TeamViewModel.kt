@@ -9,27 +9,33 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.lastOrNull
+import kotlinx.coroutines.withContext
 
 
 class TeamViewModel(
     val team: Flow<Team?>,
     val currentUser: User,
-    private val teamIdsetProfileBitmap: (teamId: Long, b: Bitmap?) -> Unit,
-    private val teamIdsetProfilePicture: (teamId: Long, n: String) -> Unit,
-    private val removeMemberFromTeam: (teamId: Long, userId: Long) -> Unit
+    private val updateTeam: (team: Team) -> Unit,
+    private val removeMember: (teamId: String, userId: String) -> Unit,
+    private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,
+    private val teamIdsetProfilePicture: (teamId: String, n: String) -> Unit,
+    private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit
 ) : ViewModel() {
 
-    fun setProfilePicture(n: String) {
-        teamIdsetProfilePicture(team.id, n)
+    suspend fun setProfilePicture(n: String) {
+        withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfilePicture(it.id, n) } }
     }
 
-    fun setProfileBitmap(b: Bitmap?) {
-        teamIdsetProfileBitmap(team.id, b)
+    suspend fun setProfileBitmap(b: Bitmap?) {
+        withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfileBitmap(it.id, b) } }
     }
 
-    fun removeMember(memberId: Long, teamId: Long) {
-        removeMemberFromTeam(teamId, memberId)
+    suspend fun removeMember(memberId: String, teamId: String) {
+        withContext(Dispatchers.IO) { removeMemberFromTeam(teamId, memberId) }
     }
 
     var showEditDialog by mutableStateOf(false)
@@ -41,12 +47,16 @@ class TeamViewModel(
     }
 
     /* Check if all fields are valid, and if so, stop editing */
-    fun save() {
+    suspend fun save() {
         nameValue = nameValue.trim()
         nameError = if (nameValue.isBlank()) "Team name cannot be blank" else ""
 
         if (nameError.isBlank()) { // if all fields are valid, stop editing
-            team.name = nameValue
+            val t = team.lastOrNull()
+            if (t != null) {
+                t.name = nameValue
+                updateTeam(t)
+            }
             showEditDialog = false
         }
     }
@@ -84,18 +94,4 @@ class TeamViewModel(
         profilePictureValue = n
         team.profilePicture = n
     }*/
-
-
-    /* Number of members */
-    var numMembers by mutableIntStateOf(team.members.size)
-
-    /* Total number of tasks completed */
-    var tasksCompleted by mutableIntStateOf(team.tasks.filter { it.completed }.size)
-        private set
-
-    /* Number of tasks to complete */
-    var tasksToComplete by mutableIntStateOf(team.tasks.size - tasksCompleted)
-        private set
-
-    var top3Users by mutableStateOf(team.members.sortedByDescending { it.tasks.filter { it.completed }.size }.take(3))
 }

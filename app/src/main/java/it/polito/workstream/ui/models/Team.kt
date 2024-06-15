@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
 class Team(
-    var id: Long = getNewId(),
+    var id: String = getNewId(),
     var name: String,
     var members: MutableList<User> = mutableListOf(),
     var tasks: MutableList<Task> = mutableListOf(),
@@ -23,7 +23,6 @@ class Team(
     var adminFlow : Flow<User> = flowOf(),
     var membersRef: CollectionReference? = null,
     var adminEmail : String = ""
-
 ) {
     init {
         members.forEach { it.addTeam(this) }
@@ -40,7 +39,7 @@ class Team(
 
     companion object {  // To generate unique identifiers for teams
         private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
+        private fun getNewId() = "${idCounter++}"
     }
 
     /** Adds a task to the team
