@@ -5,21 +5,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>) : ViewModel() {
+class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
     val statuses = listOf("To do", "In progress", "Paused", "On review", "Completed")
 
+    val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
 
-    var task = Task(title = "New Task", section = sections[0])
+    var task = Task(title = "New Task", section = activeTeam.value?.sections?.get(0) ?: "General")
         private set
 
     fun setTask(value: Task) {
@@ -187,7 +191,7 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
         task.recurrent = isRecurrentValue
         task.frequency = frequencyValue
         task.status = statusValue
-        task.team= activeTeam.value
+        task.team = activeTeam.value
 
         return task
     }
@@ -230,6 +234,7 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
             SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(it) < SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(Timestamp(System.currentTimeMillis()))
         } ?: false
     }
+
     fun assigneeToString(): String {
         return this.assigneeValue?.let { "${it.firstName} ${it.lastName}" } ?: "Anyone"
     }

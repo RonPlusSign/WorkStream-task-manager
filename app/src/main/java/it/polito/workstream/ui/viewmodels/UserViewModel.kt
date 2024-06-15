@@ -15,21 +15,16 @@ import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.toList
 
-class UserViewModel(
-    val user: User,
-    val activeTeam: Team,
-    val activeTeamId: Long,
-    val usersList: Flow<List<User>>,
-    val chatModel: ChatModel,
-    val editUser : (String, String, String, String )-> Unit
-) : ViewModel() {
+class UserViewModel(user: User, activeTeamFlow: Flow<Team?>, val chatModel: ChatModel, val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit) : ViewModel() {
 
     var isEditing by mutableStateOf(false)
         private set
+
+    val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
+    val usersList = activeTeam.value?.members ?: emptyList()
+
 
     fun edit() {
         isEditing = true
@@ -44,7 +39,7 @@ class UserViewModel(
     fun save() {
         validate()
         if (firstNameError.isBlank() && lastNameError.isBlank() && emailError.isBlank()) {
-            editUser(firstNameValue, lastNameValue, emailValue, locationValue ?: "")
+            updateUser(firstNameValue, lastNameValue, emailValue, locationValue ?: "")
         }
     }
 
@@ -208,14 +203,14 @@ class UserViewModel(
         private set
 
     /* Number of tasks completed */
-    var tasksCompleted by mutableIntStateOf(user.tasks.filter { it.completed && (it.team?.id ?: -1) == activeTeamId }.size)
+    var tasksCompleted by mutableIntStateOf(user.tasks.filter { it.completed && (it.team?.id ?: -1) == activeTeamFlow }.size)
         private set
 
     /* Number of tasks to complete */
-    var tasksToComplete by mutableIntStateOf(user.tasks.filter { !it.completed && (it.team?.id ?: -1) == activeTeamId }.size)
+    var tasksToComplete by mutableIntStateOf(user.tasks.filter { !it.completed && (it.team?.id ?: -1) == activeTeamFlow }.size)
         private set
 
-    fun getUsers(): Flow<List<User>> {
+    fun getUsers(): List<User> {
         return usersList
     }
 

@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -73,7 +74,7 @@ fun EditTaskScreen(
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     teamVM: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    saveTask: (Task) -> Unit = taskListVM::onTaskUpdated,
+    saveTask: (Task) -> Unit = taskListVM::onTaskUpdated.get(),
 ) {
     val datePickerState = rememberDatePickerState(initialDisplayMode = DisplayMode.Picker)
 
@@ -106,7 +107,7 @@ fun EditTaskScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OutlinedTextField(
-                    value = vm.assigneeToString() ?: "",
+                    value = vm.assigneeToString(),
                     onValueChange = {},
                     label = { Text("Assignee") },
                     modifier = Modifier
@@ -120,8 +121,8 @@ fun EditTaskScreen(
                     onDismissRequest = vm::toggleUserExpanded,
                     modifier = Modifier.wrapContentSize(Alignment.Center)
                 ) {
-                    teamVM.team.members.forEach() { m->
-                        DropdownMenuItem(text = { Text(text = m.firstName+" "+m.lastName) }, onClick = { vm.setAssignee(m); vm.toggleUserExpanded() })
+                    teamVM.team.collectAsState(initial = null).value?.members?.forEach() { m ->
+                        DropdownMenuItem(text = { Text(text = m.firstName + " " + m.lastName) }, onClick = { vm.setAssignee(m); vm.toggleUserExpanded() })
                     }
                 }
             }
@@ -212,7 +213,7 @@ fun EditTaskScreen(
                             onDismissRequest = vm::toggleSectionExpanded,
                             modifier = Modifier.wrapContentSize(Alignment.Center)
                         ) {
-                            vm.sections.forEach { sectionItem ->
+                            vm.activeTeamFlow.collectAsState(initial = null).value?.sections?.forEach { sectionItem ->
                                 DropdownMenuItem(text = { Text(text = sectionItem) }, onClick = { vm.setSection(sectionItem); vm.toggleSectionExpanded() })
                             }
                         }

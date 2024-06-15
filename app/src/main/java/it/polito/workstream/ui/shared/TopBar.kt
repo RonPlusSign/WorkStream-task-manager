@@ -152,7 +152,7 @@ fun TopBarWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(L
                         changeSortOption = vm::setSortOrder.get(),
                         filterParams = vm.filterParams,
                         vm::areThereActiveFilters,
-                        sections = vm.sections,
+                        sections = vm.activeTeam.collectAsState().value?.sections ?: emptyList(),
                         statusList = vm.statusList,
                         recurrentList = vm.recurrentList,
                         assignee = vm.getAssignees()

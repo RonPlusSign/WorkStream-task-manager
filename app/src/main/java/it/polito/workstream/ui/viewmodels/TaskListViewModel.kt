@@ -1,93 +1,103 @@
 package it.polito.workstream.ui.viewmodels
 
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import it.polito.workstream.FilterParams
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.Team
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 
 class TaskListViewModel(
-    _tasksList: MutableStateFlow<MutableList<Task>>,
-    val sections: SnapshotStateList<String>,
+    activeTeamFlow: Flow<Team?>,
     val activePageValue: MutableStateFlow<String>,
     val setActivePage: (page: String) -> Unit,
+    val deleteTask: (task: Task) -> Unit,
+    val onTaskCreated: (task: Task) -> Unit,
+    val onTaskUpdated: (updatedTask: Task) -> Unit,
+    val onAddSection: (section: String) -> Unit,
+    val onDeleteSection: (section: String) -> Unit,
+    val getTasks: (teamId: String) -> Flow<List<Task>>,
     val currentSortOrder: MutableStateFlow<String>,
     val setSortOrder: (newSortOrder: String) -> Unit,
-    filterParams: MutableState<FilterParams>,
+    filterParamsState: MutableState<FilterParams>,
     val searchQuery: MutableState<String>,
-    val setSearchQuery: (newQuery: String) -> Unit,
+    val setSearchQuery: (newQuery: String) -> Unit
 ) : ViewModel() {
-    val tasksList = _tasksList.value
-    val filterParams = filterParams.value
+    val filterParams = filterParamsState.value
+    val activeTeam = activeTeamFlow.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-    var sectionExpanded = mutableStateMapOf(*sections.map { it to true }.toTypedArray())
+    fun getOfUser(user: String, tasksList: List<Task>): List<Task> {
+        var tempTaskList = when (currentSortOrder.value) {
+            "Due date" -> tasksList.sortedBy { it.dueDate }
+            "A-Z order" -> tasksList.sortedBy { it.title }
+            "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
+            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName + " " + it.assignee?.lastName }
+            "Section" -> tasksList.sortedBy { it.section }
+            else -> tasksList
+        }
+        tempTaskList = customFilter(tempTaskList)
+        return tempTaskList.filter { it.assignee?.firstName + " " + it.assignee?.lastName == user && it.title.contains(searchQuery.value, ignoreCase = true) }
+    }
+
+    private fun customFilter(inputList: List<Task>): List<Task> {
+        return inputList.filter {
+            (filterParams.section == "" || it.section.contains(filterParams.section, ignoreCase = true))
+                    && (filterParams.assignee == "" || (it.assignee?.firstName + " " + it.assignee?.lastName).contains(filterParams.assignee, ignoreCase = true))
+                    && (filterParams.status == "" || it.status == filterParams.status) && ((filterParams.completed && it.completed) || (!filterParams.completed && !it.completed))
+        }
+    }
+
+
+    var sectionExpanded = mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
         private set
 
     var statusList = mutableListOf("To do", "In progress", "Paused", "On review", "Completed")
 
     fun toggleSectionExpansion(section: String) {
-        if (!sections.contains(section)) return
+        if (activeTeam.value == null || !activeTeam.value!!.sections.contains(section)) return
         sectionExpanded[section] = !sectionExpanded[section]!!
     }
 
     fun getAssignees(): List<String> {
-        return tasksList.map { it.assignee?.firstName +" "+ it.assignee?.lastName }.distinct()
+        val tasksList = activeTeam.value?.tasks ?: return emptyList()
+        return tasksList.map { it.assignee?.firstName + " " + it.assignee?.lastName }.distinct()
     }
 
-    /*var activePageValue by mutableStateOf(Route.TeamTasks.name)
-        private set
-
-    fun setActivePage(page: String) {
-        activePageValue = page
-    }*/
-
-    fun addTask(task: Task) = tasksList.add(task)
-
     fun addSection(section: String) {
-        sectionExpanded.put(section, true)
-        sections.add(section)
+        sectionExpanded[section] = true
+        onAddSection(section)
     }
 
     fun removeSection(section: String) {
+        // Check if the section exists and if it is empty
+        val tasksList = activeTeam.value?.tasks ?: return
+        val sections = activeTeam.value?.sections ?: return
+
         if (!sections.contains(section)) return // Section does not exist
         if (tasksList.any { it.section == section }) return // If the section is not empty, do not remove it
 
-        sections.remove(section)
+        onDeleteSection(section)
         sectionExpanded.remove(section)
     }
 
-    fun onTaskCreated(task1: Task) {
-        val task= task1.copy()
-        //task.addHistoryEntry("Task created")
-        task.team?.tasks?.add(task)
-        task.assignee?.tasks?.add(task)
-        addTask(task)
-    }
-
-    fun deleteTask(task: Task) {
-        tasksList.remove(task)
-
-//        val sectionToRemove = task.section
-//        if (tasksList.count { it.section == sectionToRemove } == 0 && sectionToRemove != "General")
-//            removeSection(sectionToRemove)
-    }
-
-    fun onTaskUpdated(updatedTask: Task) {
-        val index = tasksList.indexOfFirst { it.id == updatedTask.id }
-        tasksList[index] = updatedTask
-    }
 
     fun getOfSection(section: String, sortOrder: String): List<Task> {
+        val tasksList = activeTeam.value?.tasks ?: return emptyList()
+
         var tempTaskList = when (sortOrder) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
-            "Assignee" -> tasksList.sortedBy {  it.assignee?.firstName +" "+ it.assignee?.lastName }
+            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName + " " + it.assignee?.lastName }
             "Section" -> tasksList.sortedBy { it.section }
             else -> tasksList
         }
@@ -96,46 +106,22 @@ class TaskListViewModel(
     }
 
 
-
     fun getOfUser(user: String): List<Task> {
+        val tasksList = activeTeam.value?.tasks ?: return emptyList()
+
         var tempTaskList = when (currentSortOrder.value) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
-            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName +" "+ it.assignee?.lastName }
+            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName + " " + it.assignee?.lastName }
             "Section" -> tasksList.sortedBy { it.section }
             else -> {
                 tasksList
             }
         }
         tempTaskList = customFilter(tempTaskList)
-        return tempTaskList.filter {  it.assignee?.firstName +" "+ it.assignee?.lastName == user && it.title.contains(searchQuery.value, ignoreCase = true) }
+        return tempTaskList.filter { it.assignee?.firstName + " " + it.assignee?.lastName == user && it.title.contains(searchQuery.value, ignoreCase = true) }
     }
-
-    /*var searchQuery by mutableStateOf("")
-
-    fun changeSearchQuery(newQuery: String) {
-        searchQuery = newQuery
-    }*/
-
-    // FILTERS VARIABLES
-    /*class FilterParams {
-        var assignee by mutableStateOf("")
-        var section by mutableStateOf("")
-        var status by mutableStateOf("")
-        var recurrent by mutableStateOf("")
-        var completed by mutableStateOf(false)
-
-        fun clear() {
-            assignee = ""
-            section = ""
-            status = ""
-            recurrent = ""
-            completed = false
-        }
-    }*/
-
-
 
     fun areThereActiveFilters(): Boolean {
 
@@ -146,22 +132,10 @@ class TaskListViewModel(
         else false
     }
 
-    private fun customFilter(inputList: List<Task>): List<Task> {
-        return inputList.filter {
-            (filterParams.section == "" || it.section.contains(filterParams.section, ignoreCase = true))
-                    && (filterParams.assignee == "" || (it.assignee?.firstName +" "+ it.assignee?.lastName).contains(filterParams.assignee, ignoreCase = true))
-                    && (filterParams.status == "" || it.status == filterParams.status) && ((filterParams.completed && it.completed) || (!filterParams.completed && !it.completed))
-        }
-    }
-
     val recurrentList = listOf("None", "Daily", "Weekly", "Monthly")
-
 
     // SORT VARIABLES
     val allSortOrders = listOf("A-Z order", "Z-A order", "Due date", "Assignee", "Section")
-    /*var currentSortOrder by mutableStateOf("Due date")
-        private set
-        */
 
     var isAddingSection by mutableStateOf(false)
         private set
@@ -182,6 +156,8 @@ class TaskListViewModel(
     }
 
     fun validateSection() {
+        val sections = activeTeam.value?.sections ?: emptyList()
+
         newSectionValue = newSectionValue.trim()
 
         // The section name must be unique and not blank

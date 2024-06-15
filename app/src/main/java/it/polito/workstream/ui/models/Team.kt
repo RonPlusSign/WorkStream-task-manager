@@ -3,16 +3,25 @@ package it.polito.workstream.ui.models
 import android.graphics.Bitmap
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import com.google.firebase.firestore.CollectionReference
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 class Team(
-    val id: Long = getNewId(),
+    var id: String = getNewId(),
     var name: String,
     var members: MutableList<User> = mutableListOf(),
     var tasks: MutableList<Task> = mutableListOf(),
     var sections: MutableList<String> = mutableListOf("General"),
     var admin: User? = null,
     var profilePicture: MutableState<String> = mutableStateOf(""),
-    var profileBitmap: MutableState<Bitmap?> = mutableStateOf(null)
+    var profileBitmap: MutableState<Bitmap?> = mutableStateOf(null),
+    var teamId : String ="",
+    var membersFlow : Flow<List<User>> = flowOf(),
+    var tasksFlow : Flow<List<Task>> = flowOf(),
+    var adminFlow : Flow<User> = flowOf(),
+    var membersRef: CollectionReference? = null,
+    var adminEmail : String = ""
 ) {
     init {
         members.forEach { it.addTeam(this) }
@@ -29,7 +38,7 @@ class Team(
 
     companion object {  // To generate unique identifiers for teams
         private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
+        private fun getNewId() = "${idCounter++}"
     }
 
     /** Adds a task to the team

@@ -25,7 +25,7 @@ import java.sql.Timestamp
  * @property comments The comments related to the task
  */
 class Task(
-    val id: Long = getNewId(),
+    val id: String = getNewId(),
     var title: String,
     var description: String = "",
     var completed: Boolean = false,
@@ -40,6 +40,7 @@ class Task(
     var comments: MutableList<Comment> = mutableListOf(),
     var history: MutableMap<Timestamp, String> = mutableMapOf(), // list of status changes, can be represented as a list of pairs of "change description" and timestamp
     var team: Team? = null,
+    val taskId : String = ""
 ) {
     init {
         //if (assignee==null) this.assignee=userAssigneName?.let { (context?.applicationContext as? MainApplication)?._userList?.value?.find { (it.firstName+" "+it.lastName) == userAssigneName } }
@@ -66,7 +67,7 @@ class Task(
 
     companion object {  // To generate unique identifiers for tasks
         private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
+        private fun getNewId() = "${idCounter++}"
     }
 
     /** Adds a comment to the task

@@ -18,8 +18,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 fun NewTaskScreen(
     changeRoute: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    saveTask: (Task) -> Unit = taskListVM::onTaskCreated,
+    saveTask: (Task) -> Unit,
 ) {
     EditTaskScreen(saveTask = saveTask, changeRoute = changeRoute, vm = vm)
 }
