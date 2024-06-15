@@ -28,11 +28,13 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import it.polito.workstream.ui.login.LoginActivity
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.chats.*
 import it.polito.workstream.ui.screens.tasks.*
 import it.polito.workstream.ui.screens.tasks.components.ShowTaskDetails
 import it.polito.workstream.ui.screens.team.ConfirmJoinTeamPage
+import it.polito.workstream.ui.screens.team.NoTeamsScreen
 import it.polito.workstream.ui.screens.team.TeamScreen
 import it.polito.workstream.ui.screens.userprofile.UserScreen
 import it.polito.workstream.ui.shared.*
@@ -142,12 +144,12 @@ fun ContentView(
     userVM: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(null).value!!
-    val tasksList = vm.getTasks(activeTeam.teamId).collectAsState(initial = emptyList()) //vm.activeTeam.collectAsState().value.tasks
+    val activeTeam = vm.activeTeam.collectAsState(null).value ?: Team(id = "no_team", name = "")
+    val tasksList = vm.getTasks(activeTeam.id).collectAsState(initial = emptyList()) //vm.activeTeam.collectAsState().value.tasks
     val sections = activeTeam.sections //vm.activeTeam.collectAsState().value.sections
 
     val navController = rememberNavController()
-    val activeTeamId = activeTeam.id//vm.activeTeam.collectAsState().value.id
+    val activeTeamId = activeTeam.id //vm.activeTeam.collectAsState().value.id
     var canNavigateBack: Boolean by remember { mutableStateOf(false) }
     navController.addOnDestinationChangedListener { controller, _, _ ->
         canNavigateBack = controller.previousBackStackEntry != null
@@ -208,6 +210,12 @@ fun ContentView(
     val navigateTo = { s: String ->
         if (s != Route.Back.name) navController.navigate(s) else navController.popBackStack()
     }
+
+    if (activeTeam.id == "no_team") {
+        NoTeamsScreen(activeUser = app.user, onJoinTeam = { navigateTo("profile?id=$it") }, addNewTeam = app::createEmptyTeam)
+        return
+    }
+
     NavDrawer(navigateTo = navigateTo, drawerState = drawerState, activeUser = app.user)
     {
         Scaffold(
