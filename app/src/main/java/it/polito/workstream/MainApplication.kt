@@ -41,9 +41,9 @@ class MainApplication : Application() {
 
     private var activeTeamId = MutableStateFlow("")
     fun fetchActiveTeam(): Flow<Team?> = callbackFlow {
-        db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
+        val listener = db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
             .addSnapshotListener { value, error ->
-                if (value != null) {
+                if (value != null && !value.isEmpty) {
                     val team = value.documents[0].toObject(Team::class.java)
                     activeTeamId.value = team?.id!!
                     trySend(team)
@@ -51,6 +51,7 @@ class MainApplication : Application() {
                     trySend(null)
                 }
             }
+        awaitClose { listener.remove() }
     }
 
     val activeTeam = fetchActiveTeam()
@@ -111,8 +112,7 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Error updating team", e) }
     }
 
-    var activePageValue =
-        MutableStateFlow(Route.TeamTasks.name)
+    var activePageValue = MutableStateFlow(Route.TeamTasks.name)
         private set
 
     fun setActivePage(page: String) {

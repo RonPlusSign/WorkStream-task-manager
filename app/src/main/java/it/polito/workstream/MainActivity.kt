@@ -203,7 +203,7 @@ fun ContentView(
     }
 
     if (activeTeam.id == "no_team") {
-        NoTeamsScreen(onJoinTeam = { navigateTo("profile?id=$it") }, addNewTeam = app::createEmptyTeam)
+        NoTeamsScreen(activeUser = app.user, onJoinTeam = { navigateTo("profile?id=$it") }, addNewTeam = app::createEmptyTeam)
         return
     }
 
