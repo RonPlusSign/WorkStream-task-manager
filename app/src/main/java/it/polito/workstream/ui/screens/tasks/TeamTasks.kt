@@ -268,7 +268,7 @@ fun TeamTasksScreen(
 }
 
 @Composable
-fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit) {
+fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit) {
     TeamTasksScreen(
         sections = vm.sections,
         getOfSection = vm::getOfSection,

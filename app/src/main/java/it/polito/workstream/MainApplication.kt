@@ -1,6 +1,5 @@
 package it.polito.workstream
 
-import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
@@ -10,30 +9,21 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.firestore
 import it.polito.workstream.ui.models.ChatMessage
-import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
-import it.polito.workstream.ui.models.TeamDTO
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
-import java.sql.Timestamp
-import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 
 
@@ -232,6 +222,26 @@ class MainApplication : Application() {
         searchQuery.value = newQuery
     }
 
+    fun setTeamProfileBitmap(s: String, bitmap: Bitmap?) {
+        TODO("Not yet implemented")
+    }
+
+    fun setTeamProfilePicture(s: String, s1: String) {
+        TODO("Not yet implemented")
+    }
+
+    fun updateUser(firstName: String, lastName: String, email: String, location: String) {
+        _user.value.firstName = firstName
+        _user.value.lastName = lastName
+        _user.value.email = email
+        _user.value.location = location
+
+        db.collection("users").document(email).set(_user.value)
+            .addOnSuccessListener { Log.d("UserProfile", "User profile updated successfully") }
+            .addOnFailureListener { e -> Log.e("UserProfile", "Error updating user profile", e) }
+    }
+
+    val chatModel = ChatModel(emptyList())  // TODO: CAMBIA
 
     /*
 )

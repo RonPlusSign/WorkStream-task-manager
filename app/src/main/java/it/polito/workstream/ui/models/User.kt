@@ -5,7 +5,6 @@ import com.google.firebase.firestore.DocumentReference
 import java.time.LocalDateTime
 
 class User(
-    val id: Long = getNewId(),
     var firstName: String = "",
     var lastName: String = "",
     var email: String = "",
@@ -40,7 +39,7 @@ class User(
         profilePicture: String = "",
         BitmapValue: Bitmap? = null,
         chats: MutableMap<String, List<ChatMessage>>
-    ) : this(getNewId(), firstName, lastName, email, location, profilePicture, BitmapValue)
+    ) : this(firstName, lastName, email, location, profilePicture, BitmapValue)
 
     companion object {  // To generate unique identifiers for teams
         private var idCounter: Long = 0

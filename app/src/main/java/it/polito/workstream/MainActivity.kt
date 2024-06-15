@@ -96,18 +96,10 @@ class MainActivity : ComponentActivity() {
                 val firstName = document.getString("firstName") ?: ""
                 val lastName = document.getString("lastName") ?: ""
                 val email = document.getString("email") ?: ""
-                val id = document.getLong("id") ?: User.getNewId()
                 val location = document.getString("location")
 
                 // Crea l'oggetto User
-                val user = User(
-                    id = id,
-                    firstName = firstName,
-                    lastName = lastName,
-                    email = email,
-                    location = location,
-                    profilePicture = firebaseUser.photoUrl.toString()
-                )
+                val user = User(firstName = firstName, lastName = lastName, email = email, location = location, profilePicture = firebaseUser.photoUrl.toString())
 
                 // Completa l'operazione con il callback
                 onComplete(user)
@@ -135,14 +127,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LoadingScreen() {
     // You can customize this with a proper loading indicator
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         // For example, a CircularProgressIndicator in the center of the screen
-        Box(contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        Box(contentAlignment = Alignment.Center) { CircularProgressIndicator() }
     }
 }
 
@@ -165,7 +152,7 @@ fun ContentView(
     }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-    val onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit = { route: Int, taskId: Int?, taskName: String?, userId: Long? ->
+    val onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit = { route: Int, taskId: String?, taskName: String?, userId: Long? ->
 
         val routeName = when (route) {
             1 -> when (taskId) {
@@ -227,16 +214,10 @@ fun ContentView(
 
                     composable(
                         route = "/{teamId}/${Route.TeamTasks.name}",
-                        arguments = listOf(
-                            navArgument("teamId") {
-                                type = NavType.LongType
-                                nullable = false
-                                defaultValue = 0
-                            }
-                        )
+                        arguments = listOf(navArgument("teamId") { type = NavType.LongType; nullable = false; defaultValue = 0 })
                     ) {
-                        vm.changeActiveTeamId(it.arguments?.getLong("teamId") ?: 0)
-                        vm.setActivePage(Route.TeamTasks.title)//portare setActivePage in TeamListViewModel
+                        vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
+                        vm.setActivePage(Route.TeamTasks.title)
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
                     }
 
@@ -260,8 +241,8 @@ fun ContentView(
                             }
                         )
                     ) { entry ->
-                        val index = entry.arguments?.getLong("index")
-                        val destUser = index?.let { activeTeam.members.find { it.id == index } }
+                        val userId = entry.arguments?.getString("index")
+                        val destUser = userId?.let { activeTeam.members.find { it.email == userId } }
 
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
@@ -357,10 +338,10 @@ fun ContentView(
                         )
                     ) { entry ->
                         vm.setActivePage(Route.UserView.title)
-                        val index = entry.arguments?.getInt("index")
+                        val userId = entry.arguments?.getString("index")
                         var user = User()
-                        if (index != null) {
-                            user = activeTeam.members.find { it.id.toInt() == index }!!
+                        if (userId != null) {
+                            user = activeTeam.members.find { it.email == userId }!!
                         }
                         UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }

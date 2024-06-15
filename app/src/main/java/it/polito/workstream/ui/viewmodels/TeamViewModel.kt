@@ -20,7 +20,6 @@ class TeamViewModel(
     val team: Flow<Team?>,
     val currentUser: User,
     private val updateTeam: (team: Team) -> Unit,
-    private val removeMember: (teamId: String, userId: String) -> Unit,
     private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,
     private val teamIdsetProfilePicture: (teamId: String, n: String) -> Unit,
     private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit
@@ -41,14 +40,14 @@ class TeamViewModel(
     var showEditDialog by mutableStateOf(false)
         private set
 
-    fun edit() {
+    fun edit(nameValue: String) {
         showEditDialog = true
         nameBeforeEdit = nameValue // Save current values before editing
     }
 
     /* Check if all fields are valid, and if so, stop editing */
-    suspend fun save() {
-        nameValue = nameValue.trim()
+    suspend fun save(name: String) {
+        val nameValue = name.trim()
         nameError = if (nameValue.isBlank()) "Team name cannot be blank" else ""
 
         if (nameError.isBlank()) { // if all fields are valid, stop editing
@@ -62,21 +61,13 @@ class TeamViewModel(
     }
 
     fun discard() {
-        nameValue = nameBeforeEdit
         showEditDialog = false
     }
 
-    /* First name */
-    var nameValue by mutableStateOf(team.name)
-        private set
     var nameError by mutableStateOf("")
         private set
 
     private var nameBeforeEdit by mutableStateOf("")
-
-    fun setName(n: String) {
-        nameValue = n
-    }
 
     /* Group picture */
     /*var profilePictureValue by mutableStateOf(team.profilePicture)

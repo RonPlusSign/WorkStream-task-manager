@@ -34,7 +34,7 @@ import kotlin.reflect.KFunction2
 @Composable
 fun PersonalTasksScreen(
     getOfUser: (String, List<Task>) -> List<Task>,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     ActiveUser: String,
     tasksList: State<List<Task>>
 ) {
@@ -65,10 +65,10 @@ fun PersonalTasksScreen(
                     getOfUser(ActiveUser, tasksList.value).forEach { task ->
                         item {
                             Column(
-                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null) }
+                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) }
                             ) {
                                 SmallTaskBox(title = task.title, section = task.section, assignee = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                    onTaskClick(4, task.id.toInt(), task.title, null)
+                                    onTaskClick(4, task.id, task.title, null)
                                 })
                             }
 
@@ -82,21 +82,12 @@ fun PersonalTasksScreen(
 
 @Composable
 fun PersonalTasksScreenWrapper(
-    vm: TaskListViewModel = viewModel(
-        factory = ViewModelFactory(
-            LocalContext.current
-        )
-    ),
-    onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     activeUser: String
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(null).value !!
+    val activeTeam = vm.activeTeam.collectAsState(null).value!!
     val tasksList = vm.getTasks(activeTeam.teamId).collectAsState(initial = emptyList())
 
-    PersonalTasksScreen(
-        getOfUser = vm::getOfUser,
-        onItemSelect,
-        activeUser,
-        tasksList
-    )
+    PersonalTasksScreen(getOfUser = vm::getOfUser, onItemSelect, activeUser, tasksList)
 }

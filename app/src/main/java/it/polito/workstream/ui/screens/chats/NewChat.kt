@@ -33,7 +33,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun NewChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit
+    onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit
 ) {
     val users = vm.getUsers()
 
@@ -52,10 +52,10 @@ fun NewChat(
                             .padding(top = 5.dp, bottom = 5.dp)
                             .clickable {
                                if(vm.chats.value[user] != null)
-                                   onChatClick(8, null, null, user.id)
+                                   onChatClick(8, null, null, 0, /*user.id*/)   // TODO: Uccidimi
                                else {
                                    vm.newChat(user)
-                                   onChatClick(8, null, null, user.id)
+                                   onChatClick(8, null, null, 0 /* user.id */)  // TODO: UCCIDIMI
                                }
                             },
                         border = BorderStroke(0.5.dp, Color.Black),

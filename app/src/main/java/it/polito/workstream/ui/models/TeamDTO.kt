@@ -10,21 +10,20 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
 class TeamDTO {
-
-
     lateinit var teamName: String
     lateinit var teamPhoto: String
     lateinit var sections: MutableList<String>
     lateinit var tasksInfos: List<TaskInfo>
     lateinit var membership: List<Membership>
-     var members: CollectionReference? = null
-    lateinit var user :DocumentReference
+    var members: CollectionReference? = null
+    lateinit var user: DocumentReference
     lateinit var teamId: String
 
-override fun toString(): String {
+    override fun toString(): String {
         return "TeamEntity(teamName='$teamName', teamPhoto='$teamPhoto', sections=$sections, tasksInfos=$tasksInfos, membership=$membership, user : $user)"
     }
-    private fun fetchAdmin() : Flow<User> = callbackFlow {
+
+    private fun fetchAdmin(): Flow<User> = callbackFlow {
         val listener = user.addSnapshotListener { r, e ->
             if (r != null) {
                 val admin = r.toObject(User::class.java)!!
@@ -38,7 +37,8 @@ override fun toString(): String {
 
         awaitClose { listener.remove() }
     }
-    private fun fetchMembers() : Flow<List<User>> = callbackFlow {
+
+    private fun fetchMembers(): Flow<List<User>> = callbackFlow {
         val listener = members?.addSnapshotListener { r, e ->
             if (r != null) {
                 val members = r.toObjects(User::class.java)
@@ -56,24 +56,25 @@ override fun toString(): String {
     }
 
 
-    fun toTeam() : Team {
+    fun toTeam(): Team {
 
         return Team(
-            name= teamName,
+            name = teamName,
             teamId = teamId,
             adminFlow = fetchAdmin(),
-            sections =  sections,
+            sections = sections,
             profilePicture = mutableStateOf(teamPhoto)
 
         )
 
     }
-    fun HashMap<String, String>.toUser(): User  = User(firstName = this["firstName"] as String, lastName = this["lastName"] as String, email = this["email"] as String, location = this["location"] as String)
+
+    fun HashMap<String, String>.toUser(): User = User(firstName = this["firstName"] as String, lastName = this["lastName"] as String, email = this["email"] as String, location = this["location"] as String)
 }
 
-class TaskInfo{
+class TaskInfo {
 
-    var TaskInfosId : Long = 0
+    var TaskInfosId: Long = 0
     lateinit var taskName: String
     lateinit var deadline: String
     lateinit var status: String
@@ -84,12 +85,12 @@ class TaskInfo{
 }
 
 
-class Membership{
-     var MemberId : Long=0
+class Membership {
+    var MemberId: Long = 0
     lateinit var email: String
     lateinit var firstName: String
     lateinit var lastName: String
-    lateinit var location : String
+    lateinit var location: String
 
     override fun toString(): String {
         return "Membership(MemberId=$MemberId, email='$email', firstName='$firstName', lastName='$lastName', location='$location')"

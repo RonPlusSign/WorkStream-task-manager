@@ -31,7 +31,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun ChatList(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
 ) {
     val chats by vm.chats.collectAsState()
     val groupChat by vm.groupChat.collectAsState()
@@ -80,7 +80,7 @@ fun ChatList(
                             Column(
                                 modifier = Modifier
                                     .padding(top = 5.dp, bottom = 5.dp)
-                                    .clickable { onChatClick(8, null, null, chat.key.id) }
+                                    .clickable { onChatClick(8, null, null, 0 /*chat.key.email*/) } // TODO: UCCIDIMI
                             ) {
                                 SmallChatBox(
                                     userName = chat.key.firstName + " " + chat.key.lastName,

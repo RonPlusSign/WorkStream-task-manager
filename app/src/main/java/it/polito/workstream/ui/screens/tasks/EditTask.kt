@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AvTimer
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material3.Button
@@ -52,7 +51,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
-import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
@@ -72,7 +70,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTaskScreen(
-    changeRoute: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    changeRoute: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     teamVM: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
@@ -109,7 +107,7 @@ fun EditTaskScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OutlinedTextField(
-                    value = vm.assigneeToString() ?: "",
+                    value = vm.assigneeToString(),
                     onValueChange = {},
                     label = { Text("Assignee") },
                     modifier = Modifier
@@ -215,7 +213,7 @@ fun EditTaskScreen(
                             onDismissRequest = vm::toggleSectionExpanded,
                             modifier = Modifier.wrapContentSize(Alignment.Center)
                         ) {
-                            vm.sections.forEach { sectionItem ->
+                            vm.activeTeamFlow.collectAsState().value.sections.forEach { sectionItem ->
                                 DropdownMenuItem(text = { Text(text = sectionItem) }, onClick = { vm.setSection(sectionItem); vm.toggleSectionExpanded() })
                             }
                         }

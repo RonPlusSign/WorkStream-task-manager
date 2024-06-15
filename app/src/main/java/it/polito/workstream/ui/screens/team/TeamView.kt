@@ -73,7 +73,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun TeamScreen(
     vm: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     removeTeam: (teamId: String) -> Unit,
     leaveTeam: (teamId: String, userId: String) -> Unit,
     context: Context,
@@ -84,6 +84,8 @@ fun TeamScreen(
     var showLeaveConfirmationDialog by remember { mutableStateOf(false) }
 
     val team = vm.team.collectAsState(initial = null).value ?: Team("Loading...")
+
+    var nameValue by remember { mutableStateOf(team.name) }
 
     val numMembers = team.members.size  // Number of members
     val tasksCompleted = team.tasks.filter { it.completed }.size    // Total number of tasks completed
@@ -132,7 +134,7 @@ fun TeamScreen(
                     ProfilePicture(
                         profilePicture = team.profilePicture,
                         photoBitmapValue = team.profileBitmap,
-                        isEditing = (vm.currentUser.id == team.admin?.id),
+                        isEditing = (vm.currentUser.email == team.admin?.email),
                         name = team.name,
                         edit = { scope.launch { vm.setProfilePicture(it) } },
                         setPhotoBitmap = { scope.launch { vm.setProfileBitmap(it) } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
@@ -140,7 +142,7 @@ fun TeamScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = team.name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        if (vm.currentUser.id.toInt() == team.admin?.id?.toInt()) {
+                        if (vm.currentUser.email == team.admin?.email) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit team name",
@@ -148,7 +150,7 @@ fun TeamScreen(
                                 modifier = Modifier
                                     .padding(start = 4.dp)
                                     .size(20.dp)
-                                    .clickable { vm.edit() }
+                                    .clickable { vm.edit(nameValue) }
                             )
                         }
 
@@ -158,8 +160,8 @@ fun TeamScreen(
                                 text = {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         OutlinedTextField(
-                                            value = vm.nameValue,
-                                            onValueChange = vm::setName,
+                                            value = nameValue,
+                                            onValueChange = { nameValue = it },
                                             label = { Text("Team Name") },
                                             isError = vm.nameError.isNotBlank(),
                                             leadingIcon = { Icon(Icons.Default.PeopleAlt, contentDescription = "Team Name") },
@@ -170,7 +172,7 @@ fun TeamScreen(
                                         }
                                     }
                                 },
-                                confirmButton = { TextButton(onClick = { scope.launch { vm.save() } }) { Text("Save") } },
+                                confirmButton = { TextButton(onClick = { scope.launch { vm.save(nameValue) } }) { Text("Save") } },
                                 dismissButton = { TextButton(onClick = vm::discard) { Text("Cancel") } }
                             )
                         }
@@ -263,7 +265,7 @@ fun TeamScreen(
         }
 
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-            if (vm.currentUser.id.toInt() == team.admin?.id?.toInt()) {
+            if (vm.currentUser.email == team.admin?.email) {
                 OutlinedButton(
                     onClick = { showDeleteConfirmationDialog = true },
                     modifier = Modifier.weight(1f),
@@ -312,7 +314,7 @@ fun TeamScreen(
 fun MemberList(
     members: List<User>,
     removeMember: (teamId: String, userId: String) -> Unit,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     currentUser: User,
     adminId: String,
     teamId: String,
@@ -339,7 +341,7 @@ fun MemberList(
 fun MemberItem(
     member: User,
     removeMember: (String, String) -> Unit,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     currentUser: User,
     isAdmin: Boolean,
     adminId: String?,
@@ -364,7 +366,7 @@ fun MemberItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onTaskClick(6, member.id.toInt(), null, null) }
+            .clickable { onTaskClick(6, member.email, null, null) }
             .background(
                 MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(16.dp)
@@ -403,11 +405,11 @@ fun MemberItem(
                     fontWeight = if (isAdmin) FontWeight.Bold else FontWeight.Medium,
                     fontSize = 17.sp
                 )
-                if (isAdmin || currentUser.id.toInt() == member.id.toInt()) {
+                if (isAdmin || currentUser.email == member.email) {
                     Text(
                         text = buildString {
                             if (isAdmin) append(" (Admin)")
-                            if (currentUser.id.toInt() == member.id.toInt()) append(" (You)")
+                            if (currentUser.email == member.email) append(" (You)")
                         },
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 12.sp,

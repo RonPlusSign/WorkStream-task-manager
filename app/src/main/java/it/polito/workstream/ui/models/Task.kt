@@ -25,7 +25,7 @@ import java.sql.Timestamp
  * @property comments The comments related to the task
  */
 class Task(
-    val id: Long = getNewId(),
+    val id: String = getNewId(),
     var title: String,
     var description: String = "",
     var completed: Boolean = false,
@@ -67,7 +67,7 @@ class Task(
 
     companion object {  // To generate unique identifiers for tasks
         private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
+        private fun getNewId() = "${idCounter++}"
     }
 
     /** Adds a comment to the task
