@@ -86,7 +86,6 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
     }
 
     var assigneeValue by mutableStateOf(task.assignee)
-        private set
 
     var sectionValue by mutableStateOf(task.section)
         private set
@@ -191,7 +190,7 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
         task.recurrent = isRecurrentValue
         task.frequency = frequencyValue
         task.status = statusValue
-        task.team = activeTeam.value
+        task.teamId = activeTeam.value?.id
 
         return task
     }
@@ -235,11 +234,7 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
         } ?: false
     }
 
-    fun assigneeToString(): String {
-        return this.assigneeValue?.let { "${it.firstName} ${it.lastName}" } ?: "Anyone"
-    }
-
     fun setAssignee(m: User) {
-        assigneeValue = m
+        assigneeValue = m.email
     }
 }

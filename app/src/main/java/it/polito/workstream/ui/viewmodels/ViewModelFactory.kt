@@ -1,9 +1,14 @@
 package it.polito.workstream.ui.viewmodels
 
 import android.content.Context
+import androidx.compose.runtime.currentRecomposeScope
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.viewModelFactory
 import it.polito.workstream.MainApplication
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val app = (context.applicationContext as? MainApplication) ?: throw IllegalArgumentException("Bad Application class")
@@ -12,6 +17,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
         return when {
             modelClass.isAssignableFrom(TeamViewModel::class.java) -> TeamViewModel(
                 app.activeTeam,
+                app.activeTeamMembers,
                 app.user.value,
                 updateTeam = app::updateTeam,
                 teamIdsetProfileBitmap = app::setTeamProfileBitmap,
@@ -21,6 +27,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
 
             modelClass.isAssignableFrom(UserViewModel::class.java) -> UserViewModel(
                 app.user.value,
+                app.teamTasks.map { it.filter { task -> task.assignee == app.user.value.email } },
+                app.activeTeamMembers,
                 app.activeTeam,
                 chatModel = app.chatModel,
                 updateUser = app::updateUser
@@ -29,6 +37,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
             modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
                 TaskListViewModel(
                     app.activeTeam,
+                    app.activeTeamMembers,
                     app.activePageValue,
                     app::setActivePage,
                     app::deleteTask,
@@ -36,7 +45,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::onTaskUpdated,
                     app::addSectionToTeam,
                     app::removeSectionFromTeam,
-                    app::getTasks,
+                    app.teamTasks,
                     app.currentSortOrder,
                     app::setSortOrder,
                     app.filterParams,
@@ -47,8 +56,9 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->
                 TeamListViewModel(
                     app.activeTeam,
-                    app::getTeams,
-                    app::getTasks,
+                    app.userTeams,
+                    app.teamTasks,
+                    app.activeTeamMembers,
                     app.activePageValue,
                     app::setActivePage,
                     app::changeActiveTeamId,

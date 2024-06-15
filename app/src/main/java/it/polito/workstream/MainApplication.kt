@@ -40,7 +40,7 @@ class MainApplication : Application() {
     val user: StateFlow<User> = _user
 
     private var activeTeamId = MutableStateFlow("")
-    fun fetchActiveTeam(): Flow<Team?> = callbackFlow {
+    private fun fetchActiveTeam(): Flow<Team?> = callbackFlow {
         val listener = db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
             .addSnapshotListener { value, error ->
                 if (value != null && !value.isEmpty) {
@@ -56,8 +56,8 @@ class MainApplication : Application() {
 
     val activeTeam = fetchActiveTeam()
 
-    fun getTeams(): Flow<List<Team>> = callbackFlow {
-        val userId: String = user.value.userId
+    private fun getTeams(): Flow<List<Team>> = callbackFlow {
+        val userId: String = user.value.email
         val listener = db.collection("Teams").whereArrayContains("members", listOf(userId)).addSnapshotListener { r, e ->
             if (r != null) {
                 val teams = r.toObjects(Team::class.java)
@@ -69,7 +69,9 @@ class MainApplication : Application() {
         awaitClose { listener.remove() }
     }
 
-    fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
+    val userTeams = getTeams()  // Teams of the current user
+
+    private fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
         val listener = db.collection("tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
             if (r != null) {
                 val tasks = r.toObjects(Task::class.java)
@@ -79,8 +81,10 @@ class MainApplication : Application() {
         awaitClose { listener.remove() }
     }
 
+    val teamTasks = getTasks(activeTeamId.value)
 
-    fun fetchUsers(teamId: String): Flow<List<User>> = callbackFlow {
+
+    private fun fetchUsers(teamId: String): Flow<List<User>> = callbackFlow {
         val listener = db.collection("Teams").whereEqualTo("teamId", teamId)
             .addSnapshotListener { r, e ->
                 if (r != null) {
@@ -93,6 +97,8 @@ class MainApplication : Application() {
 
         awaitClose { listener.remove() }
     }
+
+    val activeTeamMembers = fetchUsers(activeTeamId.value)
 
     fun createTask(task: Task) {
         db.collection("tasks").add(task)
@@ -148,37 +154,46 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
     }
 
-    fun createEmptyTeam(nameTeam: String) {
-        val newTeam = Team(nameTeam, sections = mutableListOf("General"))
-        newTeam.adminEmail = user.value.email
+    fun createEmptyTeam(nameTeam: String): Result<String> {
+        val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email))
+        var newTeamId = newTeam.id
 
-        val newTeamRef = db.collection("Teams").document()
-        val userRef = db.collection("users").document(user.value.email)
+        // Create the team in Firestore
+        db.collection("Teams").add(newTeam)
+            .addOnSuccessListener { documentReference ->
+                Log.d("Firestore", "Team created with ID: ${documentReference.id}")
+                newTeam.id = documentReference.id
 
-        db.runTransaction { t ->
-            t.update(userRef, "teams", FieldValue.arrayUnion(newTeamRef.id))
-            t.set(newTeamRef, newTeam)
-        }
-            .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+                // Add the team to the user's teams list
+                db.collection("users").document(user.value.email).update("teams", FieldValue.arrayUnion(documentReference.id))
+                    .addOnSuccessListener {
+                        Log.d("Firestore", "Team added to user")
+                        newTeamId = documentReference.id
+                    }
+                    .addOnFailureListener { e -> Log.w("Firestore", "Error adding team to user", e) }
+            }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a team", e) }
+
+        if (newTeamId == "") return Result.failure(Exception("Error creating team"))
+        return Result.success(newTeamId)
     }
 
     //TaskListViewModel
 
     //update task
     fun onTaskUpdated(updatedTask: Task) {
-        db.collection("task").document(updatedTask.taskId).set(updatedTask)
+        db.collection("task").document(updatedTask.id).set(updatedTask)
     }
 
     fun deleteTask(task: Task) {
         // Remove the task from the user's tasks list
-        val taskRef = db.collection("task").document(task.taskId)
-        val userRef = task.assignee?.let { db.collection("users").document(it.email) }
+        val taskRef = db.collection("task").document(task.id)
+        val userRef = task.assignee?.let { db.collection("users").document(it) }
         db.runTransaction { t ->
             t.delete(taskRef)
             task.assignee?.let {
                 if (userRef != null) {
-                    t.update(userRef, "tasks", FieldValue.arrayRemove(task.taskId))
+                    t.update(userRef, "tasks", FieldValue.arrayRemove(task.id))
                 }
             }
         }
@@ -186,7 +201,7 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
         // Remove the task from the team's tasks list
-        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(task.taskId))
+        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(task.id))
             .addOnSuccessListener { Log.d("Firestore", "Task removed from team") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }
     }
@@ -194,7 +209,7 @@ class MainApplication : Application() {
     fun onTaskCreated(t: Task) {
         // Add the task to the user's tasks list
         val task = t.copy()
-        val userRef = db.collection("users").document(t.assignee?.email!!)
+        val userRef = db.collection("users").document(t.assignee!!)
         val taskRef = db.collection("task").document()
         db.runTransaction {
             it.update(userRef, "tasks", FieldValue.arrayUnion(taskRef.id))
@@ -204,15 +219,15 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
         // Add the task to the team's tasks list
-        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayUnion(taskRef.id))
+        db.collection("Teams").document(activeTeamId.value).update("tasks", FieldValue.arrayUnion(taskRef.id))
             .addOnSuccessListener { Log.d("Firestore", "Task added to team") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error adding task to team", e) }
     }
 
     fun onTaskDeleted(t: Task) {
         // Remove the task from the user's tasks list
-        val taskRef = db.collection("task").document(t.taskId)
-        val userRef = t.assignee?.let { db.collection("users").document(it.email) }
+        val taskRef = db.collection("task").document(t.id)
+        val userRef = t.assignee?.let { db.collection("users").document(it) }
         db.runTransaction { tr ->
             tr.delete(taskRef)
             tr.update(userRef!!, "tasks", FieldValue.arrayRemove(t.id))
@@ -221,7 +236,7 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
         // Remove the task from the team's tasks list
-        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(t.taskId))
+        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(t.id))
             .addOnSuccessListener { Log.d("Firestore", "Task removed from team") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }
     }
@@ -258,6 +273,11 @@ class MainApplication : Application() {
     }
 
     fun addSectionToTeam(section: String) {
+        if (activeTeamId.value.isBlank()) {
+            Log.e("AddSection", "Active team ID is blank!")
+            return
+        }
+
         db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayUnion(section))
             .addOnSuccessListener { Log.d("Firestore", "Section added to team") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error adding section to team", e) }
@@ -270,338 +290,6 @@ class MainApplication : Application() {
     }
 
     val chatModel = ChatModel(emptyList())  // TODO: CAMBIA
-
-    /*
-)
-
-
-val userList: StateFlow<List<User>> = _userList
-*/
-
-    /*private fun getUserByName(name: String): User {
-    return _userList.value.filter { (it.firstName + " " + it.lastName) == name }[0]
-}*/
-
-    /*
-@SuppressLint("SimpleDateFormat")
-var _tasksList = MutableStateFlow(
-    mutableListOf(
-        // Task list from tasksList
-        Task(
-            "Test this app",
-            assignee = getUserByName("Cristoforo Colombo"),
-            attachments = mutableStateListOf("attachment1", "attachment2", "attachment3"),
-            comments = mutableStateListOf(Comment(text = "prova", author = "chris")),
-            history = mutableStateMapOf(
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "To do",
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-            ),
-            status = "To do",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-01")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "Finish the project ASAP please",
-            assignee = getUserByName("Cristoforo Colombo"),
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-            ),
-            status = "In progress",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-10")
-                ?.let { Timestamp(it.time) }
-        ),
-        Task(
-            "Submit the project",
-            assignee = getUserByName("Giovanni Malnati"),
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(),
-            status = "To do",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-20")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "Buy apples",
-            assignee = getUserByName("Cristoforo Colombo"),
-            section = "Personal",
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(),
-            status = "To do",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-15")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "Clean the house",
-            assignee = getUserByName("Sergio Mattarella"),
-            section = "Personal",
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(),
-            status = "In progress",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "Organize meeting",
-            assignee = getUserByName("Cristoforo Colombo"),
-            section = "Work",
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(),
-            status = "Paused",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-21")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "End of April recap meeting",
-            assignee = getUserByName("Cristoforo Colombo"),
-            section = "Work",
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            status = "Completed",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-04-27")
-                ?.let { Timestamp(it.time) },
-            completed = true,
-        ),
-        // Task list from tasksList1
-        Task(
-            "Test this app111",
-            assignee = getUserByName("Cristoforo Colombo"),
-            attachments = mutableStateListOf("attachment1", "attachment2", "attachment3"),
-            comments = mutableStateListOf(Comment(text = "prova", author = "chris")),
-            history = mutableStateMapOf(
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "To do",
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-            ),
-            status = "To do",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-01")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "Finish the project1",
-            assignee = getUserByName("Cristoforo Colombo"),
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-            ),
-            status = "In progress",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-10")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "Submit the project1",
-            assignee = getUserByName("Giovanni Malnati"),
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(),
-            status = "To do",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-20")
-                ?.let { Timestamp(it.time) },
-        ),
-        Task(
-            "Buy apples1",
-            assignee = getUserByName("Cristoforo Colombo"),
-            section = "Funny ideas",
-            attachments = mutableStateListOf(),
-            comments = mutableStateListOf(),
-            history = mutableStateMapOf(),
-            status = "To do",
-            dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-15")
-                ?.let { Timestamp(it.time) },
-        ),
-    )
-)
-    private set
-
-var tasksList: MutableStateFlow<MutableList<Task>> = _tasksList
-
-fun getTaskById(id: Long): Task {
-    return tasksList.value.find { it.id == id }!!
-}
-
-fun getTasksListOfTeam(teamId: Int): MutableStateFlow<MutableList<Task>> {
-    return tasksList   // TODO: Filter tasks by team
-}
-
-@SuppressLint("MutableCollectionMutableState")
-var _teams = MutableStateFlow(
-    mutableListOf(
-        Team(
-            name = "Dream Team",
-            members = mutableListOf(
-                getUserByName("Cristoforo Colombo"),
-                getUserByName("Sergio Mattarella"),
-                getUserByName("Antonio Giovanni"),
-                getUserByName("Giovanni Malnati")
-            ),
-            tasks = mutableListOf(
-                getTaskById(1),
-                getTaskById(2),
-                getTaskById(3),
-                getTaskById(4),
-                getTaskById(5),
-                getTaskById(6),
-                getTaskById(7)
-            ),
-            sections = mutableListOf("General", "Work", "Personal")
-        ),
-        Team(
-            name = "Another Team",
-            members = mutableListOf(
-                getUserByName("Sergio Mattarella"),
-                getUserByName("Giovanni Malnati"),
-                getUserByName("Cristoforo Colombo")
-            ),
-            tasks = mutableListOf(
-                getTaskById(8),
-                getTaskById(9),
-                getTaskById(10),
-            ),
-            sections = mutableListOf("General", "Funny ideas")
-        )
-    )
-)
-
-val teams: StateFlow<List<Team>> = _teams
-fun getSectionsOfTeam(teamId: Long): SnapshotStateList<String> {
-    val s = _teams.value[teamId.toInt()].sections
-    return mutableStateListOf(*s.toTypedArray())
-}
-
-fun addTeam(team: Team) {
-    _teams.value.add(team)
-}
-
-//val _activeTeam: MutableStateFlow<Team> = MutableStateFlow(_teams.value[0])
-//val activeTeam: StateFlow<Team> = _activeTeam
-
-
-fun createEmptyTeam(name: String) {
-    val newTeam = Team(name, sections = mutableListOf("General"))
-    newTeam.admin = user.value
-
-    user.value?.let { newTeam.addMember(it) }
-    user.value?.teams?.add(newTeam)
-
-    _teams.value.add(newTeam)
-}
-
-fun leaveTeam(team: Team, user: User) {
-    // Rimuovi il team dalla lista di team dell'utente
-    _userList.value.find { it.id == user.id }?.teams?.remove(team)
-
-    // Rimuovi i task dell'utente associati al team
-    _userList.value.find { it.id == user.id }?.tasks?.removeAll(user.tasks.filter { it.team?.id == team.id })
-
-    _tasksList.value.forEach() {
-        if (it.team?.id == team.id && it.assignee?.id == user.id) {
-            it.assignee = null
-        }
-    }
-
-
-    // Rimuovi l'utente dalla lista di membri del team
-    _teams.value.find { it.id == team.id }?.members?.remove(user)
-
-    // Cambia il team attivo se necessario
-    if (user.teams.isNotEmpty()) {
-        changeActiveTeamId(
-            _userList.value.find { it.id == user.id }?.teams?.get(0)?.id ?: 0
-        )
-    } else {
-        changeActiveTeamId(0)
-    }
-}
-
-
-fun removeTeam(teamId: Long) {
-    // Rimuovi il team dalla lista di team di ogni membro e rimuovi i task associati al team cancellato
-    _teams.value.forEach { team -> Log.d("Team", "teamid: ${team.id}") }
-    Log.d("Team", "teamId da rimuovere: $teamId")
-
-    _teams.value.find { it.id == teamId }?.let { team ->
-        //val roba =tasksList.value.filter { task -> team.tasks.map { it.id }.contains(task.id) }
-        //roba.forEach { Log.d("taskdarimuovere", "taskid: ${it.id}")  }
-
-        team.members.forEach { member ->
-            member.teams.remove(team)
-            val tasksToRemove = member.tasks.filter { task -> task.team?.id == team.id }
-            member.tasks.removeAll(tasksToRemove)
-        }
-    }
-    user.value?.teams?.get(0)?.let { changeActiveTeamId(it.id) }
-    _teams.value.remove(_teams.value.find { it.id == teamId }!!)
-
-}
-
-fun changeActiveTeamId(teamId: Long) {
-    Log.d("Team", "teamId da cambiare: $teamId")
-    _activeTeam.value = _teams.value.find { it.id == teamId } ?: _teams.value[0]
-    tasksList = MutableStateFlow(activeTeam.value.tasks)
-}
-
-var activePageValue =
-    MutableStateFlow(Route.TeamTasks.name) //by mutableStateOf(Route.TeamTasks.name)
-    private set
-
-fun setActivePage(page: String) {
-    activePageValue.value = page
-}
-
-
-
-fun updateUserInFirestore(user: User) {
-    db.collection("users").document(user.email).set(user)
-        .addOnSuccessListener {
-            Log.d("UserProfile", "User profile updated successfully")
-        }
-        .addOnFailureListener { e ->
-            Log.e("UserProfile", "Error updating user profile", e)
-        }
-}
-fun editUser(firstName : String, lastName : String, email : String, location : String) {
-    _user.value.firstName = firstName
-    _user.value.lastName = lastName
-    _user.value.location = location
-    updateUserInFirestore(_user.value)
-}
-
-val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
-fun setSortOrder(newSortOrder: String) {
-    currentSortOrder.update { newSortOrder }
-}
-
-val filterParams = mutableStateOf(FilterParams())
-
-val searchQuery = mutableStateOf("")
-
-fun setSearchQuery(newQuery: String) {
-    searchQuery.value = newQuery
-}
-
-fun teamIdsetProfileBitmap(teamId: Long, b: Bitmap?) {
-    teams.value.find { it.id == teamId }?.profileBitmap?.value = b
-}
-
-fun teamIdsetProfilePicture(teamId: Long, n: String) {
-    teams.value.find { it.id == teamId }?.profilePicture?.value = n
-}
-
-fun removeMemberFromTeam(teamId: Long, userId: Long) {
-    _teams.value.find { it.id == teamId }?.members?.remove(teams.value.find { it.id == teamId }?.members?.find { it.id == userId })
-}
-
-val chatModel = ChatModel(_userList.value)*/
-
-
 }
 
 class ChatModel(userList: List<User>) {

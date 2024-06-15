@@ -10,20 +10,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ChatModel
 import it.polito.workstream.ui.models.ChatMessage
+import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-class UserViewModel(user: User, activeTeamFlow: Flow<Team?>, val chatModel: ChatModel, val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit) : ViewModel() {
+class UserViewModel(
+    user: User,
+    userTasksFlow: Flow<List<Task>>,
+    teamMembersFlow: Flow<List<User>>,
+    activeTeamFlow: Flow<Team?>,
+    val chatModel: ChatModel,
+    val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit
+) : ViewModel() {
+    val userTasks = userTasksFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
+    val teamMembers = teamMembersFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
 
     var isEditing by mutableStateOf(false)
         private set
 
     val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
-    val usersList = activeTeam.value?.members ?: emptyList()
-
 
     fun edit() {
         isEditing = true
@@ -135,18 +144,18 @@ class UserViewModel(user: User, activeTeamFlow: Flow<Team?>, val chatModel: Chat
     }
 
     /* Profile picture */
-    var profilePictureValue = mutableStateOf(user.profilePicture)
+    var profilePictureValue = user.profilePicture
         private set
 
-    var photoBitmapValue = mutableStateOf<Bitmap?>(user.BitmapValue)
+    var photoBitmapValue = user.BitmapValue
         private set
 
     fun setPhotoBitmap(b: Bitmap?) {
-        photoBitmapValue.value = b
+        photoBitmapValue = b
     }
 
     fun setProfilePicture(n: String) {
-        profilePictureValue.value = n
+        profilePictureValue = n
     }
 
     // Chats
@@ -171,27 +180,22 @@ class UserViewModel(user: User, activeTeamFlow: Flow<Team?>, val chatModel: Chat
         private set
 
     /* Number of tasks completed */
-    var tasksCompleted by mutableIntStateOf(user.tasks.filter { it.completed && (it.team?.id ?: -1) == activeTeamFlow }.size)
+    var tasksCompleted by mutableIntStateOf(userTasks.value.filter { it.completed }.size)
         private set
 
     /* Number of tasks to complete */
-    var tasksToComplete by mutableIntStateOf(user.tasks.filter { !it.completed && (it.team?.id ?: -1) == activeTeamFlow }.size)
+    var tasksToComplete by mutableIntStateOf(userTasks.value.filter { !it.completed }.size)
         private set
-
-    fun getUsers(): List<User> {
-        return usersList
-    }
-
 
     fun setUser(user: User) {
         firstNameValue = user.firstName
         lastNameValue = user.lastName
         emailValue = user.email
         locationValue = user.location
-        profilePictureValue = mutableStateOf(user.profilePicture)
-        photoBitmapValue = mutableStateOf(user.BitmapValue)
+        profilePictureValue = user.profilePicture
+        photoBitmapValue = user.BitmapValue
         numberOfTeams = user.teams.size
-        tasksCompleted = user.tasks.filter { it.completed }.size
-        tasksToComplete = user.tasks.filter { !it.completed }.size
+        tasksCompleted = userTasks.value.filter { it.completed }.size
+        tasksToComplete = userTasks.value.filter { !it.completed }.size
     }
 }

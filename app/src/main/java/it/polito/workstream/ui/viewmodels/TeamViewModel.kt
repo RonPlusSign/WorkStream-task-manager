@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 
 class TeamViewModel(
     val team: Flow<Team?>,
+    val teamMembers: Flow<List<User>>,
     val currentUser: User,
     private val updateTeam: (team: Team) -> Unit,
     private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,

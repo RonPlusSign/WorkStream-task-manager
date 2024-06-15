@@ -83,14 +83,14 @@ fun TeamScreen(
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var showLeaveConfirmationDialog by remember { mutableStateOf(false) }
 
-    val team = vm.team.collectAsState(initial = null).value ?: Team("Loading...")
+    val team = vm.team.collectAsState(initial = null).value ?: Team(name = "Loading...")
 
     var nameValue by remember { mutableStateOf(team.name) }
 
-    val numMembers = team.members.size  // Number of members
+    val numberOfMembers = team.members.size  // Number of members
     val tasksCompleted = team.tasks.filter { it.completed }.size    // Total number of tasks completed
     val tasksToComplete = team.tasks.size - tasksCompleted // Number of tasks to complete
-    val top3Users = (team.members.sortedByDescending { it.tasks.filter { it.completed }.size }.take(3))
+    val top3Users = (team.members.sortedByDescending { team.tasks.filter { task -> task.assignee == it && task.completed }.size }.take(3))
 
     val link = "https://www.workstream.it/${team.id}"
     val scope = rememberCoroutineScope()
@@ -134,7 +134,7 @@ fun TeamScreen(
                     ProfilePicture(
                         profilePicture = team.profilePicture,
                         photoBitmapValue = team.profileBitmap,
-                        isEditing = (vm.currentUser.email == team.admin?.email),
+                        isEditing = (vm.currentUser.email == team.admin),
                         name = team.name,
                         edit = { scope.launch { vm.setProfilePicture(it) } },
                         setPhotoBitmap = { scope.launch { vm.setProfileBitmap(it) } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
@@ -142,7 +142,7 @@ fun TeamScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = team.name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        if (vm.currentUser.email == team.admin?.email) {
+                        if (vm.currentUser.email == team.admin) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "Edit team name",
@@ -211,7 +211,10 @@ fun TeamScreen(
                 Text(text = "Top 3 members by completed tasks", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
-                    top3Users.forEachIndexed { index, user ->
+                    top3Users.forEachIndexed { index, userId ->
+                        val user = vm.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId }
+                        val numOfTasksCompleted = team.tasks.filter { it.completed && (it.assignee == userId) }.size
+
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                             Box {
                                 Text(
@@ -227,7 +230,7 @@ fun TeamScreen(
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
-                            Text(text = "${user.firstName} ${user.lastName}", fontSize = 16.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp))
+                            Text(text = user?.getFirstAndLastName() ?: "", fontSize = 16.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Default.Check, contentDescription = "Tasks completed", modifier = Modifier
@@ -235,7 +238,7 @@ fun TeamScreen(
                                         .size(16.dp)
                                 )
                                 Text(
-                                    text = "${user.tasks.filter { it.completed && (it.team?.id ?: "") == team.id }.size} tasks",
+                                    text = "$numOfTasksCompleted tasks",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Light,
                                     textAlign = TextAlign.Center,
@@ -252,11 +255,11 @@ fun TeamScreen(
                 Text(text = "Manage members", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 MemberList(
-                    members = team.members,
+                    members = vm.teamMembers.collectAsState(initial = emptyList()).value,
                     removeMember = leaveTeam,
                     onTaskClick = onTaskClick,
                     currentUser = vm.currentUser,
-                    adminId = team.admin?.email ?: "",
+                    adminId = team.admin,
                     teamId = team.id,
                     navigateTo = navigateTo
                 )
@@ -265,7 +268,7 @@ fun TeamScreen(
         }
 
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
-            if (vm.currentUser.email == team.admin?.email) {
+            if (vm.currentUser.email == team.admin) {
                 OutlinedButton(
                     onClick = { showDeleteConfirmationDialog = true },
                     modifier = Modifier.weight(1f),

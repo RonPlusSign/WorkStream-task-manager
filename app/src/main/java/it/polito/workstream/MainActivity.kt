@@ -142,9 +142,9 @@ fun ContentView(
     taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(null).value ?: Team(id = "no_team", name = "")
-    val tasksList = vm.getTasks(activeTeam.id).collectAsState(initial = emptyList()) //vm.activeTeam.collectAsState().value.tasks
-    val sections = activeTeam.sections //vm.activeTeam.collectAsState().value.sections
+    val activeTeam = vm.activeTeam.collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
+    val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
+    val sections = activeTeam.sections
 
     val navController = rememberNavController()
     val activeTeamId = activeTeam.id //vm.activeTeam.collectAsState().value.id
@@ -203,12 +203,11 @@ fun ContentView(
     }
 
     if (activeTeam.id == "no_team") {
-        NoTeamsScreen(activeUser = app.user, onJoinTeam = { navigateTo("profile?id=$it") }, addNewTeam = app::createEmptyTeam)
+        NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("profile?id=$it") })
         return
     }
 
-    NavDrawer(navigateTo = navigateTo, drawerState = drawerState, activeUser = app.user)
-    {
+    NavDrawer(navigateTo = navigateTo, drawerState = drawerState, activeUser = app.user) {
         Scaffold(
             topBar = { Column { TopBarWrapper(drawerState = drawerState, navigateTo = navigateTo) } },
             bottomBar = { BottomNavbarWrapper(navigateTo = navigateTo, teamId = activeTeamId) },
@@ -222,7 +221,7 @@ fun ContentView(
 
                     composable(
                         route = "/{teamId}/${Route.TeamTasks.name}",
-                        arguments = listOf(navArgument("teamId") { type = NavType.LongType; nullable = false; defaultValue = 0 })
+                        arguments = listOf(navArgument("teamId") { type = NavType.StringType; nullable = false; defaultValue = "" })
                     ) {
                         vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
@@ -231,7 +230,7 @@ fun ContentView(
 
                     composable(route = Route.MyTasks.name) {
                         vm.setActivePage(Route.MyTasks.title)
-                        PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.getFirstAndLastName())
+                        PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.email)
                     }
 
                     composable(route = Route.ChatScreen.name) {
@@ -243,14 +242,14 @@ fun ContentView(
                         route = "${Route.ChatScreen.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.LongType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
                         val userId = entry.arguments?.getString("index")
-                        val destUser = userId?.let { activeTeam.members.find { it.email == userId } }
+                        val destUser = userId?.let { app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId } }
 
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
@@ -296,19 +295,19 @@ fun ContentView(
                             }
                         )
                     ) { entry ->
-                        val index = entry.arguments?.getInt("index")
+                        val taskId = entry.arguments?.getString("index")
 
                         /*vm.tasksList.find { it.id.toInt() == index }?.let {
                             vm.setActivePage(it.title)
                         }*/
-                        tasksList.value.find { it.id.toInt() == index }?.let {
+                        tasksList.value.find { it.id == taskId }?.let {
                             vm.setActivePage(it.title)
+                            val assignee = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { u -> u.email == it.assignee }
+                            ShowTaskDetails(it, assignee, onComplete = { task ->
+                                task.complete()
+                                onItemSelect(1, null, null, null)
+                            })
                         }
-
-                        ShowTaskDetails(tasksList.value.toMutableList(), index = index ?: 1, onComplete = {
-                            it.complete()
-                            onItemSelect(1, null, null, null)
-                        })
                     }
 
                     composable(
@@ -331,7 +330,7 @@ fun ContentView(
                         }
 
                         if (taskEditing != null) {
-                            EditTaskScreen(changeRoute = onItemSelect, vm = taskVM)
+                            EditTaskScreen(changeRoute = onItemSelect, taskVM = taskVM)
                         }
                     }
 
@@ -349,7 +348,7 @@ fun ContentView(
                         val userId = entry.arguments?.getString("index")
                         var user = User()
                         if (userId != null) {
-                            user = activeTeam.members.find { it.email == userId }!!
+                            user = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId } ?: User()
                         }
                         UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }

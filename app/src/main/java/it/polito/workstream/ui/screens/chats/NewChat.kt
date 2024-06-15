@@ -19,6 +19,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,34 +36,34 @@ fun NewChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit
 ) {
-    val users = vm.getUsers()
+    val users = vm.teamMembers.collectAsState().value
 
     Column {
-        LazyColumn (
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
             users.forEach { user ->
                 item {
-                    Card (
+                    Card(
                         modifier = Modifier
                             .height(70.dp)
                             .fillMaxWidth()
                             .padding(top = 5.dp, bottom = 5.dp)
                             .clickable {
-                               if(vm.chats.value[user] != null)
-                                   onChatClick(8, null, null, 0, /*user.id*/)   // TODO: Uccidimi
-                               else {
-                                   vm.newChat(user)
-                                   onChatClick(8, null, null, 0 /* user.id */)  // TODO: UCCIDIMI
-                               }
+                                if (vm.chats.value[user] != null)
+                                    onChatClick(8, null, null, 0 /*user.id*/)   // TODO: Uccidimi
+                                else {
+                                    vm.newChat(user)
+                                    onChatClick(8, null, null, 0 /* user.id */)  // TODO: UCCIDIMI
+                                }
                             },
                         border = BorderStroke(0.5.dp, Color.Black),
                         shape = RoundedCornerShape(6.dp),
                         elevation = CardDefaults.elevatedCardElevation(8.dp),
                     ) {
-                        Row (
+                        Row(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .wrapContentHeight(Alignment.CenterVertically)

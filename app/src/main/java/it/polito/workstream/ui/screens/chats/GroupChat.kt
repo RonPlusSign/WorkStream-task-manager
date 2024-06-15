@@ -52,16 +52,14 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun GroupChat(
-    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
-) {
+fun GroupChat(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
     val groupChat by vm.groupChat.collectAsState()
 
-    Column (
+    Column(
         modifier = Modifier.fillMaxSize()
     ) {
         // The list of messages
-        LazyColumn (
+        LazyColumn(
             reverseLayout = true,
             modifier = Modifier
                 .padding(5.dp)
@@ -83,8 +81,8 @@ fun GroupChat(
 fun GroupChatMessageBox(message: ChatMessage, vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
     var messageToEdit by rememberSaveable { mutableStateOf<Long?>(null) }
 
-    Row (
-        horizontalArrangement =  if (message.isFromMe) Arrangement.End else Arrangement.Start,
+    Row(
+        horizontalArrangement = if (message.isFromMe) Arrangement.End else Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
             //.align(if (mex.isFromMe) Alignment.End else Alignment.Start)
@@ -140,8 +138,8 @@ fun GroupChatMessageBox(message: ChatMessage, vm: UserViewModel = viewModel(fact
 @Composable
 fun GroupChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
     var newMessage by remember { mutableStateOf("") }
-
-    Row (
+    val users = vm.teamMembers.collectAsState().value
+    Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
         modifier = Modifier
@@ -159,7 +157,7 @@ fun GroupChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(L
                     Icons.AutoMirrored.Filled.Send,
                     contentDescription = "",
                     modifier = Modifier.clickable {
-                        vm.sendGroupMessage(ChatMessage(newMessage, vm.getUsers()[0], true, LocalDateTime.now()))
+                        vm.sendGroupMessage(ChatMessage(newMessage, users[0], true, LocalDateTime.now()))
                         newMessage = ""
 //                        sleep(5000);
 //                        sendMessage(destUser, ChatMessage("Risposta di prova", "Autore", false))
@@ -184,7 +182,7 @@ fun EditGroupMessageSheet(messageToEdit: Long, vm: UserViewModel = viewModel(fac
         sheetState = sheetState,
         onDismissRequest = { vm.toggleShowEditDialog() },
     ) {
-        Row (
+        Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .padding(bottom = 32.dp)

@@ -29,13 +29,12 @@ import it.polito.workstream.ui.screens.tasks.components.SmallTaskBox
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlin.reflect.KFunction2
 
 @Composable
 fun PersonalTasksScreen(
     getOfUser: (String, List<Task>) -> List<Task>,
     onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
-    ActiveUser: String,
+    activeUser: String,
     tasksList: State<List<Task>>
 ) {
     WorkStreamTheme {
@@ -62,7 +61,7 @@ fun PersonalTasksScreen(
                         .padding(padding)
                         .padding(16.dp),
                 ) {
-                    getOfUser(ActiveUser, tasksList.value).forEach { task ->
+                    getOfUser(activeUser, tasksList.value).forEach { task ->
                         item {
                             Column(
                                 modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) }
@@ -86,8 +85,6 @@ fun PersonalTasksScreenWrapper(
     onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     activeUser: String
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(null).value!!
-    val tasksList = vm.getTasks(activeTeam.id).collectAsState(initial = emptyList())
-
+    val tasksList = vm.tasks.collectAsState(initial = emptyList())
     PersonalTasksScreen(getOfUser = vm::getOfUser, onItemSelect, activeUser, tasksList)
 }
