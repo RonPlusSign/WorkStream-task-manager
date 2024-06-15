@@ -275,7 +275,7 @@ fun ContentView(
                         vm.setActivePage(Route.NewTask.title)
                         if (taskVM.task.title != "New Task")
                             taskVM.setTask(Task(title = "New Task", section = sections[0]))
-                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM)
+                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM, saveTask = app::onTaskCreated)
                     }
 
                     composable(

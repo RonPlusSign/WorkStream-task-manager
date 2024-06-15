@@ -54,7 +54,7 @@ fun ConfirmJoinTeamPage(
 ) {
     val teams = vm.getTeams().collectAsState(initial = emptyList())
 
-    val team = teamId?.let { id -> teams.value.find { it.id == id.toLong() } }
+    val team = teamId?.let { id -> teams.value.find { it.id == id } }
 
     Column(
         modifier = Modifier

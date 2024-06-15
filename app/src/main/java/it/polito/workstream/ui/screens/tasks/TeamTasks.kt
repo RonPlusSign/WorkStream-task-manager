@@ -64,7 +64,7 @@ fun TeamTasksScreen(
     deleteSection: (String) -> Unit,
     setNewSection: (String) -> Unit,
     newSectionError: String,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     toggleAddSection: () -> Unit,
     validateSection: () -> Unit,
     currentSortOrder: MutableStateFlow<String>
@@ -189,12 +189,11 @@ fun TeamTasksScreen(
                                         getOfSection(section, sortOrder).forEach { task ->
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
-                                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null) }//navigation
+                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) }//navigation
                                             ) {
                                                 SmallTaskBox(title = task.title, assignee = (task.assignee?.firstName
                                                     ?: "") + " " + (task.assignee?.lastName ?: ""), section = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                                    //editTask(task)
-                                                    onTaskClick(4, task.id.toInt(), task.title, null)
+                                                    onTaskClick(4, task.id, task.title, null)
                                                 })
                                                 Spacer(modifier = Modifier.weight(1f))
                                             }
@@ -270,7 +269,7 @@ fun TeamTasksScreen(
 @Composable
 fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit) {
     TeamTasksScreen(
-        sections = vm.sections,
+        sections = vm.activeTeam.value?.sections ?: emptyList(),
         getOfSection = vm::getOfSection,
         sectionExpanded = vm.sectionExpanded,
         newSectionValue = vm.newSectionValue,

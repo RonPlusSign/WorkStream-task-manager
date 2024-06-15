@@ -147,7 +147,6 @@ class LoginActivity : ComponentActivity() {
                 val lastName = names.drop(1).joinToString(" ")
 
                 val newUser = User(
-                    id = User.getNewId(),
                     firstName = firstName,
                     lastName = lastName,
                     email = firebaseUser.email ?: "",

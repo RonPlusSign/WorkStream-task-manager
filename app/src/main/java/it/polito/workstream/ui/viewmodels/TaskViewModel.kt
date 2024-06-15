@@ -16,7 +16,7 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class TaskViewModel(activeTeamFlow: Flow<Team?>) : ViewModel() {
+class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
     val statuses = listOf("To do", "In progress", "Paused", "On review", "Completed")

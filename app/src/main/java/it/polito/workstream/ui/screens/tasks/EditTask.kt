@@ -213,7 +213,7 @@ fun EditTaskScreen(
                             onDismissRequest = vm::toggleSectionExpanded,
                             modifier = Modifier.wrapContentSize(Alignment.Center)
                         ) {
-                            vm.activeTeamFlow.collectAsState().value.sections.forEach { sectionItem ->
+                            vm.activeTeamFlow.collectAsState(initial = null).value?.sections?.forEach { sectionItem ->
                                 DropdownMenuItem(text = { Text(text = sectionItem) }, onClick = { vm.setSection(sectionItem); vm.toggleSectionExpanded() })
                             }
                         }

@@ -41,7 +41,7 @@ class MainApplication : Application() {
     val user: StateFlow<User> = _user
 
     private var activeTeamId = MutableStateFlow("")
-    fun getActiveTeam(): Flow<Team?> = callbackFlow {
+    fun fetchActiveTeam(): Flow<Team?> = callbackFlow {
         db.collection("Teams").whereEqualTo("id", activeTeamId).limit(1)
             .addSnapshotListener { value, error ->
                 if (value != null) {
@@ -54,7 +54,7 @@ class MainApplication : Application() {
             }
     }
 
-    val activeTeam = getActiveTeam()
+    val activeTeam = fetchActiveTeam()
 
     fun getTeams(): Flow<List<Team>> = callbackFlow {
         val userId: String = user.value.userId
@@ -192,10 +192,10 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }
     }
 
-    fun onTaskCreated(task1: Task) {
+    fun onTaskCreated(t: Task) {
         // Add the task to the user's tasks list
-        val task = task1.copy()
-        val userRef = db.collection("users").document(task1.assignee?.email!!)
+        val task = t.copy()
+        val userRef = db.collection("users").document(t.assignee?.email!!)
         val taskRef = db.collection("task").document()
         db.runTransaction {
             it.update(userRef, "tasks", FieldValue.arrayUnion(taskRef.id))
@@ -208,6 +208,23 @@ class MainApplication : Application() {
         db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayUnion(taskRef.id))
             .addOnSuccessListener { Log.d("Firestore", "Task added to team") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error adding task to team", e) }
+    }
+
+    fun onTaskDeleted(t: Task) {
+        // Remove the task from the user's tasks list
+        val taskRef = db.collection("task").document(t.taskId)
+        val userRef = t.assignee?.let { db.collection("users").document(it.email) }
+        db.runTransaction { tr ->
+            tr.delete(taskRef)
+            tr.update(userRef!!, "tasks", FieldValue.arrayRemove(t.id))
+        }
+            .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+
+        // Remove the task from the team's tasks list
+        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(t.taskId))
+            .addOnSuccessListener { Log.d("Firestore", "Task removed from team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }
     }
 
     val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
@@ -239,6 +256,18 @@ class MainApplication : Application() {
         db.collection("users").document(email).set(_user.value)
             .addOnSuccessListener { Log.d("UserProfile", "User profile updated successfully") }
             .addOnFailureListener { e -> Log.e("UserProfile", "Error updating user profile", e) }
+    }
+
+    fun addSectionToTeam(section: String) {
+        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayUnion(section))
+            .addOnSuccessListener { Log.d("Firestore", "Section added to team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error adding section to team", e) }
+    }
+
+    fun removeSectionFromTeam(section: String) {
+        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayRemove(section))
+            .addOnSuccessListener { Log.d("Firestore", "Section removed from team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing section from team", e) }
     }
 
     val chatModel = ChatModel(emptyList())  // TODO: CAMBIA
