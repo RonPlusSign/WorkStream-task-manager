@@ -290,7 +290,7 @@ fun ContentView(
 
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
-                            Chat(destUser)
+                            Chat(destUser.email)
                         }
                     }
 

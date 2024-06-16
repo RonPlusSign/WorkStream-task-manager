@@ -53,13 +53,13 @@ import java.util.Locale
 
 @Composable
 fun Chat(
-    destUser: User,
+    destUserId: String,
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 //    messages: List<ChatMessage>?,
 //    sendMessage: (User, ChatMessage) -> Unit
 ) {
     val chat = vm.chats.collectAsState(listOf()).value.find {
-        it.user1Id == destUser.email || it.user2Id == destUser.email
+        it.user1Id == destUserId || it.user2Id == destUserId
     };
 
     Column {
@@ -72,23 +72,30 @@ fun Chat(
                 .weight(1f)
         ) {
             chat?.messages?.reversed()?.forEach { mex ->
+                val sender = vm.teamMembers.value.find { it.email == mex.authorId }
+                val isFromMe = mex.authorId == vm.user.email
                 item {
-                    ChatMessageBox(mex, destUser, vm);
+                    ChatMessageBox(mex, destUserId, vm, isFromMe);
                 }
             }
         }
         // The input box to send a message
-        ChatInputBox(vm, destUser)
+        ChatInputBox(vm, destUserId)
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
-    var messageToEdit by rememberSaveable { mutableStateOf<Long?>(null) }
+fun ChatMessageBox(
+    message: ChatMessage,
+    destUserId: String,
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    isFromMe: Boolean
+) {
+    var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
 
     Row (
-        horizontalArrangement =  if (message.isFromMe) Arrangement.End else Arrangement.Start,
+        horizontalArrangement =  if (isFromMe) Arrangement.End else Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
             //.align(if (mex.isFromMe) Alignment.End else Alignment.Start)
@@ -96,7 +103,7 @@ fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = vie
             .combinedClickable(
                 onClick = { },
                 onLongClick = {
-                    if (message.isFromMe) {
+                    if (isFromMe) {
                         messageToEdit = message.id;
                         vm.toggleShowEditDialog();
                     }
@@ -110,19 +117,19 @@ fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = vie
                     RoundedCornerShape(
                         topStart = 48f,
                         topEnd = 48f,
-                        bottomStart = if (message.isFromMe) 48f else 0f,
-                        bottomEnd = if (message.isFromMe) 0f else 48f
+                        bottomStart = if (isFromMe) 48f else 0f,
+                        bottomEnd = if (isFromMe) 0f else 48f
                     )
                 )
                 .widthIn(10.dp, 320.dp)
-                .background(if (message.isFromMe) Purple80 else PurpleGrey80)
+                .background(if (isFromMe) Purple80 else PurpleGrey80)
                 .padding(16.dp)
         ) {
             Column {
                 Text(text = message.text);
                 Row(
                     modifier = Modifier
-                        .align(if (message.isFromMe) Alignment.Start else Alignment.End)
+                        .align(if (isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
                     Text(
@@ -135,11 +142,14 @@ fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = vie
         }
     }
 
-    messageToEdit?.let { EditMessageSheet(destUser, it, vm) }
+    messageToEdit?.let { EditMessageSheet( destUserId, it, vm) }
 }
 
 @Composable
-fun ChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), destUser: User) {
+fun ChatInputBox(
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    destUserId: String
+) {
     var newMessage by remember { mutableStateOf("") }
 
     Row (
@@ -159,7 +169,7 @@ fun ChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalC
                 Icon(Icons.AutoMirrored.Filled.Send,
                     contentDescription = "",
                     modifier = Modifier.clickable {
-                        vm.sendMessage(destUser, ChatMessage(newMessage, destUser, true, Timestamp.now()));
+                        vm.sendMessage(destUserId, ChatMessage("", newMessage, destUserId, Timestamp.now()));
                         newMessage = "";
 //                        sleep(5000);
 //                        sendMessage(destUser, ChatMessage("Risposta di prova", "Autore", false))
@@ -173,7 +183,11 @@ fun ChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalC
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun EditMessageSheet(destUser: User, messageToEdit: Long, vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
+fun EditMessageSheet(
+    destUserId: String,
+    messageToEdit: String,
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+) {
     if (!vm.showEditDialog) return;
     val sheetState = rememberModalBottomSheetState();
 
@@ -193,7 +207,7 @@ fun EditMessageSheet(destUser: User, messageToEdit: Long, vm: UserViewModel = vi
             Button(
                 modifier = Modifier.padding(5.dp),
                 onClick = {
-                    vm.deleteMessage(destUser, messageToEdit);
+                    vm.deleteMessage(destUserId, messageToEdit);
                     vm.toggleShowEditDialog()
                 }
             ) {

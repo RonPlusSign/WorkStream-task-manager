@@ -57,7 +57,7 @@ fun NewChat(
                                 if (chats.find { it.user1Id == user.email || it.user2Id == user.email } != null)
                                     onChatClick(8, null, null, null, user.email)
                                 else {
-                                    vm.newChat(user)
+                                    vm.newChat(user.email)
                                     onChatClick(8, null, null, null, user.email)
                                 }
                             },

@@ -13,16 +13,15 @@ class Chat (
 }
 
 data class ChatMessage(
-    val id: Long = getNewId(),
+    val id: String,
     var text: String = "",
-    val author: User = User(),
-    val isFromMe: Boolean = false,
-    val timestamp: Timestamp = Timestamp.now(),
+    val authorId: String = "",
+    val timestamp: Timestamp = Timestamp.now()
 ) {
-    constructor(text: String, author: User, isFromMe: Boolean, timestamp: Timestamp) : this(getNewId(), text, author, isFromMe, timestamp)
+    //constructor(messageId: String, text: String, author: String, timestamp: Timestamp) : this(messageId, text, author, timestamp)
 
-    companion object {  // To generate unique identifiers for comments
-        private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
-    }
+//    companion object {  // To generate unique identifiers for comments
+//        private var idCounter: Long = 0
+//        private fun getNewId() = idCounter++
+//    }
 }

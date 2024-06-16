@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
@@ -428,26 +429,26 @@ class ChatModel(
                 Filter.equalTo("user2Id", userId)
             ))
             .addSnapshotListener { r, e ->
-            if (r != null) {
-                val chats = mutableListOf<Chat>()
+                if (r != null) {
+                    val chats = mutableListOf<Chat>()
 
-                for (document in r) {
-                    val chat = document.toObject(Chat::class.java)
+                    for (document in r) {
+                        val chat = document.toObject(Chat::class.java)
 
-                    Log.d("Chat", "${document.id} => ${document.data}")
-                    document.reference.collection("messages").get().addOnSuccessListener {
-                        val messages = it.toObjects(ChatMessage::class.java)
-                        chat.messages.addAll(messages)
+                        Log.d("Chat", "${document.id} => ${document.data}")
+                        document.reference.collection("messages").get().addOnSuccessListener {
+                            val messages = it.toObjects(ChatMessage::class.java)
+                            chat.messages.addAll(messages)
+                        }
+
+                        chats.add(chat)
                     }
 
-                    chats.add(chat)
+                    trySend(chats)
+                } else {
+                    Log.d("Chat", "Error getting documents: ", e)
                 }
-
-                trySend(chats)
-            } else {
-                Log.d("Chat", "Error getting documents: ", e)
             }
-        }
 
         awaitClose { listener.remove() }
 
@@ -455,17 +456,15 @@ class ChatModel(
 
     val chats: Flow<List<Chat>> = fetchChats(currentTeamId.value, currentUser.value.email)
 
-    fun newChat(destUser: User) {
-        //_chats.value[currentTeam.value]?.put(Pair(currentUser.value, destUser), mutableListOf())
-        val chatId = currentUser.value.email + "_" + destUser.email + "_" + currentTeamId.value
+    fun newChat(destUserId: String) {
         val chatData = hashMapOf(
             "teamId" to currentTeamId.value,
             "user1Id" to currentUser.value.email,
-            "user2Id" to destUser.email
+            "user2Id" to destUserId
         )
 
         db.collection("chats")
-            .document(chatId)
+            .document()
             .set(chatData)
             .addOnSuccessListener {
                 Log.d("chat", "Chat creata con successo")
@@ -476,23 +475,69 @@ class ChatModel(
     }
 
 
-    fun sendMessage(destUser: User, message: ChatMessage) {
-//        _chats.value[currentTeam.value]?.entries?.find {
-//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
-//        }?.value?.add(message)
-        //val mychats = chats.filter { it.find { it.user1Id == currentUser.value.email && it.user2Id == destUser.email } != null } } }
+    fun sendMessage(destUserId: String, message: ChatMessage) {
+        val chatUsers = listOf(currentUser.value.email, destUserId)
+        val newMessage = hashMapOf(
+            "senderId" to destUserId,
+            "text" to message,
+            "timestamp" to Timestamp.now()
+        )
 
-        val document = db.collection("chats").where()
+        db.collection("chats")
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("chats").document(chatDocId)
+                        .collection("messages")
+                        .add(newMessage)
+                        .addOnSuccessListener { doc ->
+                            // Assegna al messaggio lo stesso id del documento
+                            doc.update("id", doc.id)
+                            Log.d("chat","Message added successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error adding message: $e")
+                        }
+                }
+            }
+
     }
 
-    fun editMessage(destUser: User, messageId: Long, newText: String) {
+    fun editMessage(destUserId: String, messageId: String, newText: String) {
         //_chats.value[destUser]?.find { it.id == messageId }?.text = newText
     }
 
-    fun deleteMessage(destUser: User, messageId: Long) {
-//        _chats.value[currentTeam.value]?.entries?.find {
-//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
-//        }?.value?.removeIf { it.id == messageId }
+    fun deleteMessage(destUserId: String, messageId: String) {
+        val chatUsers = listOf(currentUser.value.email, destUserId)
+
+        db.collection("chats")
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("chats").document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .delete()
+                        .addOnSuccessListener {
+                            Log.d("chat","Message deleted successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error deleting message: $e")
+                        }
+                }
+            }
     }
 
     fun setMessageAsSeen(destUser: User, messageId: Long) {
@@ -582,15 +627,15 @@ class ChatModel(
         //_groupChats.value[currentTeam.value]?.add(message)
     }
 
-    fun editGroupMessage(messageId: Long, newText: String) {
+    fun editGroupMessage(messageId: String, newText: String) {
         //_groupChat.value[messageId.toInt()].text = newText
     }
 
-    fun deleteGroupMessage(messageId: Long) {
+    fun deleteGroupMessage(messageId: String) {
         //_groupChats.value[currentTeam.value]?.removeIf { it.id == messageId }
     }
 
-    fun setGroupMessageAsSeen(messageId: Long) {
+    fun setGroupMessageAsSeen(messageId: String) {
         //_groupChats.value[currentTeam.value]?.find { it.id == messageId }?.seenBy?.add(currentUser.value)
     }
 

@@ -38,6 +38,9 @@ fun ChatList(
     val usersList by vm.teamMembers.collectAsState()
     val groupChat = vm.getGroupChatOfTeam()
 
+    val lastMessageAuthor = vm.teamMembers.collectAsState().value.find { it.email == groupChat?.lastOrNull()?.authorId }
+    val lastMessage = if (lastMessageAuthor==null) "No messages" else lastMessageAuthor.firstName + ": " + groupChat?.last()?.text
+
     WorkStreamTheme {
         Scaffold (
             floatingActionButton = {
@@ -68,7 +71,7 @@ fun ChatList(
                         ) {
                             SmallChatBox(
                                 userName = "Team chat",
-                                lastMessage = groupChat?.last()?.author?.firstName + ": " + groupChat?.last()?.text,
+                                lastMessage = lastMessage,
                                 timestamp = groupChat?.last()?.timestamp,
                                 isGroup = true
                             )

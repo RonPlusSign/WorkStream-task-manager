@@ -173,10 +173,10 @@ class UserViewModel(
         return null
     }
 
-    fun newChat(user: User) = chatModel.newChat(user)
-    fun sendMessage(user: User, message: ChatMessage) = chatModel.sendMessage(user, message)
-    fun editMessage(user: User, messageId: Long, newText: String) = chatModel.editMessage(user, messageId, newText)
-    fun deleteMessage(user: User, messageId: Long) = chatModel.deleteMessage(user, messageId)
+    fun newChat(destUserId: String) = chatModel.newChat(destUserId)
+    fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
+    fun editMessage(destUserId: String, messageId: String, newText: String) = chatModel.editMessage(destUserId, messageId, newText)
+    fun deleteMessage(destUserId: String, messageId: String) = chatModel.deleteMessage(destUserId, messageId)
     fun setMessageAsSeen(destUser: User, messageId: Long) = chatModel.setMessageAsSeen(destUser, messageId)
     fun countUnseenChatMessages(destUser: User) = chatModel.countUnseenChatMessages(destUser)
     fun sendTestMessage() = chatModel.sendTestMessage()
@@ -197,9 +197,9 @@ class UserViewModel(
     }
 
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
-    fun editGroupMessage(messageId: Long, newText: String) = chatModel.editGroupMessage(messageId, newText)
-    fun deleteGroupMessage(messageId: Long) = chatModel.deleteGroupMessage(messageId)
-    fun setGroupMessageAsSeen(messageId: Long) = chatModel.setGroupMessageAsSeen(messageId)
+    fun editGroupMessage(messageId: String, newText: String) = chatModel.editGroupMessage(messageId, newText)
+    fun deleteGroupMessage(messageId: String) = chatModel.deleteGroupMessage(messageId)
+    fun setGroupMessageAsSeen(messageId: String) = chatModel.setGroupMessageAsSeen(messageId)
     fun countUnseenGroupMessages() = chatModel.countUnseenGroupMessages()
     fun countAllUnseenMessages() = chatModel.countAllUnseenMessages()
 

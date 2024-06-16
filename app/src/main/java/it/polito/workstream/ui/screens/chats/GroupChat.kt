@@ -55,7 +55,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun GroupChat(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
+fun GroupChat(
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+) {
     val groupChat = vm.getGroupChatOfTeam()
 
     Column(
@@ -69,8 +71,9 @@ fun GroupChat(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalCont
                 .weight(1f)
         ) {
             groupChat?.reversed()?.forEach { mex ->
+                val isFromMe = mex.authorId == vm.user.email
                 item {
-                    GroupChatMessageBox(message = mex, vm)
+                    GroupChatMessageBox(message = mex, vm, isFromMe)
                 }
             }
         }
@@ -81,11 +84,17 @@ fun GroupChat(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalCont
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GroupChatMessageBox(message: ChatMessage, vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
-    var messageToEdit by rememberSaveable { mutableStateOf<Long?>(null) }
+fun GroupChatMessageBox(
+    message: ChatMessage,
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    isFromMe: Boolean
+) {
+    var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val messageAuthor = vm.teamMembers.collectAsState().value.find { it.email == message.authorId }
 
     Row(
-        horizontalArrangement = if (message.isFromMe) Arrangement.End else Arrangement.Start,
+        horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
             //.align(if (mex.isFromMe) Alignment.End else Alignment.Start)
@@ -93,7 +102,7 @@ fun GroupChatMessageBox(message: ChatMessage, vm: UserViewModel = viewModel(fact
             .combinedClickable(
                 onClick = { },
                 onLongClick = {
-                    if (message.isFromMe) {
+                    if (isFromMe) {
                         messageToEdit = message.id
                         vm.toggleShowEditDialog()
                     }
@@ -107,20 +116,20 @@ fun GroupChatMessageBox(message: ChatMessage, vm: UserViewModel = viewModel(fact
                     RoundedCornerShape(
                         topStart = 48f,
                         topEnd = 48f,
-                        bottomStart = if (message.isFromMe) 48f else 0f,
-                        bottomEnd = if (message.isFromMe) 0f else 48f
+                        bottomStart = if (isFromMe) 48f else 0f,
+                        bottomEnd = if (isFromMe) 0f else 48f
                     )
                 )
                 .widthIn(10.dp, 320.dp)
-                .background(if (message.isFromMe) Purple80 else PurpleGrey80)
+                .background(if (isFromMe) Purple80 else PurpleGrey80)
                 .padding(16.dp)
         ) {
             Column {
-                Text(text = message.author.firstName + " " + message.author.lastName, fontSize = 12.sp, fontStyle = FontStyle.Italic)
+                Text(text = messageAuthor?.firstName + " " + messageAuthor?.lastName, fontSize = 12.sp, fontStyle = FontStyle.Italic)
                 Text(text = message.text)
                 Row(
                     modifier = Modifier
-                        .align(if (message.isFromMe) Alignment.Start else Alignment.End)
+                        .align(if (isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
                     message.timestamp?.let {
@@ -139,7 +148,9 @@ fun GroupChatMessageBox(message: ChatMessage, vm: UserViewModel = viewModel(fact
 }
 
 @Composable
-fun GroupChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
+fun GroupChatInputBox(
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+) {
     var newMessage by remember { mutableStateOf("") }
     val users = vm.teamMembers.collectAsState().value
     Row(
@@ -160,7 +171,7 @@ fun GroupChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(L
                     Icons.AutoMirrored.Filled.Send,
                     contentDescription = "",
                     modifier = Modifier.clickable {
-                        vm.sendGroupMessage(ChatMessage(newMessage, vm.user, true, Timestamp.now()))
+                        vm.sendGroupMessage(ChatMessage("", newMessage, vm.user.email, Timestamp.now()))
                         newMessage = ""
 //                        sleep(5000);
 //                        sendMessage(destUser, ChatMessage("Risposta di prova", "Autore", false))
@@ -174,7 +185,10 @@ fun GroupChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(L
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun EditGroupMessageSheet(messageToEdit: Long, vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
+fun EditGroupMessageSheet(
+    messageToEdit: String,
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+) {
     if (!vm.showEditDialog) return
     val sheetState = rememberModalBottomSheetState()
 
