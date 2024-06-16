@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.shared
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ fun JoinOrCreateTeam(joinTeam: (String) -> Unit, addNewTeam: (teamName: String) 
     var newTeamNameError by remember { mutableStateOf("") }
 
     fun saveNewTeam() {
+        Log.d("newTeamName", "newTeamName: $newTeamName")
         if (newTeamName.isBlank()) {
             newTeamNameError = "Team name cannot be empty"
         } else { // Save the new team

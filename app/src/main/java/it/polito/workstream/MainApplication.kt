@@ -180,11 +180,12 @@ class MainApplication : Application() {
         var newTeamId = newTeam.id
 
         // Create the team in Firestore
-        val newTeamRef = db.collection("Teams").document(newTeam.id)
+        Log.d("Firestore", "newTeam ID: ${newTeam.id} email ${user.value.email }")
+        val newTeamRef = db.collection("Teams").document()
         val userRef = db.collection("users").document(user.value.email)
         db.runTransaction {
             it.set(newTeamRef, newTeam)
-            it.update(userRef, "teams", FieldValue.arrayUnion(newTeam.id))
+            it.update(userRef, "teams", FieldValue.arrayUnion(newTeamRef.id))
         }
         .addOnSuccessListener { Log.d("Firestore", "User added to team") }
         .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
