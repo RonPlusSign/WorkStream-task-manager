@@ -58,10 +58,10 @@ import kotlinx.coroutines.launch
 @Composable
 
 fun ProfilePicture(
-    profilePicture: MutableState<String>,
+    profilePicture: String,
     edit: (String) -> Unit = {},
     isEditing: Boolean = false,
-    photoBitmapValue: MutableState<Bitmap?>,
+    photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
     name: String
 ) {
@@ -71,46 +71,33 @@ fun ProfilePicture(
 
 
     val context = LocalContext.current
-    val pickImage =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
-            if (uri != null) {
-                // Handle the returned Uri
-                edit(uri.toString())
-                println(uri.toString())
-                setPhotoBitmap(null)
-                //bitmap = null
-                Log.i("info", "uri: $uri")
-                Log.i("info", "profilePicture: $profilePicture")
-                Toast.makeText(context, "Image selected from gallery: $uri", Toast.LENGTH_SHORT)
-                    .show()
-            }
+    val pickImage = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            // Handle the returned Uri
+            edit(uri.toString())
+            println(uri.toString())
+            setPhotoBitmap(null)
+            //bitmap = null
+            Log.i("info", "uri: $uri")
+            Log.i("info", "profilePicture: $profilePicture")
+            Toast.makeText(context, "Image selected from gallery: $uri", Toast.LENGTH_SHORT)
+                .show()
         }
+    }
 
-    //val pick = rememberLauncherForActivityResult(contract = ActivityResultContracts.PickVisualMedia() ) {}
-    val takePicture =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) { result ->
-            // Handle the captured Bitmap
-            if (result != null) {
-                Toast.makeText(context, "Image captured from camera", Toast.LENGTH_SHORT).show()
-                setPhotoBitmap(result)
-                edit("")
-            }
+    val takePicture = rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) { result ->
+        // Handle the captured Bitmap
+        if (result != null) {
+            Toast.makeText(context, "Image captured from camera", Toast.LENGTH_SHORT).show()
+            setPhotoBitmap(result)
+            edit("")
         }
-//    val takePhoto =
-//        rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) { result ->
-//            // Handle the captured Bitmap here
-//
-//            if (result) {
-//                Toast.makeText(context, "Image captured from camera", Toast.LENGTH_SHORT).show()
-//                //setPhotoBitmap(it)
-//                //edit("")
-//            }
-//        }
+    }
 
     // Round Profile picture with small "edit" button (circle with a pencil in bottom right corner)
     // Default value for the profile picture is the initials of the user in a circle
     Box(contentAlignment = Alignment.Center) {
-        if ( profilePicture.value.isEmpty()   && photoBitmapValue.value == null) {
+        if (profilePicture.isEmpty() && photoBitmapValue == null) {
 
             // Show a monogram with the initials of his first and last name
             // The monogram is a circle with the first letter of the first name and the first letter of the last name
@@ -144,9 +131,9 @@ fun ProfilePicture(
                 }
             }
 
-        } else if (photoBitmapValue.value == null) {
+        } else if (photoBitmapValue == null) {
             AsyncImage(
-                model = profilePicture.value,
+                model = profilePicture,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -155,17 +142,15 @@ fun ProfilePicture(
                     .background(MaterialTheme.colorScheme.primary)
             )
         } else {
-            photoBitmapValue.value?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(200.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
+            Image(
+                bitmap = photoBitmapValue.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
         }
 
         // Edit button, positioned in the bottom right corner
@@ -223,20 +208,6 @@ fun ProfilePicture(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    /*Column(horizontalAlignment = Alignment.End) {
-                        Icon( Icons.Default.Close, contentDescription ="close", modifier = Modifier
-                            .align(Alignment.End)
-                            .size(24.dp)
-                            .clickable {
-                                scope
-                                    .launch { sheetState.hide() }
-                                    .invokeOnCompletion {
-                                        if (!sheetState.isVisible) {
-                                            showDialog = false
-                                        }
-                                    }
-                            } )
-                    }*/
                 }
                 // Sheet content
                 Row(
@@ -250,11 +221,6 @@ fun ProfilePicture(
                     Button(modifier = Modifier.weight(1f),
                         onClick = {
                             takePicture.launch()
-
-                            // create a temporary file to store the image, then pass the URI to the camera app
-                            // TODO
-                            // takePhoto.launch(uri)
-
                             scope.launch { sheetState.hide() }.invokeOnCompletion {
                                 if (!sheetState.isVisible) {
                                     showDialog = false

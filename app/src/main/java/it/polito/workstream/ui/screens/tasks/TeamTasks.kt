@@ -47,16 +47,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.tasks.components.SmallTaskBox
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlin.reflect.KFunction2
 
 @Composable
 fun TeamTasksScreen(
     sections: List<String>,
-    getOfSection: KFunction2<String, String, List<Task>>,
+    users: List<User>,
+    getOfSection: (String, String) -> List<Task>,
     sectionExpanded: Map<String, Boolean>,
     newSectionValue: String,
     toggleSectionExpansion: (String) -> Unit,
@@ -187,14 +188,18 @@ fun TeamTasksScreen(
                                     // Tasks of the section
                                     if (sectionExpanded[section] == true) {
                                         getOfSection(section, sortOrder).forEach { task ->
+                                            val assignee = users.find { it.email == task.assignee }
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
-                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) }//navigation
+                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) } // navigation
                                             ) {
-                                                SmallTaskBox(title = task.title, assignee = (task.assignee?.firstName
-                                                    ?: "") + " " + (task.assignee?.lastName ?: ""), section = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                                    onTaskClick(4, task.id, task.title, null, null)
-                                                })
+                                                SmallTaskBox(title = task.title,
+                                                    task = task,
+                                                    assignee = (assignee?.getFirstAndLastName() ?: ""),
+                                                    section = null,
+                                                    dueDate = task.dueDate,
+                                                    onEditClick = { onTaskClick(4, task.id, task.title, null) }
+                                                )
                                                 Spacer(modifier = Modifier.weight(1f))
                                             }
                                         }
@@ -270,6 +275,7 @@ fun TeamTasksScreen(
 fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit) {
     TeamTasksScreen(
         sections = vm.activeTeam.value?.sections ?: emptyList(),
+        users = vm.teamMembers.value,
         getOfSection = vm::getOfSection,
         sectionExpanded = vm.sectionExpanded,
         newSectionValue = vm.newSectionValue,

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
@@ -54,9 +55,9 @@ import java.util.Locale
 
 @SuppressLint("Range")
 @Composable
-fun ShowTaskDetails(tasks: MutableList<Task>, index: Int, onComplete: (Task) -> Unit) {
+fun ShowTaskDetails(task: Task, assignee: User?, onComplete: (Task) -> Unit) {
     // Responsive layout: 1 column with 2 rows for vertical screens, 2 columns with 1 row for horizontal screens
-    val task = tasks.find { it.id.toInt() == index }!!
+
     val context = LocalContext.current
     val takeDocument = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
 
@@ -107,7 +108,13 @@ fun ShowTaskDetails(tasks: MutableList<Task>, index: Int, onComplete: (Task) -> 
 
                 Text(text = task.title, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(label = { Text(text = "Assignee") }, value = if(!(task.assignee?.firstName.isNullOrEmpty() || task.assignee?.lastName.isNullOrEmpty())) {task.assignee?.firstName+" "+task.assignee?.lastName}else{ "nobody"}, onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    label = { Text(text = "Assignee") }, value = if (!(assignee?.firstName.isNullOrEmpty() || assignee?.lastName.isNullOrEmpty())) {
+                        assignee?.firstName + " " + assignee?.lastName
+                    } else {
+                        "nobody"
+                    }, onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
@@ -257,7 +264,13 @@ fun ShowTaskDetails(tasks: MutableList<Task>, index: Int, onComplete: (Task) -> 
 
                 Text(text = task.title, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(label = { Text(text = "Assignee") }, value = if(!(task.assignee?.firstName.isNullOrEmpty() || task.assignee?.lastName.isNullOrEmpty())) {task.assignee?.firstName+" "+task.assignee?.lastName}else{ "nobody"}, onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    label = { Text(text = "Assignee") }, value = if (!(assignee?.firstName.isNullOrEmpty() || assignee?.lastName.isNullOrEmpty())) {
+                        assignee?.firstName + " " + assignee?.lastName
+                    } else {
+                        "nobody"
+                    }, onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {

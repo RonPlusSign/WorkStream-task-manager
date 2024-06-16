@@ -1,7 +1,6 @@
 package it.polito.workstream.ui.viewmodels
 
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -11,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import it.polito.workstream.FilterParams
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
+import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 
 class TaskListViewModel(
     activeTeamFlow: Flow<Team?>,
+    activeTeamMembers: Flow<List<User>>,
     val activePageValue: MutableStateFlow<String>,
     val setActivePage: (page: String) -> Unit,
     val deleteTask: (task: Task) -> Unit,
@@ -25,33 +26,41 @@ class TaskListViewModel(
     val onTaskUpdated: (updatedTask: Task) -> Unit,
     val onAddSection: (section: String) -> Unit,
     val onDeleteSection: (section: String) -> Unit,
-    val getTasks: (teamId: String) -> Flow<List<Task>>,
+    val tasksFlow: Flow<List<Task>>,
     val currentSortOrder: MutableStateFlow<String>,
     val setSortOrder: (newSortOrder: String) -> Unit,
     filterParamsState: MutableState<FilterParams>,
     val searchQuery: MutableState<String>,
-    val setSearchQuery: (newQuery: String) -> Unit
+    val setSearchQuery: (newQuery: String) -> Unit,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
     val activeTeam = activeTeamFlow.stateIn(viewModelScope, SharingStarted.Lazily, null)
+    val teamMembers = activeTeamMembers.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val tasks = tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun getOfUser(user: String, tasksList: List<Task>): List<Task> {
+
+    fun getOfUser(userId: String, tasksList: List<Task>): List<Task> {
+
         var tempTaskList = when (currentSortOrder.value) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
-            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName + " " + it.assignee?.lastName }
+            "Assignee" -> tasksList.sortedBy {
+                val assignee = teamMembers.value.find { userId == it.email }
+                assignee?.getFirstAndLastName()
+            }
+
             "Section" -> tasksList.sortedBy { it.section }
             else -> tasksList
         }
         tempTaskList = customFilter(tempTaskList)
-        return tempTaskList.filter { it.assignee?.firstName + " " + it.assignee?.lastName == user && it.title.contains(searchQuery.value, ignoreCase = true) }
+        return tempTaskList.filter { it.assignee == userId && it.title.contains(searchQuery.value, ignoreCase = true) }
     }
 
     private fun customFilter(inputList: List<Task>): List<Task> {
         return inputList.filter {
             (filterParams.section == "" || it.section.contains(filterParams.section, ignoreCase = true))
-                    && (filterParams.assignee == "" || (it.assignee?.firstName + " " + it.assignee?.lastName).contains(filterParams.assignee, ignoreCase = true))
+                    && (filterParams.assignee == "" || it.assignee == filterParams.assignee)
                     && (filterParams.status == "" || it.status == filterParams.status) && ((filterParams.completed && it.completed) || (!filterParams.completed && !it.completed))
         }
     }
@@ -69,10 +78,13 @@ class TaskListViewModel(
 
     fun getAssignees(): List<String> {
         val tasksList = activeTeam.value?.tasks ?: return emptyList()
-        return tasksList.map { it.assignee?.firstName + " " + it.assignee?.lastName }.distinct()
+        return tasksList.map {
+            val assignee = teamMembers.value.find { user -> user.email == it.assignee }
+            assignee?.getFirstAndLastName() ?: ""
+        }.distinct()
     }
 
-    fun addSection(section: String) {
+    private fun addSection(section: String) {
         sectionExpanded[section] = true
         onAddSection(section)
     }
@@ -97,7 +109,11 @@ class TaskListViewModel(
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
-            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName + " " + it.assignee?.lastName }
+            "Assignee" -> tasksList.sortedBy {
+                val assignee = teamMembers.value.find { user -> user.email == it.assignee }
+                assignee?.getFirstAndLastName()
+            }
+
             "Section" -> tasksList.sortedBy { it.section }
             else -> tasksList
         }
@@ -106,21 +122,25 @@ class TaskListViewModel(
     }
 
 
-    fun getOfUser(user: String): List<Task> {
+    fun getOfUser(userId: String): List<Task> {
         val tasksList = activeTeam.value?.tasks ?: return emptyList()
 
         var tempTaskList = when (currentSortOrder.value) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
-            "Assignee" -> tasksList.sortedBy { it.assignee?.firstName + " " + it.assignee?.lastName }
+            "Assignee" -> tasksList.sortedBy {
+                val assignee = teamMembers.value.find { userId == it.email }
+                assignee?.getFirstAndLastName()
+            }
+
             "Section" -> tasksList.sortedBy { it.section }
             else -> {
                 tasksList
             }
         }
         tempTaskList = customFilter(tempTaskList)
-        return tempTaskList.filter { it.assignee?.firstName + " " + it.assignee?.lastName == user && it.title.contains(searchQuery.value, ignoreCase = true) }
+        return tempTaskList.filter { it.assignee == userId && it.title.contains(searchQuery.value, ignoreCase = true) }
     }
 
     fun areThereActiveFilters(): Boolean {

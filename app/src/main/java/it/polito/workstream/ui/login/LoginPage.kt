@@ -119,6 +119,7 @@ class LoginActivity : ComponentActivity() {
                 if (user != null) {
                     // Setta l'utente nell'istanza di MainApplication
                     app._user.value = user
+                    //app.activeTeamId.value= user.activeTeam ?: ""
                     navigateToMainActivity()
                 } else {
                     // Gestisci l'errore di deserializzazione (opzionale)

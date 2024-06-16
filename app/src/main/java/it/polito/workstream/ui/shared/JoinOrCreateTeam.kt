@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.shared
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +33,7 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 @Composable
-fun JoinOrCreateTeam(onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Unit) {
+fun JoinOrCreateTeam(joinTeam: (String) -> Unit, addNewTeam: (teamName: String) -> Result<String>, navigateToTeam: (String) -> Unit) {
 
     // New Team Dialog variables
     var showNewTeamDialog by remember { mutableStateOf(false) }
@@ -40,10 +41,13 @@ fun JoinOrCreateTeam(onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Unit)
     var newTeamNameError by remember { mutableStateOf("") }
 
     fun saveNewTeam() {
+        Log.d("newTeamName", "newTeamName: $newTeamName")
         if (newTeamName.isBlank()) {
             newTeamNameError = "Team name cannot be empty"
         } else { // Save the new team
-            addNewTeam(newTeamName)
+            val result = addNewTeam(newTeamName)
+            if (result.isSuccess) navigateToTeam(result.getOrNull()!!)
+            else newTeamNameError = result.exceptionOrNull()?.message ?: "Error creating team"
             showNewTeamDialog = false
         }
     }
@@ -62,6 +66,7 @@ fun JoinOrCreateTeam(onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Unit)
                     } else {
                         val teamId = qrResult.split("/").last()
                         onJoinTeam(teamId)
+                        navigateToTeam(teamId)
                     }
                 } else Toast.makeText(context, "Invalid QR code", Toast.LENGTH_SHORT).show()
             }
@@ -78,7 +83,7 @@ fun JoinOrCreateTeam(onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Unit)
         OutlinedButton(modifier = Modifier
             .padding(5.dp)
             .weight(1f),
-            onClick = { scanInviteLinkQR(context = context, onJoinTeam = onJoinTeam, onCancel = { showNewTeamDialog = false }) }
+            onClick = { scanInviteLinkQR(context = context, onJoinTeam = joinTeam, onCancel = { showNewTeamDialog = false }) }
         ) {
             Text(text = "Join a team")
             Icon(
@@ -98,7 +103,6 @@ fun JoinOrCreateTeam(onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Unit)
             )
         }
     }
-
 
     // New Team Dialog
     if (showNewTeamDialog) {
@@ -123,5 +127,4 @@ fun JoinOrCreateTeam(onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Unit)
             dismissButton = { TextButton(onClick = { showNewTeamDialog = false }) { Text("Cancel") } }
         )
     }
-
 }

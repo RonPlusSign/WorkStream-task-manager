@@ -37,18 +37,18 @@ fun NewChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit
 ) {
-    val users = vm.getUsers()
     val chats by vm.chats.collectAsState(initial = listOf())
+    val users = vm.teamMembers.collectAsState().value
 
     Column {
-        LazyColumn (
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
             users.forEach { user ->
                 item {
-                    Card (
+                    Card(
                         modifier = Modifier
                             .height(70.dp)
                             .fillMaxWidth()
@@ -65,7 +65,7 @@ fun NewChat(
                         shape = RoundedCornerShape(6.dp),
                         elevation = CardDefaults.elevatedCardElevation(8.dp),
                     ) {
-                        Row (
+                        Row(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .wrapContentHeight(Alignment.CenterVertically)

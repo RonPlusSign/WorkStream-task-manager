@@ -121,7 +121,7 @@ private fun DrawerContent(
 
 
         teamsToDrawerMenu(teams, activeUser).filter { it.title.contains(searchQuery) }.forEach {
-            val team = teams.find { team -> team.id.toString() == it.route }!!
+            val team = teams.find { team -> team.id == it.route }!!
             OutlinedCard(
                 colors = CardDefaults.cardColors(
                     containerColor = if (activeTeamId == it.route) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
@@ -134,7 +134,7 @@ private fun DrawerContent(
                     .clickable { onMenuClick(it.route) }
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)) {
-                    if (team.profileBitmap.value == null && team.profilePicture.value.isBlank()) {
+                    if (team.profileBitmap == null && team.profilePicture.isBlank()) {
                         Box(
                             modifier = Modifier
                                 .size(50.dp)
@@ -151,9 +151,9 @@ private fun DrawerContent(
                                 fontSize = 20.sp
                             )
                         }
-                    } else if (team.profileBitmap.value != null && team.profilePicture.value.isBlank()) {
+                    } else if (team.profileBitmap != null && team.profilePicture.isBlank()) {
                         Image(
-                            bitmap = team.profileBitmap.value!!.asImageBitmap(),
+                            bitmap = team.profileBitmap!!.asImageBitmap(),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -163,7 +163,7 @@ private fun DrawerContent(
                         )
                     } else {
                         AsyncImage(
-                            model = team.profilePicture.value,
+                            model = team.profilePicture,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -193,12 +193,17 @@ private fun DrawerContent(
 
         val scope = rememberCoroutineScope()
         JoinOrCreateTeam(
-            onJoinTeam = {
+            joinTeam = {
                 scope.launch { drawerState.close() }
                 navigateTo("profile?id=$it")
             },
 
             addNewTeam = { teamName -> vm.createEmptyTeam(teamName) },
+
+            navigateToTeam = {
+                scope.launch { drawerState.close() }
+                navigateTo("profile?id=$it")
+            }
         )
 
 
@@ -251,5 +256,6 @@ fun NavDrawer(
 
 
 fun teamsToDrawerMenu(teams: List<Team>, user: StateFlow<User?>): List<DrawerMenu> {
-    return teams.filter { u -> u.members.contains(user.value) }.map { DrawerMenu(Icons.Filled.Face, it.name, it.id.toString(), it.members.size) }
+    return teams.filter { u -> u.members.contains(user.value?.email) }  // TODO: This filter shouldn't be needed anymore
+        .map { DrawerMenu(Icons.Filled.Face, it.name, it.id, it.members.size) }
 }

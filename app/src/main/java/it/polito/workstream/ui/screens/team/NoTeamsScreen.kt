@@ -26,7 +26,7 @@ import it.polito.workstream.ui.shared.JoinOrCreateTeam
 import kotlinx.coroutines.flow.StateFlow
 
 @Composable
-fun NoTeamsScreen(activeUser: StateFlow<User>, onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Unit) {
+fun NoTeamsScreen(activeUser: StateFlow<User>, onJoinTeam: (String) -> Unit, addNewTeam: (String) -> Result<String>, navigateToTeam: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -46,6 +46,6 @@ fun NoTeamsScreen(activeUser: StateFlow<User>, onJoinTeam: (String) -> Unit, add
         Spacer(modifier = Modifier.height(5.dp))
         Text("You are not part of any team yet")
         Spacer(modifier = Modifier.height(15.dp))
-        JoinOrCreateTeam(onJoinTeam = onJoinTeam, addNewTeam = addNewTeam)
+        JoinOrCreateTeam(joinTeam = onJoinTeam, addNewTeam = addNewTeam, navigateToTeam = navigateToTeam)
     }
 }

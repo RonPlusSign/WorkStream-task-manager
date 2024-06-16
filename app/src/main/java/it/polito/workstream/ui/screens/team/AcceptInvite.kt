@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.team
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -52,9 +53,9 @@ fun ConfirmJoinTeamPage(
     onCancel: () -> Unit,
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
 ) {
-    val teams = vm.getTeams().collectAsState(initial = emptyList())
-
+    val teams = vm.teams.collectAsState(initial = emptyList())
     val team = teamId?.let { id -> teams.value.find { it.id == id } }
+    val members = vm.teamMembers.collectAsState(initial = emptyList()).value
 
     Column(
         modifier = Modifier
@@ -72,7 +73,7 @@ fun ConfirmJoinTeamPage(
             Spacer(modifier = Modifier.height(8.dp))
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                 Text(text = "Team Members", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                team.members.forEach { member ->
+                members.forEach { member ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -85,7 +86,7 @@ fun ConfirmJoinTeamPage(
                                 .padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             // Profile picture
-                            member.BitmapValue?.let { bitmap ->
+                            member.BitmapValue?.let { bitmap: Bitmap ->
                                 Image(
                                     bitmap = bitmap.asImageBitmap(), contentDescription = null, modifier = Modifier
                                         .size(30.dp)

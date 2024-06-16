@@ -1,10 +1,5 @@
 package it.polito.workstream.ui.models
 
-import android.content.Context
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.ui.platform.LocalContext
-import it.polito.workstream.MainApplication
 import java.sql.Timestamp
 
 
@@ -24,65 +19,24 @@ import java.sql.Timestamp
  * @property attachments The attachments related to the task (list of file paths)
  * @property comments The comments related to the task
  */
-class Task(
-    val id: String = getNewId(),
-    var title: String,
+data class Task(
+    val id: String = "",
+    var title: String = "",
     var description: String = "",
     var completed: Boolean = false,
     var dueDate: Timestamp? = null,
     var status: String? = "To Do",
-    //var userAssigneName: String? = null,
-    var assignee: User? ,
+    var assignee: String? = null,
     var section: String = "General",
     var recurrent: Boolean = false,
     var frequency: String? = null,
     var attachments: MutableList<String> = mutableListOf(),
     var comments: MutableList<Comment> = mutableListOf(),
     var history: MutableMap<Timestamp, String> = mutableMapOf(), // list of status changes, can be represented as a list of pairs of "change description" and timestamp
-    var team: Team? = null,
-    val taskId : String = ""
+    var teamId: String? = null
 ) {
     init {
-        //if (assignee==null) this.assignee=userAssigneName?.let { (context?.applicationContext as? MainApplication)?._userList?.value?.find { (it.firstName+" "+it.lastName) == userAssigneName } }
         addHistoryEntry("Task created")
-        assignee?.addTask(this)
-    }
-
-    // Secondary constructor, which allows to create a task without specifying the id
-    constructor(
-        title: String,
-        description: String = "",
-        completed: Boolean = false,
-        dueDate: Timestamp? = null,
-        status: String? = "To Do",
-        assignee: User? = null,
-        section: String = "General",
-        recurrent: Boolean = false,
-        frequency: String? = null,
-        attachments: MutableList<String> = mutableListOf(),
-        comments: MutableList<Comment> = mutableListOf(),
-        history: MutableMap<Timestamp, String> = mutableMapOf(),
-        team: Team? = null,
-    ) : this(getNewId(), title, description, completed, dueDate, status, assignee, section, recurrent, frequency, attachments, comments, history, team)
-
-    companion object {  // To generate unique identifiers for tasks
-        private var idCounter: Long = 0
-        private fun getNewId() = "${idCounter++}"
-    }
-
-    /** Adds a comment to the task
-     * @param text The text of the comment
-     * @param author The author of the comment
-     */
-    fun addComment(text: String, author: String) {
-        comments.add(Comment(text = text, author = author))
-    }
-
-    /** Removes a comment from the task
-     * @param comment The comment to be removed
-     */
-    fun removeComment(comment: Comment) {
-        comments.remove(comment)
     }
 
     /** Completes the task */
@@ -100,7 +54,7 @@ class Task(
         completed: Boolean = this.completed,
         dueDate: Timestamp? = this.dueDate,
         status: String? = this.status,
-        assignee: User? = this.assignee,
+        assignee: String? = this.assignee,
         section: String = this.section,
         recurrent: Boolean = this.recurrent,
         frequency: String? = this.frequency,
@@ -119,11 +73,11 @@ class Task(
         attachments = attachments,
         comments = comments,
         history = this.history,
-        team = this.team,
+        teamId = this.teamId,
     )
 }
 
-class Comment(
+data class Comment(
     val id: Long = getNewId(),
     val text: String,
     val author: String,

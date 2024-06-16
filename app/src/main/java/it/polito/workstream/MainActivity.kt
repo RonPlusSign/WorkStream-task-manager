@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         val loginIntent = Intent(context, LoginActivity::class.java)
                         context.startActivity(loginIntent)
+                        Log.d("Merda", "sono finito")
                         finish() // Finish MainActivity so the user cannot go back to it
                     }
                 } else {
@@ -72,6 +73,10 @@ class MainActivity : ComponentActivity() {
                         checkOrCreateUserInFirestore(currentUser!!) { retrievedUser ->
                             user = retrievedUser
                             app._user.value = retrievedUser
+                            Log.d("user", retrievedUser.toString())
+                            if (! retrievedUser.activeTeam.isNullOrEmpty() )
+                                app.activeTeamId.value = retrievedUser.activeTeam!!
+
                         }
                     }
                 }
@@ -92,6 +97,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkOrCreateUserInFirestore(firebaseUser: FirebaseUser, onComplete: (User) -> Unit) {
+        Log.d("firebaseUser.email", "${firebaseUser.email}")
         val userRef = firebaseUser.email?.let { db.collection("users").document(it) }
         userRef?.get()?.addOnSuccessListener { document ->
             if (document.exists()) {
@@ -100,9 +106,24 @@ class MainActivity : ComponentActivity() {
                 val lastName = document.getString("lastName") ?: ""
                 val email = document.getString("email") ?: ""
                 val location = document.getString("location")
+                var activeTeam = document.getString("activeTeam")
+                val teams = document.get("teams") as? MutableList<String> ?: mutableListOf()
+                if (activeTeam.isNullOrEmpty() && teams.isNotEmpty() ) {
+                    activeTeam = teams[0]
+                }
+                else if (activeTeam.isNullOrEmpty() && teams.isEmpty()) {
+                    activeTeam = "no_team"
+                }
+
+                Log.d("UserData", "First Name: $firstName")
+                Log.d("UserData", "Last Name: $lastName")
+                Log.d("UserData", "Email: $email")
+                Log.d("UserData", "Location: $location")
+                Log.d("UserData", "Active Team: $activeTeam")
+                Log.d("UserData", "Teams: $teams")
 
                 // Crea l'oggetto User
-                val user = User(firstName = firstName, lastName = lastName, email = email, location = location, profilePicture = firebaseUser.photoUrl.toString())
+                val user = User(firstName = firstName, lastName = lastName, email = email, location = location, profilePicture = firebaseUser.photoUrl.toString(), activeTeam = activeTeam, teams = teams)
 
                 // Completa l'operazione con il callback
                 onComplete(user)
@@ -118,11 +139,13 @@ class MainActivity : ComponentActivity() {
 
     private fun performLogout(context: android.content.Context, app: MainApplication) {
         Firebase.auth.signOut()
+
         app._user.value = User()
         //delay(1000)
         val loginIntent = Intent(context, MainActivity::class.java)
         loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         context.startActivity(loginIntent)
+        Log.d("Merda", "sono finito")
         finish()
     }
 }
@@ -144,12 +167,16 @@ fun ContentView(
     userVM: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(null).value ?: Team(id = "no_team", name = "")
-    val tasksList = vm.getTasks(activeTeam.id).collectAsState(initial = emptyList()) //vm.activeTeam.collectAsState().value.tasks
-    val sections = activeTeam.sections //vm.activeTeam.collectAsState().value.sections
+
+    val activeTeamId = vm.activeTeamId.collectAsState().value //activeTeam.id //vm.activeTeam.collectAsState().value.id
+    val activeTeam = vm.fetchActiveTeam("dfsfDmtmtT5f14jg1aGZ").collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
+    val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
+    val sections = activeTeam.sections
+
+    Log.d("activeTeam", activeTeam.name)
 
     val navController = rememberNavController()
-    val activeTeamId = activeTeam.id //vm.activeTeam.collectAsState().value.id
+
     var canNavigateBack: Boolean by remember { mutableStateOf(false) }
     navController.addOnDestinationChangedListener { controller, _, _ ->
         canNavigateBack = controller.previousBackStackEntry != null
@@ -212,12 +239,11 @@ fun ContentView(
     }
 
     if (activeTeam.id == "no_team") {
-        NoTeamsScreen(activeUser = app.user, onJoinTeam = { navigateTo("profile?id=$it") }, addNewTeam = app::createEmptyTeam)
+        NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("profile?id=$it") })
         return
     }
 
-    NavDrawer(navigateTo = navigateTo, drawerState = drawerState, activeUser = app.user)
-    {
+    NavDrawer(navigateTo = navigateTo, drawerState = drawerState, activeUser = app.user) {
         Scaffold(
             topBar = { Column { TopBarWrapper(drawerState = drawerState, navigateTo = navigateTo) } },
             bottomBar = { BottomNavbarWrapper(navigateTo = navigateTo, teamId = activeTeamId) },
@@ -231,16 +257,17 @@ fun ContentView(
 
                     composable(
                         route = "/{teamId}/${Route.TeamTasks.name}",
-                        arguments = listOf(navArgument("teamId") { type = NavType.LongType; nullable = false; defaultValue = 0 })
+                        arguments = listOf(navArgument("teamId") { type = NavType.StringType; nullable = false; defaultValue = "" })
                     ) {
-                        vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
+                        //TODO: questo manda tutto a puttane
+                        //vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
                     }
 
                     composable(route = Route.MyTasks.name) {
                         vm.setActivePage(Route.MyTasks.title)
-                        PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.getFirstAndLastName())
+                        PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.email)
                     }
 
                     composable(route = Route.ChatScreen.name) {
@@ -258,11 +285,8 @@ fun ContentView(
                             }
                         )
                     ) { entry ->
-                        val index = entry.arguments?.getString("index")
-                        val destUser = index?.let {
-                            userVM.getUsers().find { it.email == index }
-                        }
-                        Log.d("Chat", destUser?.email?:"destuser not found")
+                        val userId = entry.arguments?.getString("index")
+                        val destUser = userId?.let { app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId } }
 
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
@@ -308,19 +332,19 @@ fun ContentView(
                             }
                         )
                     ) { entry ->
-                        val index = entry.arguments?.getInt("index")
+                        val taskId = entry.arguments?.getString("index")
 
                         /*vm.tasksList.find { it.id.toInt() == index }?.let {
                             vm.setActivePage(it.title)
                         }*/
-                        tasksList.value.find { it.id.toInt() == index }?.let {
+                        tasksList.value.find { it.id == taskId }?.let {
                             vm.setActivePage(it.title)
+                            val assignee = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { u -> u.email == it.assignee }
+                            ShowTaskDetails(it, assignee, onComplete = { task ->
+                                task.complete()
+                                onItemSelect(1, null, null, null)
+                            })
                         }
-
-                        ShowTaskDetails(tasksList.value.toMutableList(), index = index ?: 1, onComplete = {
-                            it.complete()
-                            onItemSelect(1, null, null, null, null)
-                        })
                     }
 
                     composable(
@@ -343,7 +367,7 @@ fun ContentView(
                         }
 
                         if (taskEditing != null) {
-                            EditTaskScreen(changeRoute = onItemSelect, vm = taskVM)
+                            EditTaskScreen(changeRoute = onItemSelect, taskVM = taskVM)
                         }
                     }
 
@@ -361,7 +385,7 @@ fun ContentView(
                         val userId = entry.arguments?.getString("index")
                         var user = User()
                         if (userId != null) {
-                            user = activeTeam.members.find { it.email == userId }!!
+                            user = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId } ?: User()
                         }
                         UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }

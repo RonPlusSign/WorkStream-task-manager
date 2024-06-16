@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
@@ -65,49 +66,51 @@ import java.util.Locale
  *
  * @param saveTask callback function when a task is saved
  * @param changeRoute callback function to change the route
- * @param vm view model for the task
+ * @param taskVM view model for the task
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTaskScreen(
     changeRoute: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
-    vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     teamVM: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     saveTask: (Task) -> Unit = taskListVM::onTaskUpdated.get(),
 ) {
     val datePickerState = rememberDatePickerState(initialDisplayMode = DisplayMode.Picker)
 
+    val assignee: User? = teamVM.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == taskVM.task.assignee }
+
     @Composable
     fun EditTaskInfo() {
         Column {
             // Title field
             OutlinedTextField(
-                value = vm.titleValue,
-                onValueChange = vm::setTitle,
+                value = taskVM.titleValue,
+                onValueChange = taskVM::setTitle,
                 label = { Text("Title") },
-                isError = vm.titleError.isNotBlank(),
+                isError = taskVM.titleError.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
-                    if (vm.titleError.isNotBlank())
+                    if (taskVM.titleError.isNotBlank())
                         Icon(Icons.Outlined.Cancel, contentDescription = "clear", modifier = Modifier
                             .size(20.dp)
-                            .clickable { vm.setTitle("") })
+                            .clickable { taskVM.setTitle("") })
                 }
             )
             // Error message for title field
-            if (vm.titleError.isNotBlank())
-                Text(text = vm.titleError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            if (taskVM.titleError.isNotBlank())
+                Text(text = taskVM.titleError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
             // Assignee
             ExposedDropdownMenuBox(
-                expanded = vm.expandedUser,
-                onExpandedChange = { vm.toggleUserExpanded() },
+                expanded = taskVM.expandedUser,
+                onExpandedChange = { taskVM.toggleUserExpanded() },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 OutlinedTextField(
-                    value = vm.assigneeToString(),
+                    value = assignee?.getFirstAndLastName() ?: "Anyone",
                     onValueChange = {},
                     label = { Text("Assignee") },
                     modifier = Modifier
@@ -117,21 +120,21 @@ fun EditTaskScreen(
                     trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = "choose status") }
                 )
                 ExposedDropdownMenu( // Dropdown menu for User selection
-                    expanded = vm.expandedUser,
-                    onDismissRequest = vm::toggleUserExpanded,
+                    expanded = taskVM.expandedUser,
+                    onDismissRequest = taskVM::toggleUserExpanded,
                     modifier = Modifier.wrapContentSize(Alignment.Center)
                 ) {
-                    teamVM.team.collectAsState(initial = null).value?.members?.forEach() { m ->
-                        DropdownMenuItem(text = { Text(text = m.firstName + " " + m.lastName) }, onClick = { vm.setAssignee(m); vm.toggleUserExpanded() })
+                    teamVM.teamMembers.collectAsState(initial = emptyList()).value.forEach() { m ->
+                        DropdownMenuItem(text = { Text(text = m.firstName + " " + m.lastName) }, onClick = { taskVM.setAssignee(m); taskVM.toggleUserExpanded() })
                     }
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
 
             // Due Date
-            Column(modifier = Modifier.clickable { vm.toggleDatePickerOpen() }) {
+            Column(modifier = Modifier.clickable { taskVM.toggleDatePickerOpen() }) {
                 OutlinedTextField(
-                    value = formatTimestamp(vm.dueDateValue) ?: "",
+                    value = formatTimestamp(taskVM.dueDateValue) ?: "",
                     onValueChange = {},
                     label = {
                         Text("Due Date")
@@ -139,24 +142,24 @@ fun EditTaskScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = false,
                     colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = if (vm.isExpired()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = if (taskVM.isExpired()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                         disabledBorderColor = MaterialTheme.colorScheme.onSurface,
                         disabledLabelColor = MaterialTheme.colorScheme.onSurface,
                         disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface,
                         disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface
                     ),
                     trailingIcon = {
-                        if (vm.dueDateValue != null)
+                        if (taskVM.dueDateValue != null)
                             Icon(Icons.Outlined.Cancel, contentDescription = "clear", modifier = Modifier
                                 .size(20.dp)
-                                .clickable { vm.setDueDate(null) })
+                                .clickable { taskVM.setDueDate(null) })
                     },
                     leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = "assignee") },
-                    isError = vm.dueDateError.isNotBlank()
+                    isError = taskVM.dueDateError.isNotBlank()
                 )
                 // Error message for due date field
-                if (vm.dueDateError.isNotBlank())
-                    Text(text = vm.dueDateError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                if (taskVM.dueDateError.isNotBlank())
+                    Text(text = taskVM.dueDateError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -164,12 +167,12 @@ fun EditTaskScreen(
                 // Status
                 Column(modifier = Modifier.weight(1f)) {
                     ExposedDropdownMenuBox(
-                        expanded = vm.expandedStatus,
-                        onExpandedChange = { vm.toggleStatusExpanded() },
+                        expanded = taskVM.expandedStatus,
+                        onExpandedChange = { taskVM.toggleStatusExpanded() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         OutlinedTextField(
-                            value = vm.statusValue ?: "",
+                            value = taskVM.statusValue ?: "",
                             onValueChange = {},
                             label = { Text("Status") },
                             modifier = Modifier
@@ -179,12 +182,12 @@ fun EditTaskScreen(
                             trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = "choose status") }
                         )
                         ExposedDropdownMenu( // Dropdown menu for status selection
-                            expanded = vm.expandedStatus,
-                            onDismissRequest = vm::toggleStatusExpanded,
+                            expanded = taskVM.expandedStatus,
+                            onDismissRequest = taskVM::toggleStatusExpanded,
                             modifier = Modifier.wrapContentSize(Alignment.Center)
                         ) {
-                            vm.statuses.forEach { s ->
-                                DropdownMenuItem(text = { Text(text = s) }, onClick = { vm.setStatus(s); vm.toggleStatusExpanded() })
+                            taskVM.statuses.forEach { s ->
+                                DropdownMenuItem(text = { Text(text = s) }, onClick = { taskVM.setStatus(s); taskVM.toggleStatusExpanded() })
                             }
                         }
                     }
@@ -193,12 +196,12 @@ fun EditTaskScreen(
                 // Section
                 Column(modifier = Modifier.weight(1f)) {
                     ExposedDropdownMenuBox(
-                        expanded = vm.expandedSection,
-                        onExpandedChange = { vm.toggleSectionExpanded() },
+                        expanded = taskVM.expandedSection,
+                        onExpandedChange = { taskVM.toggleSectionExpanded() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         OutlinedTextField(
-                            value = vm.sectionValue,
+                            value = taskVM.sectionValue,
                             onValueChange = {},
                             label = { Text("Section") },
                             modifier = Modifier
@@ -209,17 +212,17 @@ fun EditTaskScreen(
                         )
 
                         ExposedDropdownMenu( // Dropdown menu for section selection
-                            expanded = vm.expandedSection,
-                            onDismissRequest = vm::toggleSectionExpanded,
+                            expanded = taskVM.expandedSection,
+                            onDismissRequest = taskVM::toggleSectionExpanded,
                             modifier = Modifier.wrapContentSize(Alignment.Center)
                         ) {
-                            vm.activeTeamFlow.collectAsState(initial = null).value?.sections?.forEach { sectionItem ->
-                                DropdownMenuItem(text = { Text(text = sectionItem) }, onClick = { vm.setSection(sectionItem); vm.toggleSectionExpanded() })
+                            taskVM.activeTeamFlow.collectAsState(initial = null).value?.sections?.forEach { sectionItem ->
+                                DropdownMenuItem(text = { Text(text = sectionItem) }, onClick = { taskVM.setSection(sectionItem); taskVM.toggleSectionExpanded() })
                             }
                         }
                         // Error message for section field
-                        if (vm.sectionError.isNotBlank())
-                            Text(text = vm.sectionError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                        if (taskVM.sectionError.isNotBlank())
+                            Text(text = taskVM.sectionError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -227,17 +230,17 @@ fun EditTaskScreen(
 
             // Description
             OutlinedTextField(
-                value = vm.descriptionValue,
-                onValueChange = vm::setDescription,
+                value = taskVM.descriptionValue,
+                onValueChange = taskVM::setDescription,
                 label = { Text("Description") },
                 minLines = 2,
                 modifier = Modifier
                     .fillMaxWidth(),
                 trailingIcon = {
-                    if (vm.descriptionValue.isNotBlank())
+                    if (taskVM.descriptionValue.isNotBlank())
                         Icon(Icons.Outlined.Cancel, contentDescription = "clear", modifier = Modifier
                             .size(20.dp)
-                            .clickable { vm.setDescription("") })
+                            .clickable { taskVM.setDescription("") })
                 }
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -249,40 +252,40 @@ fun EditTaskScreen(
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
                         Text(text = "Recurrent: ", modifier = Modifier.padding(end = 1.dp))
                         HorizontalDivider(modifier = Modifier.weight(1f))
-                        Checkbox(checked = vm.isRecurrentValue, onCheckedChange = { vm.setRecurrent(it); if (!it) vm.setFrequency(null) })
+                        Checkbox(checked = taskVM.isRecurrentValue, onCheckedChange = { taskVM.setRecurrent(it); if (!it) taskVM.setFrequency(null) })
                     }
                 }
 
                 // Frequency selection
                 Column(modifier = Modifier.weight(1f)) {
                     ExposedDropdownMenuBox(
-                        expanded = vm.expandedFrequency,
-                        onExpandedChange = { if (vm.isRecurrentValue) vm.toggleFrequencyExpanded() },
+                        expanded = taskVM.expandedFrequency,
+                        onExpandedChange = { if (taskVM.isRecurrentValue) taskVM.toggleFrequencyExpanded() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         OutlinedTextField(
-                            value = vm.frequencyValue ?: "Don't repeat",
+                            value = taskVM.frequencyValue ?: "Don't repeat",
                             onValueChange = {},
                             label = { Text("Frequency") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .menuAnchor(),
                             readOnly = true,
-                            enabled = vm.isRecurrentValue,
+                            enabled = taskVM.isRecurrentValue,
                             trailingIcon = { Icon(Icons.Default.AvTimer, contentDescription = "choose frequency") }
                         )
                         ExposedDropdownMenu(    // Dropdown menus for frequency selection
-                            expanded = vm.expandedFrequency,
-                            onDismissRequest = vm::toggleFrequencyExpanded,
+                            expanded = taskVM.expandedFrequency,
+                            onDismissRequest = taskVM::toggleFrequencyExpanded,
                             modifier = Modifier.wrapContentSize(Alignment.Center)
                         ) {
-                            vm.frequencies.forEach { frequencyItem ->
+                            taskVM.frequencies.forEach { frequencyItem ->
                                 DropdownMenuItem(
                                     text = { Text(text = frequencyItem) },
                                     onClick = {
-                                        if (frequencyItem != "None") vm.setFrequency(frequencyItem)
-                                        else vm.setFrequency(null)
-                                        vm.toggleFrequencyExpanded()
+                                        if (frequencyItem != "None") taskVM.setFrequency(frequencyItem)
+                                        else taskVM.setFrequency(null)
+                                        taskVM.toggleFrequencyExpanded()
                                     }
                                 )
                             }
@@ -297,7 +300,7 @@ fun EditTaskScreen(
     fun DeleteButton() {
         OutlinedButton(
             onClick = {
-                taskListVM.deleteTask(vm.task)
+                taskListVM.deleteTask(taskVM.task)
                 changeRoute(1, null, null, null, null)
             },
             modifier = Modifier.fillMaxWidth(),
@@ -316,8 +319,8 @@ fun EditTaskScreen(
     fun SaveButton() {
         Button(
             onClick = {
-                if (vm.isTaskValid()) {
-                    saveTask(vm.save())
+                if (taskVM.isTaskValid()) {
+                    saveTask(taskVM.save())
                     changeRoute(1, null, null, null, null)
                 }
             },
@@ -375,18 +378,18 @@ fun EditTaskScreen(
     }
 
     // Date picker dialog
-    if (vm.isDatePickerOpen) {
+    if (taskVM.isDatePickerOpen) {
         DatePickerDialog(
             colors = DatePickerDefaults.colors(containerColor = Color(0xFFF5F0FF)),
-            onDismissRequest = vm::toggleDatePickerOpen,
+            onDismissRequest = taskVM::toggleDatePickerOpen,
             confirmButton = {
                 TextButton(onClick = {
                     val selectedDate = datePickerState.selectedDateMillis?.convertMillisToDate()
-                    selectedDate?.let { convertDateToTimestamp(it) }?.let { vm.setDueDate(it) }
-                    vm.toggleDatePickerOpen()
+                    selectedDate?.let { convertDateToTimestamp(it) }?.let { taskVM.setDueDate(it) }
+                    taskVM.toggleDatePickerOpen()
                 }) { Text("OK", color = MaterialTheme.colorScheme.primary) }
             },
-            dismissButton = { TextButton(onClick = vm::toggleDatePickerOpen) { Text("CANCEL", color = MaterialTheme.colorScheme.primary) } }
+            dismissButton = { TextButton(onClick = taskVM::toggleDatePickerOpen) { Text("CANCEL", color = MaterialTheme.colorScheme.primary) } }
         ) {
             DatePicker(
                 state = datePickerState,
