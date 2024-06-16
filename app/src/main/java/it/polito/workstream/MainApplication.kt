@@ -17,12 +17,15 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.toObject
 import it.polito.workstream.ui.models.Chat
 import it.polito.workstream.ui.models.ChatMessage
+import it.polito.workstream.ui.models.GroupChat
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.models.toDTO
+import it.polito.workstream.ui.screens.chats.GroupChat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -446,12 +449,11 @@ class ChatModel(
 
                     trySend(chats)
                 } else {
-                    Log.d("Chat", "Error getting documents: ", e)
+                    Log.d("Chat", "Error getting private chats: ", e)
                 }
             }
 
         awaitClose { listener.remove() }
-
     }
 
     val chats: Flow<List<Chat>> = fetchChats(currentTeamId.value, currentUser.value.email)
@@ -526,7 +528,8 @@ class ChatModel(
                 } else {
                     val chatDocId = doc.documents[0].id
 
-                    db.collection("chats").document(chatDocId)
+                    db.collection("chats")
+                        .document(chatDocId)
                         .collection("messages")
                         .document(messageId)
                         .delete()
@@ -616,15 +619,50 @@ class ChatModel(
 //                    )
             )
         )
-    val groupChats: StateFlow<MutableMap<Team, MutableList<ChatMessage>>> = _groupChats
+    //val groupChats: StateFlow<MutableMap<Team, MutableList<ChatMessage>>> = _groupChats
 
-    fun getGroupChatOfTeam(): MutableStateFlow<MutableList<ChatMessage>?>? {
-        //return MutableStateFlow(_groupChats.value[currentTeam.value])
-        return null
+    private fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {
+        val listener = db.collection("groupChats")
+            .whereEqualTo("teamId", teamId)
+            .addSnapshotListener { r, e ->
+                if (r != null) {
+                    val groupChat = r.toObjects(GroupChat::class.java)
+                    trySend(groupChat.first())
+                } else {
+                    Log.d("Chat", "Error getting group chats: ", e)
+                }
+            }
+
+        awaitClose { listener.remove() }
     }
+    val groupChat = fetchGroupChat(currentTeamId.value)
 
-    fun sendGroupMessage(message: ChatMessage) {
-        //_groupChats.value[currentTeam.value]?.add(message)
+    fun sendGroupMessage(newMessage: ChatMessage) {
+        val teamId = currentTeamId.value
+
+        db.collection("groupChats")
+            .whereEqualTo("teamId", teamId)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside group chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("groupChats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .add(newMessage)
+                        .addOnSuccessListener { doc ->
+                            // Assegna al messaggio lo stesso id del documento
+                            doc.update("id", doc.id)
+                            Log.d("chat","Group message added successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error adding group message: $e")
+                        }
+                }
+            }
     }
 
     fun editGroupMessage(messageId: String, newText: String) {
@@ -632,7 +670,27 @@ class ChatModel(
     }
 
     fun deleteGroupMessage(messageId: String) {
-        //_groupChats.value[currentTeam.value]?.removeIf { it.id == messageId }
+        db.collection("groupChats")
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside group chats!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("chats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .delete()
+                        .addOnSuccessListener {
+                            Log.d("chat","Chat message deleted successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error deleting chat message: $e")
+                        }
+                }
+            }
     }
 
     fun setGroupMessageAsSeen(messageId: String) {

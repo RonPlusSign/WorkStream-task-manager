@@ -12,6 +12,13 @@ class Chat (
     //constructor(teamId: String, user1Id: String, user2Id: String) : this(teamId, user1Id, user2Id, mutableListOf())
 }
 
+class GroupChat(
+    val teamId: String = "",
+    val messages: MutableList<ChatMessage> = mutableListOf()
+) {
+
+}
+
 data class ChatMessage(
     val id: String,
     var text: String = "",

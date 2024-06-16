@@ -162,16 +162,6 @@ class UserViewModel(
 
     // Chats
     val chats = chatModel.chats
-    fun getChatsOfTeamAndUser(): MutableMap<Pair<User, User>, MutableList<ChatMessage>>? {
-//        return chats[activeTeam]?.filter {
-//            it.key.first == user || it.key.second == user
-//        }?.filter {
-//            val firstFullName = it.key.first.firstName + " " + it.key.first.lastName
-//            val secondFullName = it.key.second.firstName + " " + it.key.second.lastName
-//            firstFullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true) || secondFullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true)
-//        }?.toMutableMap()
-        return null
-    }
 
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
     fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
@@ -187,14 +177,7 @@ class UserViewModel(
     }
 
     // Group chat
-    val groupChats = chatModel.groupChats.value
-    fun getGroupChatOfTeam(): MutableList<ChatMessage>? {
-//        return groupChats[activeTeam]?.filter {
-//            val fullName = it.author.firstName + " " + it.author.lastName
-//            fullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true)
-//        }?.toMutableList()
-        return null
-    }
+    val groupChat = chatModel.groupChat
 
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
     fun editGroupMessage(messageId: String, newText: String) = chatModel.editGroupMessage(messageId, newText)

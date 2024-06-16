@@ -36,10 +36,10 @@ fun ChatList(
 ) {
     val chats by vm.chats.collectAsState(initial = listOf())
     val usersList by vm.teamMembers.collectAsState()
-    val groupChat = vm.getGroupChatOfTeam()
+    val groupChat by vm.groupChat.collectAsState(initial = null)
 
-    val lastMessageAuthor = vm.teamMembers.collectAsState().value.find { it.email == groupChat?.lastOrNull()?.authorId }
-    val lastMessage = if (lastMessageAuthor==null) "No messages" else lastMessageAuthor.firstName + ": " + groupChat?.last()?.text
+    val lastMessageAuthor = vm.teamMembers.collectAsState().value.find { it.email == groupChat?.messages?.lastOrNull()?.authorId }
+    val lastMessage = if (lastMessageAuthor==null) "No messages" else lastMessageAuthor.firstName + ": " + groupChat?.messages?.last()?.text
 
     WorkStreamTheme {
         Scaffold (
@@ -72,7 +72,7 @@ fun ChatList(
                             SmallChatBox(
                                 userName = "Team chat",
                                 lastMessage = lastMessage,
-                                timestamp = groupChat?.last()?.timestamp,
+                                timestamp = groupChat?.messages?.last()?.timestamp,
                                 isGroup = true
                             )
                         }

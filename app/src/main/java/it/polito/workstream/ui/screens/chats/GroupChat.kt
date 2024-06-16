@@ -58,7 +58,7 @@ import java.util.Locale
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val groupChat = vm.getGroupChatOfTeam()
+    val groupChat by vm.groupChat.collectAsState(initial = null)
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -70,7 +70,7 @@ fun GroupChat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            groupChat?.reversed()?.forEach { mex ->
+            groupChat?.messages?.reversed()?.forEach { mex ->
                 val isFromMe = mex.authorId == vm.user.email
                 item {
                     GroupChatMessageBox(message = mex, vm, isFromMe)
