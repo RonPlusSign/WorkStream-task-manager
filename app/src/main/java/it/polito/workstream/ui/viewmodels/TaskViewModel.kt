@@ -23,11 +23,11 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
 
     val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
 
-    var task = Task(title = "New Task", section = activeTeam.value?.sections?.get(0) ?: "General")
+    var task = mutableStateOf( Task(title = "New Task", section = activeTeam.value?.sections?.get(0) ?: "General"))
         private set
 
     fun setTask(value: Task) {
-        task = value
+        task.value = value
         taskBeforeEditing = value.copy()
         titleValue = value.title
         descriptionValue = value.description
@@ -50,7 +50,7 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
     }
 
     // ------- Mutable state variables to store the values of the task -------
-    var dueDateValue by mutableStateOf(task.dueDate)
+    var dueDateValue by mutableStateOf(task.value.dueDate)
         private set
     var dueDateError by mutableStateOf("")
         private set
@@ -65,7 +65,7 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
         else ""
     }
 
-    var titleValue by mutableStateOf(task.title)
+    var titleValue by mutableStateOf(task.value.title)
         private set
     var titleError by mutableStateOf("")
         private set
@@ -78,16 +78,16 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
         titleError = if (titleValue.isEmpty()) "Title must not be empty" else ""
     }
 
-    var descriptionValue by mutableStateOf(task.description)
+    var descriptionValue by mutableStateOf(task.value.description)
         private set
 
     fun setDescription(value: String) {
         descriptionValue = value
     }
 
-    var assigneeValue by mutableStateOf(task.assignee)
+    var assigneeValue by mutableStateOf(task.value.assignee)
 
-    var sectionValue by mutableStateOf(task.section)
+    var sectionValue by mutableStateOf(task.value.section)
         private set
     var sectionError by mutableStateOf("")
         private set
@@ -100,21 +100,21 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
         sectionError = if (sectionValue.isEmpty()) "Section must not be empty" else ""
     }
 
-    var isRecurrentValue by mutableStateOf(task.recurrent)
+    var isRecurrentValue by mutableStateOf(task.value.recurrent)
         private set
 
     fun setRecurrent(value: Boolean) {
         isRecurrentValue = value
     }
 
-    var frequencyValue by mutableStateOf(task.frequency)
+    var frequencyValue by mutableStateOf(task.value.frequency)
         private set
 
     fun setFrequency(value: String?) {
         frequencyValue = value
     }
 
-    var statusValue by mutableStateOf(task.status)
+    var statusValue by mutableStateOf(task.value.status)
         private set
 
     fun setStatus(value: String) {
@@ -146,8 +146,8 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
         isDatePickerOpen = !isDatePickerOpen
     }
 
-    // ------- Functions to validate the values of the task -------
-    private var taskBeforeEditing = task.copy()
+    // ------- Functions to validate the values of the task.value -------
+    private var taskBeforeEditing = task.value.copy()
 
     /**
      * Checks if the provided task parameters are valid.
@@ -180,19 +180,19 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
     }
 
     fun save(): Task {
-        updateTaskHistory(taskBeforeEditing, task)
+        updateTaskHistory(taskBeforeEditing, task.value)
 
-        task.dueDate = dueDateValue
-        task.title = titleValue
-        task.description = descriptionValue
-        task.assignee = assigneeValue
-        task.section = sectionValue
-        task.recurrent = isRecurrentValue
-        task.frequency = frequencyValue
-        task.status = statusValue
-        task.teamId = activeTeam.value?.id
+        task.value.dueDate = dueDateValue
+        task.value.title = titleValue
+        task.value.description = descriptionValue
+        task.value.assignee = assigneeValue
+        task.value.section = sectionValue
+        task.value.recurrent = isRecurrentValue
+        task.value.frequency = frequencyValue
+        task.value.status = statusValue
+        task.value.teamId = activeTeam.value?.id
 
-        return task
+        return task.value
     }
 
     private fun updateTaskHistory(taskBeforeEditing: Task, updatedTask: Task) {

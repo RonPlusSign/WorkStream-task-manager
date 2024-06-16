@@ -68,7 +68,8 @@ fun TeamTasksScreen(
     onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     toggleAddSection: () -> Unit,
     validateSection: () -> Unit,
-    currentSortOrder: MutableStateFlow<String>
+    currentSortOrder: MutableStateFlow<String>,
+    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
     var isDeletingSection by remember { mutableStateOf(false) }
     val sortOrder by currentSortOrder.collectAsState()
@@ -275,7 +276,7 @@ fun TeamTasksScreen(
 fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit) {
     TeamTasksScreen(
         sections = vm.activeTeam.value?.sections ?: emptyList(),
-        users = vm.teamMembers.value?: emptyList(),
+        users = vm.teamMembers.collectAsState().value,
         getOfSection = vm::getOfSection,
         sectionExpanded = vm.sectionExpanded,
         newSectionValue = vm.newSectionValue,

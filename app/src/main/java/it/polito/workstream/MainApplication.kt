@@ -21,6 +21,7 @@ import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import it.polito.workstream.ui.models.toDTO
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,8 +93,8 @@ class MainApplication : Application() {
 
     val userTeams = getTeams()  // Teams of the current user
 
-    private fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
-        val listener = db.collection("tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
+    fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
+        val listener = db.collection("Tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
             if (r != null) {
                 val tasks = r.toObjects(Task::class.java)
                 trySend(tasks)
@@ -105,8 +106,8 @@ class MainApplication : Application() {
     val teamTasks = getTasks(activeTeamId.value)
 
 
-    private fun fetchUsers(teamId: String): Flow<List<User>> = callbackFlow {
-        val listener = db.collection("Teams").whereEqualTo("teamId", teamId)
+    fun fetchUsers(teamId: String): Flow<List<User>> = callbackFlow {
+        val listener = db.collection("users").whereArrayContains("teams", teamId)
             .addSnapshotListener { r, e ->
                 if (r != null) {
                     val users = r.toObjects(User::class.java)
@@ -122,7 +123,7 @@ class MainApplication : Application() {
     val activeTeamMembers = fetchUsers(activeTeamId.value)
 
     fun createTask(task: Task) {
-        db.collection("tasks").add(task)
+        db.collection("Tasks").add(task)
             .addOnSuccessListener { documentReference -> Log.d("Firestore", "Task created with ID: ${documentReference.id}") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error creating a task", e) }
     }
@@ -238,6 +239,7 @@ class MainApplication : Application() {
 
     //update task
     fun onTaskUpdated(updatedTask: Task) {
+        Log.d("Firestore", "Task updated: $updatedTask")
         db.collection("task").document(updatedTask.id).set(updatedTask)
     }
 
@@ -268,19 +270,23 @@ class MainApplication : Application() {
     fun onTaskCreated(t: Task) {
         // Add the task to the user's tasks list
         val task = t.copy()
-        val userRef = db.collection("users").document(t.assignee!!)
-        val taskRef = db.collection("task").document()
+        task.teamId = activeTeamId.value
+        val userRef = t.assignee?.let { db.collection("users").document(it) }
+        val taskRef = db.collection("Tasks").document()
         db.runTransaction {
-            it.update(userRef, "tasks", FieldValue.arrayUnion(taskRef.id))
-            it.set(taskRef, task)
+            if (userRef != null) {
+                it.update(userRef, "tasks", FieldValue.arrayUnion(taskRef.id))
+            }
+            it.set(taskRef, task.toDTO())
         }
             .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
-        // Add the task to the team's tasks list
-        db.collection("Teams").document(activeTeamId.value).update("tasks", FieldValue.arrayUnion(taskRef.id))
+        // Add the task to the team's tasks list questo rompe tutto per ora
+
+        /*db.collection("Teams").document(activeTeamId.value).update("tasks", FieldValue.arrayUnion(taskRef.id))
             .addOnSuccessListener { Log.d("Firestore", "Task added to team") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error adding task to team", e) }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error adding task to team", e) }*/
     }
 
     fun onTaskDeleted(t: Task) {
