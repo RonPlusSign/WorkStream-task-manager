@@ -167,7 +167,7 @@ fun ContentView(
 ) {
 
     val activeTeamId = vm.activeTeamId.collectAsState().value //activeTeam.id //vm.activeTeam.collectAsState().value.id
-    val activeTeam = vm.fetchActiveTeam("dfsfDmtmtT5f14jg1aGZ").collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
+    val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
     val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
 
