@@ -42,12 +42,12 @@ class MainApplication : Application() {
     val user: StateFlow<User> = _user
 
     var activeTeamId = MutableStateFlow("")
-     fun fetchActiveTeam(): Flow<Team?> =  callbackFlow {
+     fun fetchActiveTeam(activeTeamId: String): Flow<Team?> =  callbackFlow {
         //val listener = db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
 
-            Log.d("Firestore1", "Active team ID: ${activeTeamId.value}")
-         if (activeTeamId.value.isNotEmpty()) {
-             db.collection("Teams").document(activeTeamId.value)
+            Log.d("Firestore1", "Active team ID: ${activeTeamId}")
+         if (activeTeamId.isNotEmpty()) {
+             db.collection("Teams").document(activeTeamId)
                  .addSnapshotListener { value, error ->
                      if (value != null) {
                          val team = value.toObject(Team::class.java)
@@ -62,13 +62,14 @@ class MainApplication : Application() {
          else{
              trySend(null)
          }
+         awaitClose()
 
 
 
 
     }
 
-    val activeTeam = fetchActiveTeam()
+    val activeTeam = fetchActiveTeam(activeTeamId.value)
 
     private fun getTeams(): Flow<List<Team>> = callbackFlow {
         val userId: String = user.value.email

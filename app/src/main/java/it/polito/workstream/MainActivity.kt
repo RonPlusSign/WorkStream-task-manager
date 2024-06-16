@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         val loginIntent = Intent(context, LoginActivity::class.java)
                         context.startActivity(loginIntent)
+                        Log.d("Merda", "sono finito")
                         finish() // Finish MainActivity so the user cannot go back to it
                     }
                 } else {
@@ -71,7 +72,8 @@ class MainActivity : ComponentActivity() {
                         checkOrCreateUserInFirestore(currentUser!!) { retrievedUser ->
                             user = retrievedUser
                             app._user.value = retrievedUser
-                            if (retrievedUser.activeTeam != null)
+                            Log.d("user", retrievedUser.toString())
+                            if (! retrievedUser.activeTeam.isNullOrEmpty() )
                                 app.activeTeamId.value = retrievedUser.activeTeam!!
 
                         }
@@ -142,6 +144,7 @@ class MainActivity : ComponentActivity() {
         val loginIntent = Intent(context, MainActivity::class.java)
         loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         context.startActivity(loginIntent)
+        Log.d("Merda", "sono finito")
         finish()
     }
 }
@@ -162,14 +165,16 @@ fun ContentView(
     taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
-    val activeTeam = vm.fetchActiveTeam().collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
+
+    val activeTeamId = vm.activeTeamId.collectAsState().value //activeTeam.id //vm.activeTeam.collectAsState().value.id
+    val activeTeam = vm.fetchActiveTeam("dfsfDmtmtT5f14jg1aGZ").collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
     val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
 
     Log.d("activeTeam", activeTeam.name)
 
     val navController = rememberNavController()
-    val activeTeamId = activeTeam.id //vm.activeTeam.collectAsState().value.id
+
     var canNavigateBack: Boolean by remember { mutableStateOf(false) }
     navController.addOnDestinationChangedListener { controller, _, _ ->
         canNavigateBack = controller.previousBackStackEntry != null
@@ -245,7 +250,8 @@ fun ContentView(
                         route = "/{teamId}/${Route.TeamTasks.name}",
                         arguments = listOf(navArgument("teamId") { type = NavType.StringType; nullable = false; defaultValue = "" })
                     ) {
-                        vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
+                        //TODO: questo manda tutto a puttane
+                        //vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
                     }
