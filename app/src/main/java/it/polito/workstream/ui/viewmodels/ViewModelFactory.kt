@@ -20,7 +20,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 teamIdsetProfilePicture = app::setTeamProfilePicture,
                 removeMemberFromTeam = app::leaveTeam,
                 app::fetchActiveTeam,
-                app.activeTeamId
+                app.activeTeamId,
+                app::fetchUsers
             ) as T
 
             modelClass.isAssignableFrom(UserViewModel::class.java) -> UserViewModel(
@@ -49,6 +50,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app.filterParams,
                     app.searchQuery,
                     app::setSearchQuery,
+                    app.activeTeamId,
+                    app::getTasks
                 ) as T
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->

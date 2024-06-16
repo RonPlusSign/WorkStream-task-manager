@@ -308,9 +308,9 @@ fun ContentView(
 
                     composable(route = Route.NewTask.name) {
                         vm.setActivePage(Route.NewTask.title)
-                        if (taskVM.task.title != "New Task")
+                        if (taskVM.task.value.title != "New Task")
                             taskVM.setTask(Task(title = "New Task", section = sections[0]))
-                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM, saveTask = app::onTaskCreated)
+                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM )//app
                     }
 
                     composable(
@@ -353,7 +353,7 @@ fun ContentView(
 
                         tasksList.value.find { it.id.toInt() == index }?.let {
                             vm.setActivePage(it.title)
-                            if (taskVM.task.id != it.id)
+                            if (taskVM.task.value.id != it.id)
                                 taskVM.setTask(it)
                         }
 

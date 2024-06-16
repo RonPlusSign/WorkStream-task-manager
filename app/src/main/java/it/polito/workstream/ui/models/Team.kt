@@ -2,6 +2,7 @@ package it.polito.workstream.ui.models
 
 import android.graphics.Bitmap
 
+
 data class Team(
     var id: String = "",
     var name: String = "",

@@ -79,7 +79,7 @@ fun EditTaskScreen(
 ) {
     val datePickerState = rememberDatePickerState(initialDisplayMode = DisplayMode.Picker)
 
-    val assignee: User? = teamVM.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == taskVM.task.assignee }
+    val assignee: User? = teamVM.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == taskVM.assigneeValue }
 
     @Composable
     fun EditTaskInfo() {
@@ -300,7 +300,7 @@ fun EditTaskScreen(
     fun DeleteButton() {
         OutlinedButton(
             onClick = {
-                taskListVM.deleteTask(taskVM.task)
+                taskListVM.deleteTask(taskVM.task.value)
                 changeRoute(1, null, null, null)
             },
             modifier = Modifier.fillMaxWidth(),

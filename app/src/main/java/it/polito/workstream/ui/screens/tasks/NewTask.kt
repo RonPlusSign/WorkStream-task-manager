@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 
@@ -17,7 +18,9 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 fun NewTaskScreen(
     changeRoute: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    saveTask: (Task) -> Unit,
+    tasklistvm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+
+
 ) {
-    EditTaskScreen(saveTask = saveTask, changeRoute = changeRoute, taskVM = vm)
+    EditTaskScreen( changeRoute = changeRoute, taskVM = vm, saveTask = tasklistvm::onTaskCreated.get())
 }

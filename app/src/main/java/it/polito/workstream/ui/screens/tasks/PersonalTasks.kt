@@ -35,8 +35,10 @@ fun PersonalTasksScreen(
     getOfUser: (String, List<Task>) -> List<Task>,
     onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
     activeUser: String,
-    tasksList: State<List<Task>>
+    _tasksList: State<List<Task>>,
+    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
+    val tasksList = vm.tasks.collectAsState(initial = emptyList()).value
     WorkStreamTheme {
         Scaffold(
             floatingActionButton = {
@@ -61,7 +63,7 @@ fun PersonalTasksScreen(
                         .padding(padding)
                         .padding(16.dp),
                 ) {
-                    getOfUser(activeUser, tasksList.value).forEach { task ->
+                    getOfUser(activeUser, tasksList ).forEach { task ->
                         item {
                             Column(
                                 modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) }

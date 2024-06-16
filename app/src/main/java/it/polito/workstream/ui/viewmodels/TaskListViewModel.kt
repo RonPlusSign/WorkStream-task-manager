@@ -32,11 +32,13 @@ class TaskListViewModel(
     filterParamsState: MutableState<FilterParams>,
     val searchQuery: MutableState<String>,
     val setSearchQuery: (newQuery: String) -> Unit,
+    val activeTeamId: MutableStateFlow<String>,
+    val getTasks: (String) -> Flow<List<Task>>,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
     val activeTeam = activeTeamFlow.stateIn(viewModelScope, SharingStarted.Lazily, null)
     val teamMembers = activeTeamMembers.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val tasks = tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val tasks = getTasks(activeTeamId.value) //tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
 
     fun getOfUser(userId: String, tasksList: List<Task>): List<Task> {
@@ -103,7 +105,7 @@ class TaskListViewModel(
 
 
     fun getOfSection(section: String, sortOrder: String): List<Task> {
-        val tasksList = activeTeam.value?.tasks ?: return emptyList()
+        val tasksList = tasks.stateIn(viewModelScope, SharingStarted.Lazily, emptyList()).value //Questo non funziona
 
         var tempTaskList = when (sortOrder) {
             "Due date" -> tasksList.sortedBy { it.dueDate }

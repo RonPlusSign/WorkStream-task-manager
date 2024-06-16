@@ -17,16 +17,18 @@ import kotlinx.coroutines.withContext
 
 class TeamViewModel(
     val _team: Flow<Team?>,
-    val teamMembers: Flow<List<User>>,
+    val _teamMembers: Flow<List<User>>,
     val currentUser: User,
     private val updateTeam: (team: Team) -> Unit,
     private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,
     private val teamIdsetProfilePicture: (teamId: String, n: String) -> Unit,
     private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit,
     fetchTeam: (String) -> Flow<Team?>,
-    activeTeamId: MutableStateFlow<String>
+    activeTeamId: MutableStateFlow<String>,
+    fetchUsers: (String) -> Flow<List<User>>
 ) : ViewModel() {
     val team = fetchTeam(activeTeamId.value)
+    val teamMembers =fetchUsers(activeTeamId.value)
 
     suspend fun setProfilePicture(n: String) {
         withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfilePicture(it.id, n) } }
