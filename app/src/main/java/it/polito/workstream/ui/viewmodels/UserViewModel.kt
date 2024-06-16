@@ -27,6 +27,7 @@ class UserViewModel(
     val chatModel: ChatModel,
     val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit
 ) : ViewModel() {
+
     val userTasks = userTasksFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
     val teamMembers = teamMembersFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
 

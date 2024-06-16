@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import it.polito.workstream.ui.models.Chat
@@ -412,8 +413,15 @@ class ChatModel(
 
     //val chats: StateFlow<MutableMap<Team, MutableMap<Pair<User, User>, MutableList<ChatMessage>>>> = _chats
 
-    private fun fetchChats(): Flow<List<Chat>> = callbackFlow {
-        val listener = db.collection("chats").addSnapshotListener { r, e ->
+    // First get chats of team, second get my chats
+    private fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
+        val listener = db.collection("chats")
+            .whereEqualTo("teamId", teamId)
+            .where(Filter.or(
+                Filter.equalTo("user1Id", userId),
+                Filter.equalTo("user2Id", userId)
+            ))
+            .addSnapshotListener { r, e ->
             if (r != null) {
                 val chats = mutableListOf<Chat>()
 
@@ -436,9 +444,10 @@ class ChatModel(
         }
 
         awaitClose { listener.remove() }
+
     }
 
-    val chats: Flow<List<Chat>> = fetchChats()
+    val chats: Flow<List<Chat>> = fetchChats(currentTeamId.value, currentUser.value.email)
 
     fun newChat(destUser: User) {
         //_chats.value[currentTeam.value]?.put(Pair(currentUser.value, destUser), mutableListOf())
@@ -466,6 +475,8 @@ class ChatModel(
 //            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
 //        }?.value?.add(message)
         //val mychats = chats.filter { it.find { it.user1Id == currentUser.value.email && it.user2Id == destUser.email } != null } } }
+
+        val document = db.collection("chats").where()
     }
 
     fun editMessage(destUser: User, messageId: Long, newText: String) {
