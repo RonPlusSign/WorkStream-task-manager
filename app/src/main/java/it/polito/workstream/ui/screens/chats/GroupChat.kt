@@ -56,7 +56,7 @@ import java.util.Locale
 
 @Composable
 fun GroupChat(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
-    val groupChat by vm.groupChat.collectAsState()
+    val groupChat = vm.getGroupChatOfTeam()
 
     Column(
         modifier = Modifier.fillMaxSize()

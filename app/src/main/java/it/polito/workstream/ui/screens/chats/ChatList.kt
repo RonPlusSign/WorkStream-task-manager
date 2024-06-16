@@ -35,7 +35,8 @@ fun ChatList(
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
     val chats by vm.chats.collectAsState(initial = listOf())
-    val groupChat = vm.getGroupChatsOfTeam()
+    val usersList by vm.teamMembers.collectAsState()
+    val groupChat = vm.getGroupChatOfTeam()
 
     WorkStreamTheme {
         Scaffold (
@@ -80,7 +81,7 @@ fun ChatList(
                         Log.d("Chat", "Chat with id " + chat.user1Id + " " + chat.user2Id)
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
-                            val destUser = vm.usersList.find {
+                            val destUser = usersList.find {
                                 it.email == destUserId
                             }
                             Column(

@@ -20,9 +20,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 class UserViewModel(
-    user: User,
+    val user: User,
     userTasksFlow: Flow<List<Task>>,
-    teamMembersFlow: Flow<List<User>>,
+    val teamMembersFlow: Flow<List<User>>,
     activeTeamFlow: Flow<Team?>,
     val chatModel: ChatModel,
     val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit
@@ -172,12 +172,6 @@ class UserViewModel(
         return null
     }
 
-    val chatty = chatModel.chats.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Lazily,
-        initialValue = emptyList()
-    )
-
     fun newChat(user: User) = chatModel.newChat(user)
     fun sendMessage(user: User, message: ChatMessage) = chatModel.sendMessage(user, message)
     fun editMessage(user: User, messageId: Long, newText: String) = chatModel.editMessage(user, messageId, newText)
@@ -193,7 +187,7 @@ class UserViewModel(
 
     // Group chat
     val groupChats = chatModel.groupChats.value
-    fun getGroupChatsOfTeam(): MutableList<ChatMessage>? {
+    fun getGroupChatOfTeam(): MutableList<ChatMessage>? {
 //        return groupChats[activeTeam]?.filter {
 //            val fullName = it.author.firstName + " " + it.author.lastName
 //            fullName.contains(chatModel.chatsSearchQuery.value, ignoreCase = true)

@@ -70,10 +70,6 @@ class MainApplication : Application() {
          }
 
          awaitClose()
-
-
-
-
     }
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)
@@ -441,6 +437,7 @@ class ChatModel(
 
         awaitClose { listener.remove() }
     }
+
     val chats: Flow<List<Chat>> = fetchChats()
 
     fun newChat(destUser: User) {
@@ -459,167 +456,10 @@ class ChatModel(
                 Log.d("chat", "Chat creata con successo")
             }
             .addOnFailureListener { e ->
-                Log.d("chat","Errore nella creazione della chat: $e")
+                Log.d("chat", "Errore nella creazione della chat: $e")
             }
-val teams: StateFlow<List<Team>> = _teams
-fun getSectionsOfTeam(teamId: Long): SnapshotStateList<String> {
-    val s = _teams.value[teamId.toInt()].sections
-    return mutableStateListOf(*s.toTypedArray())
-}
-
-fun addTeam(team: Team) {
-    _teams.value.add(team)
-}
-
-//val _activeTeam: MutableStateFlow<Team> = MutableStateFlow(_teams.value[0])
-//val activeTeam: StateFlow<Team> = _activeTeam
-
-
-fun createEmptyTeam(name: String) {
-    val newTeam = Team(name, sections = mutableListOf("General"))
-    newTeam.admin = user.value
-
-    user.value?.let { newTeam.addMember(it) }
-    user.value?.teams?.add(newTeam)
-
-    _teams.value.add(newTeam)
-}
-
-fun leaveTeam(team: Team, user: User) {
-    // Rimuovi il team dalla lista di team dell'utente
-    _userList.value.find { it.id == user.id }?.teams?.remove(team)
-
-    // Rimuovi i task dell'utente associati al team
-    _userList.value.find { it.id == user.id }?.tasks?.removeAll(user.tasks.filter { it.team?.id == team.id })
-
-    _tasksList.value.forEach() {
-        if (it.team?.id == team.id && it.assignee?.id == user.id) {
-            it.assignee = null
-        }
     }
 
-
-    // Rimuovi l'utente dalla lista di membri del team
-    _teams.value.find { it.id == team.id }?.members?.remove(user)
-
-    // Cambia il team attivo se necessario
-    if (user.teams.isNotEmpty()) {
-        changeActiveTeamId(
-            _userList.value.find { it.id == user.id }?.teams?.get(0)?.id ?: 0
-        )
-    } else {
-        changeActiveTeamId(0)
-    }
-}
-
-
-fun removeTeam(teamId: Long) {
-    // Rimuovi il team dalla lista di team di ogni membro e rimuovi i task associati al team cancellato
-    _teams.value.forEach { team -> Log.d("Team", "teamid: ${team.id}") }
-    Log.d("Team", "teamId da rimuovere: $teamId")
-
-    _teams.value.find { it.id == teamId }?.let { team ->
-        //val roba =tasksList.value.filter { task -> team.tasks.map { it.id }.contains(task.id) }
-        //roba.forEach { Log.d("taskdarimuovere", "taskid: ${it.id}")  }
-
-        team.members.forEach { member ->
-            member.teams.remove(team)
-            val tasksToRemove = member.tasks.filter { task -> task.team?.id == team.id }
-            member.tasks.removeAll(tasksToRemove)
-        }
-    }
-    user.value?.teams?.get(0)?.let { changeActiveTeamId(it.id) }
-    _teams.value.remove(_teams.value.find { it.id == teamId }!!)
-
-}
-
-fun changeActiveTeamId(teamId: Long) {
-    Log.d("Team", "teamId da cambiare: $teamId")
-    _activeTeam.value = _teams.value.find { it.id == teamId } ?: _teams.value[0]
-    tasksList = MutableStateFlow(activeTeam.value.tasks)
-}
-
-var activePageValue =
-    MutableStateFlow(Route.TeamTasks.name) //by mutableStateOf(Route.TeamTasks.name)
-    private set
-
-fun setActivePage(page: String) {
-    activePageValue.value = page
-}
-
-
-
-fun updateUserInFirestore(user: User) {
-    db.collection("users").document(user.email).set(user)
-        .addOnSuccessListener {
-            Log.d("UserProfile", "User profile updated successfully")
-        }
-        .addOnFailureListener { e ->
-            Log.e("UserProfile", "Error updating user profile", e)
-        }
-}
-fun editUser(firstName : String, lastName : String, email : String, location : String) {
-    _user.value.firstName = firstName
-    _user.value.lastName = lastName
-    _user.value.location = location
-    updateUserInFirestore(_user.value)
-}
-
-val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
-fun setSortOrder(newSortOrder: String) {
-    currentSortOrder.update { newSortOrder }
-}
-
-val filterParams = mutableStateOf(FilterParams())
-
-val searchQuery = mutableStateOf("")
-
-fun setSearchQuery(newQuery: String) {
-    searchQuery.value = newQuery
-}
-
-fun teamIdsetProfileBitmap(teamId: Long, b: Bitmap?) {
-    teams.value.find { it.id == teamId }?.profileBitmap?.value = b
-}
-
-fun teamIdsetProfilePicture(teamId: Long, n: String) {
-    teams.value.find { it.id == teamId }?.profilePicture?.value = n
-}
-
-fun removeMemberFromTeam(teamId: Long, userId: Long) {
-    _teams.value.find { it.id == teamId }?.members?.remove(teams.value.find { it.id == teamId }?.members?.find { it.id == userId })
-}
-
-val chatModel = ChatModel(_userList.value)*/
-
-
-    fun addSectionToTeam(section: String) {
-        if (activeTeamId.value.isBlank()) {
-            Log.e("AddSection", "Active team ID is blank!")
-            return
-        }
-
-        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayUnion(section))
-            .addOnSuccessListener { Log.d("Firestore", "Section added to team") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error adding section to team", e) }
-    }
-
-    fun removeSectionFromTeam(section: String) {
-        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayRemove(section))
-            .addOnSuccessListener { Log.d("Firestore", "Section removed from team") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error removing section from team", e) }
-    }
-
-    val chatModel = ChatModel(emptyList())  // TODO: CAMBIA
-}
-
-class ChatModel(userList: List<User>) {
-    private val _chats: MutableStateFlow<MutableMap<User, MutableList<ChatMessage>>> = MutableStateFlow(mutableStateMapOf())
-
-    val chats: StateFlow<MutableMap<User, MutableList<ChatMessage>>> = _chats
-    fun newChat(user: User) {
-        _chats.value.put(user, mutableStateListOf())
-    }
 
     fun sendMessage(destUser: User, message: ChatMessage) {
 //        _chats.value[currentTeam.value]?.entries?.find {
@@ -667,8 +507,9 @@ class ChatModel(userList: List<User>) {
 //        }?.value?.add(ChatMessage(randomElement, userList[1], LocalDateTime.now(), mutableListOf(userList[1])))
     }
 
-    private val _groupChats: MutableStateFlow<MutableMap<Team, MutableList<ChatMessage>>> = MutableStateFlow(
-        mutableStateMapOf(
+    private val _groupChats: MutableStateFlow<MutableMap<Team, MutableList<ChatMessage>>> =
+        MutableStateFlow(
+            mutableStateMapOf(
 //            teamList[0] to
 //                    mutableStateListOf(
 //                        ChatMessage(
@@ -711,14 +552,15 @@ class ChatModel(userList: List<User>) {
 //                            mutableListOf(userList[1], userList[2])
 //                        ),
 //                    )
+            )
         )
-    )
     val groupChats: StateFlow<MutableMap<Team, MutableList<ChatMessage>>> = _groupChats
 
     fun getGroupChatOfTeam(): MutableStateFlow<MutableList<ChatMessage>?>? {
         //return MutableStateFlow(_groupChats.value[currentTeam.value])
         return null
     }
+
     fun sendGroupMessage(message: ChatMessage) {
         //_groupChats.value[currentTeam.value]?.add(message)
     }
@@ -757,12 +599,9 @@ class ChatModel(userList: List<User>) {
 //        return count
         return 0
     }
-
-    val chatsSearchQuery = mutableStateOf("")
-    fun setChatsSearchQuery(newQuery: String) {
-        chatsSearchQuery.value = newQuery
-    }
 }
+
+
 
 // FILTERS VARIABLES
 class FilterParams {

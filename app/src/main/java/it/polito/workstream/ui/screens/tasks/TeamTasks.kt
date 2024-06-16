@@ -191,14 +191,14 @@ fun TeamTasksScreen(
                                             val assignee = users.find { it.email == task.assignee }
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
-                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) } // navigation
+                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) } // navigation
                                             ) {
                                                 SmallTaskBox(title = task.title,
                                                     task = task,
                                                     assignee = (assignee?.getFirstAndLastName() ?: ""),
                                                     section = null,
                                                     dueDate = task.dueDate,
-                                                    onEditClick = { onTaskClick(4, task.id, task.title, null) }
+                                                    onEditClick = { onTaskClick(4, task.id, task.title, null, null) }
                                                 )
                                                 Spacer(modifier = Modifier.weight(1f))
                                             }
@@ -275,7 +275,7 @@ fun TeamTasksScreen(
 fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit) {
     TeamTasksScreen(
         sections = vm.activeTeam.value?.sections ?: emptyList(),
-        users = vm.teamMembers.value,
+        users = vm.teamMembers.value?: emptyList(),
         getOfSection = vm::getOfSection,
         sectionExpanded = vm.sectionExpanded,
         newSectionValue = vm.newSectionValue,

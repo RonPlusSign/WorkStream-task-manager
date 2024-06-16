@@ -342,7 +342,7 @@ fun ContentView(
                             val assignee = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { u -> u.email == it.assignee }
                             ShowTaskDetails(it, assignee, onComplete = { task ->
                                 task.complete()
-                                onItemSelect(1, null, null, null)
+                                onItemSelect(1, null, null, null, null)
                             })
                         }
                     }

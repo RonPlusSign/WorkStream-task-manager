@@ -12,7 +12,7 @@ class Chat (
     //constructor(teamId: String, user1Id: String, user2Id: String) : this(teamId, user1Id, user2Id, mutableListOf())
 }
 
-class ChatMessage(
+data class ChatMessage(
     val id: Long = getNewId(),
     var text: String = "",
     val author: User = User(),
