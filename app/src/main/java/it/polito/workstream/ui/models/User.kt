@@ -11,7 +11,7 @@ data class User(
     var location: String? = null,
     var profilePicture: String = "",
     var BitmapValue: Bitmap? = null,
-    var activeTeam: DocumentReference? = null,
+    var activeTeam: String? = null,
     var teams: MutableList<String> = mutableListOf(), // List of teams to which the user belongs
     var chats: MutableMap<String, List<ChatMessage>> = mutableMapOf() // Map of chat messages
 ) {

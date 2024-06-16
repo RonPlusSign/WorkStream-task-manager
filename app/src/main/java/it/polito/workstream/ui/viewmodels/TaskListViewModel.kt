@@ -31,7 +31,7 @@ class TaskListViewModel(
     val setSortOrder: (newSortOrder: String) -> Unit,
     filterParamsState: MutableState<FilterParams>,
     val searchQuery: MutableState<String>,
-    val setSearchQuery: (newQuery: String) -> Unit
+    val setSearchQuery: (newQuery: String) -> Unit,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
     val activeTeam = activeTeamFlow.stateIn(viewModelScope, SharingStarted.Lazily, null)

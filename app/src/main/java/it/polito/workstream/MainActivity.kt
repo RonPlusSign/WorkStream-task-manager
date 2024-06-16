@@ -71,6 +71,9 @@ class MainActivity : ComponentActivity() {
                         checkOrCreateUserInFirestore(currentUser!!) { retrievedUser ->
                             user = retrievedUser
                             app._user.value = retrievedUser
+                            if (retrievedUser.activeTeam != null)
+                                app.activeTeamId.value = retrievedUser.activeTeam!!
+
                         }
                     }
                 }
@@ -91,6 +94,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkOrCreateUserInFirestore(firebaseUser: FirebaseUser, onComplete: (User) -> Unit) {
+        Log.d("firebaseUser.email", "${firebaseUser.email}")
         val userRef = firebaseUser.email?.let { db.collection("users").document(it) }
         userRef?.get()?.addOnSuccessListener { document ->
             if (document.exists()) {
@@ -99,9 +103,24 @@ class MainActivity : ComponentActivity() {
                 val lastName = document.getString("lastName") ?: ""
                 val email = document.getString("email") ?: ""
                 val location = document.getString("location")
+                var activeTeam = document.getString("activeTeam")
+                val teams = document.get("teams") as? MutableList<String> ?: mutableListOf()
+                if (activeTeam.isNullOrEmpty() && teams.isNotEmpty() ) {
+                    activeTeam = teams[0]
+                }
+                else if (activeTeam.isNullOrEmpty() && teams.isEmpty()) {
+                    activeTeam = "no_team"
+                }
+
+                Log.d("UserData", "First Name: $firstName")
+                Log.d("UserData", "Last Name: $lastName")
+                Log.d("UserData", "Email: $email")
+                Log.d("UserData", "Location: $location")
+                Log.d("UserData", "Active Team: $activeTeam")
+                Log.d("UserData", "Teams: $teams")
 
                 // Crea l'oggetto User
-                val user = User(firstName = firstName, lastName = lastName, email = email, location = location, profilePicture = firebaseUser.photoUrl.toString())
+                val user = User(firstName = firstName, lastName = lastName, email = email, location = location, profilePicture = firebaseUser.photoUrl.toString(), activeTeam = activeTeam, teams = teams)
 
                 // Completa l'operazione con il callback
                 onComplete(user)
@@ -117,6 +136,7 @@ class MainActivity : ComponentActivity() {
 
     private fun performLogout(context: android.content.Context, app: MainApplication) {
         Firebase.auth.signOut()
+
         app._user.value = User()
         //delay(1000)
         val loginIntent = Intent(context, MainActivity::class.java)
@@ -142,7 +162,7 @@ fun ContentView(
     taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
+    val activeTeam = vm.fetchActiveTeam().collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
     val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
 

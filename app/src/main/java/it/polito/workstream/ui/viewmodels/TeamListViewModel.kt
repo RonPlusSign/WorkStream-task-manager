@@ -6,6 +6,7 @@ import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class TeamListViewModel(
     val activeTeam: Flow<Team?>,
@@ -19,4 +20,8 @@ class TeamListViewModel(
     val leaveTeam: (teamId: String, userId: String) -> Unit,
     val joinTeam: (teamId: String, userId: String) -> Unit,
     val createEmptyTeam: (nameTeam: String) -> Result<String>,
-) : ViewModel()
+    val fetchActiveTeam: () -> Flow<Team?>,
+    val user: StateFlow<User>,
+    val activeTeamId: MutableStateFlow<String>,
+
+    ) : ViewModel()

@@ -1,14 +1,10 @@
 package it.polito.workstream.ui.viewmodels
 
 import android.content.Context
-import androidx.compose.runtime.currentRecomposeScope
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.viewModelFactory
 import it.polito.workstream.MainApplication
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 
 class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
     private val app = (context.applicationContext as? MainApplication) ?: throw IllegalArgumentException("Bad Application class")
@@ -50,7 +46,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::setSortOrder,
                     app.filterParams,
                     app.searchQuery,
-                    app::setSearchQuery
+                    app::setSearchQuery,
                 ) as T
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->
@@ -65,7 +61,10 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::removeTeam,
                     app::leaveTeam,
                     app::joinTeam,
-                    app::createEmptyTeam
+                    app::createEmptyTeam,
+                    app::fetchActiveTeam,
+                    app.user,
+                    app.activeTeamId
                 ) as T
 
             modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam) as T
