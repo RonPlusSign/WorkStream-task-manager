@@ -228,6 +228,8 @@ fun NavDrawer(
     val activeTeamId: String = vm.activeTeam.collectAsState(initial = null).value?.id.toString()
     val scope = rememberCoroutineScope()
 
+    val team = vm.getTeams().collectAsState(initial = emptyList()).value.find { it.id == activeTeamId }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {

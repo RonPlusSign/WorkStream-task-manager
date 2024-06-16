@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import it.polito.workstream.FilterParams
 import it.polito.workstream.ui.models.Task
@@ -34,11 +35,14 @@ class TaskListViewModel(
     val setSearchQuery: (newQuery: String) -> Unit,
     val activeTeamId: MutableStateFlow<String>,
     val getTasks: (String) -> Flow<List<Task>>,
+    fetchSections: (String) -> Flow<List<String>>,
+    fetchActiveTeam: (String) -> Flow<Team?>,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
-    val activeTeam = activeTeamFlow.stateIn(viewModelScope, SharingStarted.Lazily, null)
-    val teamMembers = activeTeamMembers.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-    val tasks = getTasks(activeTeamId.value) //tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    val teamMembers = activeTeamMembers.asLiveData()
+    val tasks = getTasks(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList()) //tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+    val sections = fetchSections(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
 
     fun getOfUser(userId: String, tasksList: List<Task>): List<Task> {
@@ -48,7 +52,7 @@ class TaskListViewModel(
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
             "Assignee" -> tasksList.sortedBy {
-                val assignee = teamMembers.value.find { userId == it.email }
+                val assignee = teamMembers.value?.find { userId == it.email }
                 assignee?.getFirstAndLastName()
             }
 
@@ -58,6 +62,7 @@ class TaskListViewModel(
         tempTaskList = customFilter(tempTaskList)
         return tempTaskList.filter { it.assignee == userId && it.title.contains(searchQuery.value, ignoreCase = true) }
     }
+
 
     private fun customFilter(inputList: List<Task>): List<Task> {
         return inputList.filter {
@@ -81,7 +86,7 @@ class TaskListViewModel(
     fun getAssignees(): List<String> {
         val tasksList = activeTeam.value?.tasks ?: return emptyList()
         return tasksList.map {
-            val assignee = teamMembers.value.find { user -> user.email == it.assignee }
+            val assignee = teamMembers.value?.find { user -> user.email == it.assignee }
             assignee?.getFirstAndLastName() ?: ""
         }.distinct()
     }
@@ -105,14 +110,32 @@ class TaskListViewModel(
 
 
     fun getOfSection(section: String, sortOrder: String): List<Task> {
-        val tasksList = tasks.stateIn(viewModelScope, SharingStarted.Lazily, emptyList()).value //Questo non funziona
+        val tasksList = tasks.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList()).value //Questo non funziona
 
         var tempTaskList = when (sortOrder) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
             "Assignee" -> tasksList.sortedBy {
-                val assignee = teamMembers.value.find { user -> user.email == it.assignee }
+                val assignee = teamMembers.value?.find { user -> user.email == it.assignee }
+                assignee?.getFirstAndLastName()
+            }
+
+            "Section" -> tasksList.sortedBy { it.section }
+            else -> tasksList
+        }
+        tempTaskList = customFilter(tempTaskList)
+        return tempTaskList.filter { it.section == section && it.title.contains(searchQuery.value, ignoreCase = true) }
+    }
+    fun getOfSectionByList(section: String, sortOrder: String, tasksList: List<Task>): List<Task> {
+
+
+        var tempTaskList = when (sortOrder) {
+            "Due date" -> tasksList.sortedBy { it.dueDate }
+            "A-Z order" -> tasksList.sortedBy { it.title }
+            "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
+            "Assignee" -> tasksList.sortedBy {
+                val assignee = teamMembers.value?.find { user -> user.email == it.assignee }
                 assignee?.getFirstAndLastName()
             }
 
@@ -132,7 +155,7 @@ class TaskListViewModel(
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
             "Assignee" -> tasksList.sortedBy {
-                val assignee = teamMembers.value.find { userId == it.email }
+                val assignee = teamMembers.value?.find { userId == it.email }
                 assignee?.getFirstAndLastName()
             }
 

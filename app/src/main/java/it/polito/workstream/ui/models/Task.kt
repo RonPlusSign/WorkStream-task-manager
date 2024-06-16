@@ -20,7 +20,7 @@ import java.sql.Timestamp
  * @property comments The comments related to the task
  */
 data class Task(
-    val id: String = "",
+    var id: String = "",
     var title: String = "",
     var description: String = "",
     var completed: Boolean = false,

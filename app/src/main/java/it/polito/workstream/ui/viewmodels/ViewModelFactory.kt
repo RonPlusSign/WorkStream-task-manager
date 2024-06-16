@@ -51,7 +51,9 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app.searchQuery,
                     app::setSearchQuery,
                     app.activeTeamId,
-                    app::getTasks
+                    app::getTasks,
+                    app::fetchSections,
+                    app::fetchActiveTeam,
                 ) as T
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->

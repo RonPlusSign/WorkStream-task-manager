@@ -52,6 +52,7 @@ class MainApplication : Application() {
                  .addSnapshotListener { value, error ->
                      if (value != null) {
                          val team = value.toObject(Team::class.java)
+
                          //activeTeamId.value = team?.id!!
                          //Log.d("Firestore", "Active team ID: ${team.id}")
                          trySend(team)
@@ -65,6 +66,29 @@ class MainApplication : Application() {
          awaitClose()
 
 
+
+
+    }
+
+    fun fetchSections(activeTeamId: String): Flow<List<String>> = callbackFlow {
+
+        Log.d("Firestore1", "Active team ID: ${activeTeamId}")
+        if (activeTeamId.isNotEmpty()) {
+            db.collection("Teams").document(activeTeamId)
+                .addSnapshotListener { value, error ->
+                    if (value != null) {
+                        val sections = value.toObject(Team::class.java)?.sections
+                        if (sections != null) {
+                            trySend(sections)
+                        }
+                    } else {
+                        Log.d("ERRORE", "ERRORE GRAVE $error")
+                        trySend(emptyList() )
+                    }
+                }
+        }
+
+        awaitClose { }
 
 
     }
@@ -185,11 +209,13 @@ class MainApplication : Application() {
 
     fun createEmptyTeam(nameTeam: String): Result<String> {
         val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email))
-        var newTeamId = newTeam.id
+
 
         // Create the team in Firestore
         Log.d("Firestore", "newTeam ID: ${newTeam.id} email ${user.value.email }")
         val newTeamRef = db.collection("Teams").document()
+        val newTeamId = newTeamRef.id
+        newTeam.id = newTeamRef.id // se lo tocchi ti taglio le mani
         val userRef = db.collection("users").document(user.value.email)
         db.runTransaction {
             it.set(newTeamRef, newTeam)
@@ -256,6 +282,7 @@ class MainApplication : Application() {
         task.teamId = activeTeamId.value
         val userRef = t.assignee?.let { db.collection("users").document(it) }
         val taskRef = db.collection("Tasks").document()
+        task.id = taskRef.id
         db.runTransaction {
             if (userRef != null) {
                 it.update(userRef, "tasks", FieldValue.arrayUnion(taskRef.id))
