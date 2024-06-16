@@ -38,7 +38,9 @@ class TaskListViewModel(
     val teamMembers = activeTeamMembers.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     val tasks = tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+
     fun getOfUser(userId: String, tasksList: List<Task>): List<Task> {
+
         var tempTaskList = when (currentSortOrder.value) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }

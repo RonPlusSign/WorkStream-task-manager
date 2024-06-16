@@ -131,14 +131,26 @@ class MainApplication : Application() {
 
     fun leaveTeam(teamId: String, userId: String) {
         // Remove the user from the team's members list
-        db.collection("Teams").document(teamId).update("members", FieldValue.arrayRemove(userId))
+        /*db.collection("Teams").document(teamId).update("members", FieldValue.arrayRemove(userId))
             .addOnSuccessListener { Log.d("Firestore", "User removed from team") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error removing user from team", e) }
 
         // Remove the team from the user's teams list
         db.collection("users").document(userId).update("teams", FieldValue.arrayRemove(teamId))
             .addOnSuccessListener { Log.d("Firestore", "Team removed from user") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }*/
+
+        val teamRef = db.collection("Teams").document(teamId)
+        val userRef = db.collection("users").document(userId)
+        db.runTransaction {
+            teamRef.update("members", FieldValue.arrayRemove(userId))
+            userRef.update("teams", FieldValue.arrayRemove(teamId))
+        }
+        .addOnSuccessListener { Log.d("Firestore", "Team removed from user") }
+        .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }
+
+
+
     }
 
     fun removeTeam(teamId: String) {
@@ -159,7 +171,17 @@ class MainApplication : Application() {
         var newTeamId = newTeam.id
 
         // Create the team in Firestore
-        db.collection("Teams").add(newTeam)
+        val newTeamRef = db.collection("Teams").document(newTeam.id)
+        val userRef = db.collection("users").document(user.value.email)
+        db.runTransaction {
+            it.set(newTeamRef, newTeam)
+            it.update(userRef, "teams", FieldValue.arrayUnion(newTeam.id))
+        }
+        .addOnSuccessListener { Log.d("Firestore", "User added to team") }
+        .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
+
+
+        /*db.collection("Teams").add(newTeam)
             .addOnSuccessListener { documentReference ->
                 Log.d("Firestore", "Team created with ID: ${documentReference.id}")
                 newTeam.id = documentReference.id
@@ -172,7 +194,7 @@ class MainApplication : Application() {
                     }
                     .addOnFailureListener { e -> Log.w("Firestore", "Error adding team to user", e) }
             }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a team", e) }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a team", e) }*/
 
         if (newTeamId == "") return Result.failure(Exception("Error creating team"))
         return Result.success(newTeamId)
@@ -189,11 +211,13 @@ class MainApplication : Application() {
         // Remove the task from the user's tasks list
         val taskRef = db.collection("task").document(task.id)
         val userRef = task.assignee?.let { db.collection("users").document(it) }
+        val teamRef = db.collection("Teams").document(activeTeamId.value)
         db.runTransaction { t ->
             t.delete(taskRef)
             task.assignee?.let {
                 if (userRef != null) {
                     t.update(userRef, "tasks", FieldValue.arrayRemove(task.id))
+                    t.update(teamRef,"tasks", FieldValue.arrayRemove(task.id))
                 }
             }
         }
@@ -201,9 +225,10 @@ class MainApplication : Application() {
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
         // Remove the task from the team's tasks list
+        /*
         db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(task.id))
             .addOnSuccessListener { Log.d("Firestore", "Task removed from team") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }*/
     }
 
     fun onTaskCreated(t: Task) {
@@ -228,17 +253,19 @@ class MainApplication : Application() {
         // Remove the task from the user's tasks list
         val taskRef = db.collection("task").document(t.id)
         val userRef = t.assignee?.let { db.collection("users").document(it) }
+        val teamRef = db.collection("Teams").document(activeTeamId.value)
         db.runTransaction { tr ->
             tr.delete(taskRef)
             tr.update(userRef!!, "tasks", FieldValue.arrayRemove(t.id))
+            tr.update(teamRef,"tasks", FieldValue.arrayRemove(t.id))
         }
             .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
 
         // Remove the task from the team's tasks list
-        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(t.id))
+        /*db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(t.id))
             .addOnSuccessListener { Log.d("Firestore", "Task removed from team") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }*/
     }
 
     val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
