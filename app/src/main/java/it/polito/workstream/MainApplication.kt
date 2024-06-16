@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.update
 
 
@@ -40,18 +41,26 @@ class MainApplication : Application() {
     val user: StateFlow<User> = _user
 
     private var activeTeamId = MutableStateFlow("")
-    private fun fetchActiveTeam(): Flow<Team?> = callbackFlow {
-        val listener = db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
-            .addSnapshotListener { value, error ->
-                if (value != null && !value.isEmpty) {
-                    val team = value.documents[0].toObject(Team::class.java)
-                    activeTeamId.value = team?.id!!
-                    trySend(team)
-                } else {
-                    trySend(null)
+    private fun fetchActiveTeam(): Flow<Team?> = if(activeTeamId.value.isEmpty()) emptyFlow() else callbackFlow {
+        //val listener = db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
+
+            Log.d("Firestore", "Active team ID: ${activeTeamId.value}")
+            val listener = db.collection("Teams").document(activeTeamId.value)
+                .addSnapshotListener { value, error ->
+                    if (value != null) {
+                        val team = value.toObject(Team::class.java)
+                        activeTeamId.value = team?.id!!
+                        Log.d("Firestore", "Active team ID: ${team.id}")
+                        trySend(team)
+                    } else {
+                        trySend(null)
+                    }
                 }
+            awaitClose { listener.remove()
             }
-        awaitClose { listener.remove() }
+
+
+
     }
 
     val activeTeam = fetchActiveTeam()

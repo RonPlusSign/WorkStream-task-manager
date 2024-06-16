@@ -146,6 +146,8 @@ fun ContentView(
     val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
 
+    Log.d("activeTeam", activeTeam.name)
+
     val navController = rememberNavController()
     val activeTeamId = activeTeam.id //vm.activeTeam.collectAsState().value.id
     var canNavigateBack: Boolean by remember { mutableStateOf(false) }

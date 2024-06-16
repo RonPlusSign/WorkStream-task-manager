@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.shared
 
+import android.util.Log
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Attribution
@@ -41,8 +42,10 @@ fun BottomNavbar(active: String, onRouteChange: (route: String) -> Any, teamId: 
                 label = { Text(route.name) },
                 selected = route.name == active,
                 onClick = {
-                    if (route.route == Route.TeamTasks.name)
+                    if (route.route == Route.TeamTasks.name) {
+                        Log.d("BottomNavbar", "TeamTasks   \"/$teamId/${route.route}\" ")
                         onRouteChange("/$teamId/${route.route}")
+                    }
                     else
                         onRouteChange(route.route)
                 },
