@@ -16,6 +16,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.toObject
 import it.polito.workstream.ui.models.Chat
@@ -624,43 +625,37 @@ class ChatModel(
     fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {
         val listener = db.collection("groupChats")
             .whereEqualTo("teamId", teamId)
-            .addSnapshotListener { r, e ->
-                if (r != null) {
-                    if (r.isEmpty){
-                        val newGroupChat = GroupChat("", mutableListOf<ChatMessage>())
+            .addSnapshotListener { querySnapshot, exception ->
 
-                        db.collection("groupChats")
-                            .add(newGroupChat)
-                            .addOnSuccessListener { doc ->
-                                val chatDocId = doc.id
+                if (querySnapshot != null && !querySnapshot.isEmpty) {
+                    // Group chat exists, retrieve the document
+                    val chatDocument = querySnapshot.documents.first()
+                    val groupChat = chatDocument.toObject(GroupChat::class.java)
+                    Log.d("chat", "groupChat: $groupChat")
+                    if (groupChat != null) {
+                        // Aggiungiamo un listener alla collezione "messages"
+                        chatDocument.reference.collection("messages")
+                            .addSnapshotListener { messagesSnapshot, messagesException ->
+                                if (messagesException != null) {
+                                    Log.d("Chat", "Error fetching chat message: $exception")
+                                }
 
-                                doc.update("id", chatDocId)
-                                    .addOnSuccessListener {
-                                        Log.d("Chat", "Group chat ID updated successfully!")
-                                    }
-                                    .addOnFailureListener { error ->
-                                        Log.d("Chat", "Error updating group chat ID: ", error)
-                                    }
-
-                                Log.d("Chat", "Group chat added with ID: ${doc.id}")
-                                trySend(newGroupChat)
+                                val messages = messagesSnapshot?.toObjects(ChatMessage::class.java)
+                                    ?: mutableListOf()
+                                groupChat.messages = messages.toMutableList()
+                                Log.d("chat", "messages: ${groupChat.messages}")
+                                trySend(groupChat)
                             }
-                            .addOnFailureListener { error ->
-                                Log.d("Chat", "Error adding group chat: ", error)
-                            }
-
                     } else {
-                        val groupChat = r.toObjects(GroupChat::class.java)
-                        trySend(groupChat.first())
+                        Log.d("Chat", "Error fetching chat message: $exception")
                     }
                 } else {
-                    Log.d("Chat", "Error getting group chats: ", e)
+                    Log.d("Chat", "Error fetching chat message: $exception")
                 }
             }
-
         awaitClose { listener.remove() }
     }
-    val groupChat = fetchGroupChat(currentTeamId.value)
+    val groupChat = fetchGroupChat("9vJ0F8M8CowyiMiq2Qdc")
 
     fun sendGroupMessage(newMessage: ChatMessage) {
         val messageToAdd = hashMapOf(

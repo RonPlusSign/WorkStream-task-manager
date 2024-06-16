@@ -14,17 +14,18 @@ class Chat (
 
 class GroupChat(
     val teamId: String = "",
-    val messages: MutableList<ChatMessage> = mutableListOf()
+    var messages: MutableList<ChatMessage> = mutableListOf()
 ) {
 
 }
 
-data class ChatMessage(
+class ChatMessage(
     val id: String,
     var text: String = "",
     val authorId: String = "",
     val timestamp: Timestamp = Timestamp.now()
 ) {
+    constructor() : this("", "", "", Timestamp.now())
     //constructor(messageId: String, text: String, author: String, timestamp: Timestamp) : this(messageId, text, author, timestamp)
 
 //    companion object {  // To generate unique identifiers for comments

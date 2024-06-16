@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.chats
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -59,6 +60,7 @@ fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
     val groupChat by vm.fetchGroupChat().collectAsState(initial = null)
+    Log.d("chat", "messages in compose: " + groupChat?.messages.toString())
 
     Column(
         modifier = Modifier.fillMaxSize()
