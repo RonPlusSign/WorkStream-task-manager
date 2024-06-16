@@ -10,7 +10,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ChatModel
+import it.polito.workstream.ui.models.Chat
 import it.polito.workstream.ui.models.ChatMessage
+import it.polito.workstream.ui.models.GroupChat
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
@@ -162,7 +164,7 @@ class UserViewModel(
 
     // Chats
     val chats = chatModel.chats
-
+    fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = chatModel.fetchChats(teamId, userId)
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
     fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
     fun editMessage(destUserId: String, messageId: String, newText: String) = chatModel.editMessage(destUserId, messageId, newText)
@@ -178,7 +180,7 @@ class UserViewModel(
 
     // Group chat
     val groupChat = chatModel.groupChat
-
+    fun fetchGroupChat(): Flow<GroupChat> = chatModel.fetchGroupChat(activeTeam.value?.id ?: " ")
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
     fun editGroupMessage(messageId: String, newText: String) = chatModel.editGroupMessage(messageId, newText)
     fun deleteGroupMessage(messageId: String) = chatModel.deleteGroupMessage(messageId)

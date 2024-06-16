@@ -58,7 +58,7 @@ import java.util.Locale
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val groupChat by vm.groupChat.collectAsState(initial = null)
+    val groupChat by vm.fetchGroupChat().collectAsState(initial = null)
 
     Column(
         modifier = Modifier.fillMaxSize()

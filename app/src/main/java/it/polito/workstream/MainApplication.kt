@@ -424,7 +424,7 @@ class ChatModel(
     //val chats: StateFlow<MutableMap<Team, MutableMap<Pair<User, User>, MutableList<ChatMessage>>>> = _chats
 
     // First get chats of team, second get my chats
-    private fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
+    fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
         val listener = db.collection("chats")
             .whereEqualTo("teamId", teamId)
             .where(Filter.or(
@@ -621,13 +621,38 @@ class ChatModel(
         )
     //val groupChats: StateFlow<MutableMap<Team, MutableList<ChatMessage>>> = _groupChats
 
-    private fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {
+    fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {
         val listener = db.collection("groupChats")
             .whereEqualTo("teamId", teamId)
             .addSnapshotListener { r, e ->
                 if (r != null) {
-                    val groupChat = r.toObjects(GroupChat::class.java)
-                    trySend(groupChat.first())
+                    if (r.isEmpty){
+                        val newGroupChat = GroupChat("", mutableListOf<ChatMessage>())
+
+                        db.collection("groupChats")
+                            .add(newGroupChat)
+                            .addOnSuccessListener { doc ->
+                                val chatDocId = doc.id
+
+                                doc.update("id", chatDocId)
+                                    .addOnSuccessListener {
+                                        Log.d("Chat", "Group chat ID updated successfully!")
+                                    }
+                                    .addOnFailureListener { error ->
+                                        Log.d("Chat", "Error updating group chat ID: ", error)
+                                    }
+
+                                Log.d("Chat", "Group chat added with ID: ${doc.id}")
+                                trySend(newGroupChat)
+                            }
+                            .addOnFailureListener { error ->
+                                Log.d("Chat", "Error adding group chat: ", error)
+                            }
+
+                    } else {
+                        val groupChat = r.toObjects(GroupChat::class.java)
+                        trySend(groupChat.first())
+                    }
                 } else {
                     Log.d("Chat", "Error getting group chats: ", e)
                 }
@@ -638,31 +663,41 @@ class ChatModel(
     val groupChat = fetchGroupChat(currentTeamId.value)
 
     fun sendGroupMessage(newMessage: ChatMessage) {
-        val teamId = currentTeamId.value
+        val messageToAdd = hashMapOf(
+            "authorId" to currentUser.value.email,
+            "text" to newMessage.text,
+            "timestamp" to Timestamp.now()
+        )
 
         db.collection("groupChats")
-            .whereEqualTo("teamId", teamId)
+            .whereEqualTo("teamId", currentTeamId.value)
             .get()
-            .addOnSuccessListener { doc ->
-                if (doc.isEmpty){
-                    Log.d("chat", "No collection messages inside group chat!!!")
-                } else {
-                    val chatDocId = doc.documents[0].id
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot != null && !querySnapshot.isEmpty) {
+                    // Supponiamo che ci sia solo una chat per teamId
+                    val chatDocument = querySnapshot.documents.first()
 
-                    db.collection("groupChats")
-                        .document(chatDocId)
-                        .collection("messages")
-                        .add(newMessage)
-                        .addOnSuccessListener { doc ->
-                            // Assegna al messaggio lo stesso id del documento
-                            doc.update("id", doc.id)
-                            Log.d("chat","Group message added successfully!")
+                    // Aggiungi il nuovo messaggio alla collezione "messages" di questo documento
+                    chatDocument.reference.collection("messages")
+                        .add(messageToAdd)
+                        .addOnSuccessListener {
+                            it.update("id", it.id)
+                            Log.d("Chat", "Message added successfully!")
                         }
                         .addOnFailureListener { e ->
-                            Log.d("chat","Error adding group message: $e")
+                            Log.d("Chat", "Error adding message: ", e)
                         }
+                } else {
+                    Log.d("Chat", "No chat found with teamId: ${currentTeamId.value}")
+                    // Puoi anche gestire il caso in cui non esiste una chat per il teamId
+                    // Ad esempio, puoi creare una nuova chat qui se lo desideri
                 }
             }
+            .addOnFailureListener { e ->
+                Log.d("Chat", "Error getting chats: ", e)
+            }
+
+
     }
 
     fun editGroupMessage(messageId: String, newText: String) {
@@ -676,10 +711,9 @@ class ChatModel(
                 if (doc.isEmpty){
                     Log.d("chat", "No collection messages inside group chats!!!")
                 } else {
-                    val chatDocId = doc.documents[0].id
 
-                    db.collection("chats")
-                        .document(chatDocId)
+                    db.collection("groupChats")
+                        .document(currentTeamId.value)
                         .collection("messages")
                         .document(messageId)
                         .delete()

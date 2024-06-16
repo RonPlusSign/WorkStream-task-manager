@@ -72,7 +72,7 @@ fun ChatList(
                             SmallChatBox(
                                 userName = "Team chat",
                                 lastMessage = lastMessage,
-                                timestamp = groupChat?.messages?.last()?.timestamp,
+                                timestamp = groupChat?.messages?.lastOrNull()?.timestamp,
                                 isGroup = true
                             )
                         }
