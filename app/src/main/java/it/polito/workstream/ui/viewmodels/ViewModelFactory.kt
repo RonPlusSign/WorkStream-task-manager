@@ -19,6 +19,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 teamIdsetProfileBitmap = app::setTeamProfileBitmap,
                 teamIdsetProfilePicture = app::setTeamProfilePicture,
                 removeMemberFromTeam = app::leaveTeam,
+                app::fetchActiveTeam,
+                app.activeTeamId
             ) as T
 
             modelClass.isAssignableFrom(UserViewModel::class.java) -> UserViewModel(
@@ -64,7 +66,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::createEmptyTeam,
                     app::fetchActiveTeam,
                     app.user,
-                    app.activeTeamId
+                    app.activeTeamId,
+                    app::getTeams
                 ) as T
 
             modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam) as T

@@ -55,13 +55,12 @@ class MainApplication : Application() {
                          //Log.d("Firestore", "Active team ID: ${team.id}")
                          trySend(team)
                      } else {
+                         Log.d("ERRORE", "ERRORE GRAVE")
                          trySend(null)
                      }
                  }
          }
-         else{
-             trySend(null)
-         }
+
          awaitClose()
 
 
@@ -71,9 +70,11 @@ class MainApplication : Application() {
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)
 
-    private fun getTeams(): Flow<List<Team>> = callbackFlow {
+    fun getTeams(): Flow<List<Team>> = callbackFlow {
         val userId: String = user.value.email
-        val listener = db.collection("Teams").whereArrayContains("members", listOf(userId)).addSnapshotListener { r, e ->
+        Log.d("Firestore email", "User ID: $userId")
+        val listener = db.collection("Teams").whereArrayContains("members", userId ).addSnapshotListener { r, e ->
+
             if (r != null) {
                 val teams = r.toObjects(Team::class.java)
                 trySend(teams)

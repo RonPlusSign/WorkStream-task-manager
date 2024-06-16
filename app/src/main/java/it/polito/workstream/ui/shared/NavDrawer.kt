@@ -77,7 +77,7 @@ private fun DrawerContent(
     drawerState: DrawerState,
     navigateTo: (String) -> Any,
 ) {
-    val teams = vm.teams.collectAsState(initial = emptyList()).value
+    val teams = vm.getTeams().collectAsState(initial = emptyList()).value
     var active by rememberSaveable { mutableStateOf(false) }
 
     var searchQuery by remember { mutableStateOf("") }

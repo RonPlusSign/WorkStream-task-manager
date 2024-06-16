@@ -1,16 +1,18 @@
 package it.polito.workstream.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlin.reflect.KFunction1
+import kotlinx.coroutines.flow.stateIn
 
 class TeamListViewModel(
-    val activeTeam: Flow<Team?>,
+    val _activeTeam: Flow<Team?>,
     val teams: Flow<List<Team>>,
     val teamTasks: Flow<List<Task>>,
     val teamMembers: Flow<List<User>>,
@@ -24,5 +26,8 @@ class TeamListViewModel(
     val fetchActiveTeam: (String) -> Flow<Team?>,
     val user: StateFlow<User>,
     val activeTeamId: MutableStateFlow<String>,
+    val getTeams: () -> Flow<List<Team>>,
 
-    ) : ViewModel()
+    ) : ViewModel(){
+    val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.Lazily, null)
+    }

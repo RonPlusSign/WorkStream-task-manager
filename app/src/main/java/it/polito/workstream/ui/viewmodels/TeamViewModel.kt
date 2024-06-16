@@ -1,9 +1,7 @@
 package it.polito.workstream.ui.viewmodels
 
 import android.graphics.Bitmap
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -11,20 +9,24 @@ import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.withContext
 
 
 class TeamViewModel(
-    val team: Flow<Team?>,
+    val _team: Flow<Team?>,
     val teamMembers: Flow<List<User>>,
     val currentUser: User,
     private val updateTeam: (team: Team) -> Unit,
     private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,
     private val teamIdsetProfilePicture: (teamId: String, n: String) -> Unit,
-    private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit
+    private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit,
+    fetchTeam: (String) -> Flow<Team?>,
+    activeTeamId: MutableStateFlow<String>
 ) : ViewModel() {
+    val team = fetchTeam(activeTeamId.value)
 
     suspend fun setProfilePicture(n: String) {
         withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfilePicture(it.id, n) } }
