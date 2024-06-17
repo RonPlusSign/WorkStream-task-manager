@@ -27,10 +27,12 @@ import it.polito.workstream.ui.models.GroupChat
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.TaskDTO
 import it.polito.workstream.ui.models.Team
+import it.polito.workstream.ui.models.TeamDTO
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.models.toDTO
 import it.polito.workstream.ui.screens.chats.GroupChat
 import it.polito.workstream.ui.models.toTask
+import it.polito.workstream.ui.models.toTeam
 import it.polito.workstream.ui.models.uploadFile
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -237,10 +239,29 @@ class MainApplication : Application() {
 
     fun joinTeam(teamId: String, userId: String) {
         // Add the user to the team's members list
-        db.collection("Teams").document(teamId).update("members", FieldValue.arrayUnion(userId))
-            .addOnSuccessListener { Log.d("Firestore", "User added to team") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
+        val teamReaf= db.collection("Teams").document(teamId)
+        val userRef = db.collection("users").document(userId)
+        db.runTransaction {
+            it.update(teamReaf, "members", FieldValue.arrayUnion(userId))
+            it.update(userRef, "teams", FieldValue.arrayUnion(teamId))
+        }
+            .addOnSuccessListener { Log.d("Firestore", "Team $teamId joined")  }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error join team $teamId", e) }
+        activeTeamId.value=teamId
+
     }
+    fun fetchTeam(teamId: String) : Flow<Team> = callbackFlow {
+        val  l = db.collection("Teams").document(teamId).addSnapshotListener{
+            r,e ->
+            if (r!= null) {
+                r.toObject<Team>()?.let { trySend(it) }
+            }
+
+        }
+        awaitClose{l.remove()}
+    }
+
+
 
     fun createEmptyTeam(nameTeam: String): Result<String> {
         val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email))

@@ -27,8 +27,10 @@ class TeamListViewModel(
     val user: StateFlow<User>,
     val activeTeamId: MutableStateFlow<String>,
     val getTeams: () -> Flow<List<Team>>,
-    val getTasks: (teamId:String) -> Flow<List<Task>>,
+    val getTasks: (teamId: String) -> Flow<List<Task>>,
     val fetchUsers: (String) -> Flow<List<User>>,
+    val fetchTeam: (String) -> Flow<Team>,
+
 
     ) : ViewModel(){
     val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.Lazily, null)
