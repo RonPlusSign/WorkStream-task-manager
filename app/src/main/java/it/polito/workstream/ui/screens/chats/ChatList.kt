@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -34,12 +35,12 @@ fun ChatList(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
-    val chats by vm.chats.collectAsState(initial = listOf())
-    val usersList by vm.teamMembers.collectAsState()
-    val groupChat by vm.groupChat.collectAsState(initial = null)
+    val chats = vm.chats.collectAsState(initial = listOf()).value
+    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
+    val groupChat = vm.groupChat.collectAsState(initial = null).value
 
-    val lastMessageAuthor = vm.teamMembers.collectAsState().value.find { it.email == groupChat?.messages?.lastOrNull()?.authorId }
-    val lastMessage = if (lastMessageAuthor==null) "No messages" else lastMessageAuthor.firstName + ": " + groupChat?.messages?.last()?.text
+    val lastMessageAuthor = teamMembers.find { it.email == groupChat?.messages?.lastOrNull()?.authorId }
 
     WorkStreamTheme {
         Scaffold (
@@ -71,7 +72,7 @@ fun ChatList(
                         ) {
                             SmallChatBox(
                                 userName = "Team chat",
-                                lastMessage = lastMessage,
+                                lastMessage = (lastMessageAuthor?.firstName?:"") + " : " + groupChat?.messages?.lastOrNull()?.text,
                                 timestamp = groupChat?.messages?.lastOrNull()?.timestamp,
                                 isGroup = true
                             )
@@ -84,7 +85,7 @@ fun ChatList(
                         Log.d("Chat", "Chat with id " + chat.user1Id + " " + chat.user2Id)
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
-                            val destUser = usersList.find {
+                            val destUser = teamMembers.find {
                                 it.email == destUserId
                             }
                             Column(

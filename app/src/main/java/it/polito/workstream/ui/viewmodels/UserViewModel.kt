@@ -31,16 +31,19 @@ class UserViewModel(
     val teamMembersFlow: Flow<List<User>>,
     activeTeamFlow: Flow<Team?>,
     val chatModel: ChatModel,
-    val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit
+    val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit,
+    fetchActiveTeam: (String) -> Flow<Team?>,
+    activeTeamId: MutableStateFlow<String>,
+    fetchUsers: (String) -> Flow<List<User>>
 ) : ViewModel() {
 
+    val activeTeam = fetchActiveTeam(activeTeamId.value)
+    val teamMembers = fetchUsers(activeTeamId.value)
     val userTasks = userTasksFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
-    val teamMembers = teamMembersFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
+
 
     var isEditing by mutableStateOf(false)
         private set
-
-    val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
 
     fun edit() {
         isEditing = true
@@ -183,20 +186,8 @@ class UserViewModel(
     }
 
     // Group chat
-    val _groupChat = MutableStateFlow<GroupChat>(GroupChat())
-    val groupChat: StateFlow<GroupChat> get() = _groupChat
-    //fun fetchGroupChat() = chatModel.fetchGroupChat("9vJ0F8M8CowyiMiq2Qdc")
-
-    init {
-        fetchGroupChat()
-    }
-    fun fetchGroupChat() {
-        viewModelScope.launch {
-            chatModel.fetchGroupChat("9vJ0F8M8CowyiMiq2Qdc").collect {
-                _groupChat.value = it
-            }
-        }
-    }
+    val groupChat = fetchGroupChat(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    fun fetchGroupChat(activeTeamId: String) = chatModel.fetchGroupChat(activeTeamId)
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
     fun editGroupMessage(messageId: String, newText: String) = chatModel.editGroupMessage(messageId, newText)
     fun deleteGroupMessage(messageId: String) = chatModel.deleteGroupMessage(messageId)

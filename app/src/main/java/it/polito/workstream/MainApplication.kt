@@ -653,7 +653,6 @@ class ChatModel(
         val listener = db.collection("groupChats")
             .whereEqualTo("teamId", teamId)
             .addSnapshotListener { querySnapshot, exception ->
-                Log.d("chat", "Document id: ${querySnapshot?.documents?.first()?.id}")
                 if (querySnapshot != null && !querySnapshot.isEmpty) {
                     // Group chat exists, retrieve the document
                     val chatDocument = querySnapshot.documents.first()
@@ -670,7 +669,7 @@ class ChatModel(
                                 val messages = messagesSnapshot?.toObjects(ChatMessage::class.java)
                                     ?: mutableListOf()
                                 groupChat.messages = messages.toMutableList()
-                                Log.d("chat", "messages: ${groupChat.messages}")
+                                Log.d("chat", "messages: ${groupChat.messages.size}")
                                 trySend(groupChat)
                             }
                     } else {
@@ -728,24 +727,15 @@ class ChatModel(
 
     fun deleteGroupMessage(messageId: String) {
         db.collection("groupChats")
-            .get()
-            .addOnSuccessListener { doc ->
-                if (doc.isEmpty){
-                    Log.d("chat", "No collection messages inside group chats!!!")
-                } else {
-
-                    db.collection("groupChats")
-                        .document(currentTeamId.value)
-                        .collection("messages")
-                        .document(messageId)
-                        .delete()
-                        .addOnSuccessListener {
-                            Log.d("chat","Chat message deleted successfully!")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.d("chat","Error deleting chat message: $e")
-                        }
-                }
+            .document(currentTeamId.value)
+            .collection("messages")
+            .document(messageId)
+            .delete()
+            .addOnSuccessListener {
+                Log.d("chat","Chat message deleted successfully!")
+            }
+            .addOnFailureListener { e ->
+                Log.d("chat","Error deleting chat message: $e")
             }
     }
 

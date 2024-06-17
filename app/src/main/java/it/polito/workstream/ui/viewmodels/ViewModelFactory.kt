@@ -35,7 +35,10 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 app.activeTeamMembers,
                 app.activeTeam,
                 chatModel = app.chatModel,
-                updateUser = app::updateUser
+                updateUser = app::updateUser,
+                app::fetchActiveTeam,
+                app.activeTeamId,
+                app::fetchUsers
             ) as T
 
             modelClass.isAssignableFrom(TaskListViewModel::class.java) ->

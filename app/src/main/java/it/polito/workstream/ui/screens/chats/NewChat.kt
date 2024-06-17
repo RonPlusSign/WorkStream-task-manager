@@ -38,7 +38,8 @@ fun NewChat(
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit
 ) {
     val chats by vm.chats.collectAsState(initial = listOf())
-    val users = vm.teamMembers.collectAsState().value
+    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
 
     Column {
         LazyColumn(
@@ -46,7 +47,7 @@ fun NewChat(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            users.forEach { user ->
+            teamMembers.forEach { user ->
                 item {
                     Card(
                         modifier = Modifier

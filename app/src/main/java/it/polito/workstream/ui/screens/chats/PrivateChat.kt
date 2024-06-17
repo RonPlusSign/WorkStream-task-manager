@@ -62,6 +62,9 @@ fun Chat(
         it.user1Id == destUserId || it.user2Id == destUserId
     };
 
+    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
+
     Column {
         // The list of messages
         LazyColumn (
@@ -72,7 +75,7 @@ fun Chat(
                 .weight(1f)
         ) {
             chat?.messages?.reversed()?.forEach { mex ->
-                val sender = vm.teamMembers.value.find { it.email == mex.authorId }
+                val sender = teamMembers.find { it.email == mex.authorId }
                 val isFromMe = mex.authorId == vm.user.email
                 item {
                     ChatMessageBox(mex, destUserId, vm, isFromMe);

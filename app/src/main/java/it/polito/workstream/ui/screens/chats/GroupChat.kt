@@ -59,8 +59,11 @@ import java.util.Locale
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val groupChat by vm.groupChat.collectAsState()
-    Log.d("chat", "messages in compose: " + groupChat.messages.toString())
+    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
+
+    val groupChat = vm.groupChat.collectAsState(initial = null).value
+    Log.d("chat", "messages in compose: " + groupChat?.messages?.size)
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -72,7 +75,7 @@ fun GroupChat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            groupChat?.messages?.reversed()?.forEach { mex ->
+            groupChat?.messages?.sortedBy { it.timestamp }?.reversed()?.forEach { mex ->
                 val isFromMe = mex.authorId == vm.user.email
                 item {
                     GroupChatMessageBox(message = mex, vm, isFromMe)
@@ -93,7 +96,7 @@ fun GroupChatMessageBox(
 ) {
     var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val messageAuthor = vm.teamMembers.collectAsState().value.find { it.email == message.authorId }
+    val messageAuthor = vm.teamMembers.collectAsState(initial = listOf()).value.find { it.email == message.authorId }
 
     Row(
         horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start,
@@ -136,7 +139,7 @@ fun GroupChatMessageBox(
                 ) {
                     message.timestamp.let {
                         Text(
-                            text = it.toString(),
+                            text = it.toDate().toString(),
                             fontSize = 12.sp
                         )
                     }
@@ -154,7 +157,8 @@ fun GroupChatInputBox(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
     var newMessage by remember { mutableStateOf("") }
-    val users = vm.teamMembers.collectAsState().value
+    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
