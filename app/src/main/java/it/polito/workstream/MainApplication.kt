@@ -210,10 +210,19 @@ class MainApplication : Application() {
 
     }
 
-    fun removeTeam(teamId: String) {
-        db.collection("Teams").document(teamId.toString()).delete()
-            .addOnSuccessListener { Log.d("Firestore", "Team $teamId deleted") }
+    fun removeTeam(teamId: String, team: Team) {
+        val usersRefs = team.members.map { db.collection("users").document(it) }
+        val teamRef = db.collection("Teams").document(teamId)
+        db.runTransaction{
+            for(u in usersRefs){
+                it.update(u, "teams", FieldValue.arrayRemove(teamId))
+            }
+            it.delete(teamRef)
+        } .addOnSuccessListener { Log.d("Firestore", "Team $teamId deleted") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error deleting team $teamId", e) }
+
+        //db.collection("Teams").document(teamId).delete()
+
     }
 
     fun joinTeam(teamId: String, userId: String) {

@@ -22,6 +22,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 app::fetchActiveTeam,
                 app.activeTeamId,
                 app::fetchUsers,
+                app::changeActiveTeamId,
 
             ) as T
 

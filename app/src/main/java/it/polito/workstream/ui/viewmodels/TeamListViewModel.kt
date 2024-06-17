@@ -19,7 +19,7 @@ class TeamListViewModel(
     val activePageValue: MutableStateFlow<String>,
     val setActivePage: (page: String) -> Unit,
     val changeActiveTeamId: (teamId: String) -> Unit,
-    val removeTeam: (teamId: String) -> Unit,
+    val removeTeam: (teamId: String, team: Team) -> Unit,
     val leaveTeam: (teamId: String, userId: String) -> Unit,
     val joinTeam: (teamId: String, userId: String) -> Unit,
     val createEmptyTeam: (nameTeam: String) -> Result<String>,

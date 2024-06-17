@@ -70,23 +70,25 @@ import it.polito.workstream.ui.shared.ProfilePicture
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 @Composable
 fun TeamScreen(
     vm: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?) -> Unit,
-    removeTeam: (teamId: String) -> Unit,
+    removeTeam: (teamId: String, team: Team) -> Unit,
     leaveTeam: (teamId: String, userId: String) -> Unit,
     context: Context,
     navigateTo: (route: String) -> Any,
     tasksVm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    user: StateFlow<User>,
 ) {
 
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var showLeaveConfirmationDialog by remember { mutableStateOf(false) }
-
+    val userProfile = user.collectAsState(initial = null).value
     val team = vm.team.collectAsState(initial = null).value ?: Team(name = "Loading...")
     val teamMembers =  vm.teamMembers.collectAsState(initial = emptyList()).value
     val teamTasks  = tasksVm.tasks.collectAsState(initial = emptyList()).value
@@ -113,7 +115,11 @@ fun TeamScreen(
         DeleteTeamConfirmationDialog(
             onDismiss = { showDeleteConfirmationDialog = false },
             onConfirm = {
-                removeTeam(team.id)
+                removeTeam(team.id,team )
+
+                userProfile?.teams?.firstOrNull { it != team.id }
+                    .let { vm.changeActiveTeamId(it ?: "no_team") }
+
                 showDeleteConfirmationDialog = false
                 onTaskClick(1, null, null, null)
                 navigateTo(Route.TeamScreen.name)

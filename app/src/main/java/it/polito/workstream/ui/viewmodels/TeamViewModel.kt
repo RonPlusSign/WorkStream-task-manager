@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.Dispatchers
@@ -27,8 +26,9 @@ class TeamViewModel(
     fetchTeam: (String) -> Flow<Team?>,
     activeTeamId: MutableStateFlow<String>,
     fetchUsers: (String) -> Flow<List<User>>,
+    val changeActiveTeamId: (String) -> Unit,
 
-) : ViewModel() {
+    ) : ViewModel() {
     val team = fetchTeam(activeTeamId.value)
     val teamMembers =fetchUsers(activeTeamId.value)
 

@@ -303,7 +303,8 @@ fun ContentView(
                             removeTeam = vm.removeTeam,
                             leaveTeam = vm.leaveTeam,
                             context = LocalContext.current,
-                            navigateTo = navigateTo
+                            navigateTo = navigateTo,
+                            user= vm.user
                         )
                     }
 
