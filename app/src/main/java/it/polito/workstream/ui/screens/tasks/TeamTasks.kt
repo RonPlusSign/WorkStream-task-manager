@@ -33,10 +33,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,7 +47,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
@@ -55,14 +54,14 @@ import it.polito.workstream.ui.screens.tasks.components.SmallTaskBox
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun TeamTasksScreen(
 
-    _users: LiveData<List<User>>,
+    _users: StateFlow<List<User>>,
     getOfSection: (String, String) -> List<Task>,
-    sectionExpanded: Map<String, Boolean>,
+    sectionExpanded: MutableState<MutableMap<String, Boolean>>,
     newSectionValue: String,
     toggleSectionExpansion: (String) -> Unit,
     isAddingSection: Boolean,
@@ -78,8 +77,10 @@ fun TeamTasksScreen(
 
     val activeteam = vm.activeTeam.collectAsState()
     Log.d("TeamTasksScreen", "${ activeteam.value}")
-    var sectionExpanded = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
-    val users = _users.value
+    //var sectionExpanded = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+    vm.sectionExpanded.value = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+    val sectionExpanded = vm.sectionExpanded
+    val users by _users.collectAsState(initial = emptyList())
     val taskList = vm.tasks.collectAsState(initial = emptyList()).value
     val sections by vm.sections.collectAsState(listOf())
     var isDeletingSection by remember { mutableStateOf(false) }
@@ -148,7 +149,7 @@ fun TeamTasksScreen(
                                         )
 
                                         Icon(
-                                            if (sectionExpanded[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                            if (sectionExpanded.value[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                                             contentDescription = "Expand/Collapse",
                                             tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier
@@ -199,7 +200,7 @@ fun TeamTasksScreen(
                                     }
 
                                     // Tasks of the section
-                                    if ( sectionExpanded[section] == true) {//sectionExpanded[section] == true
+                                    if ( sectionExpanded.value[section] == true) {//sectionExpanded[section] == true
                                         vm.getOfSectionByList(section, sortOrder, taskList ).forEach { task ->
                                             val assignee = users?.find { it.email == task.assignee }
                                             Column(

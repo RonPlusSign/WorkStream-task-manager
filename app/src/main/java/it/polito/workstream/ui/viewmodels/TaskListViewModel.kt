@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asLiveData
+
 import androidx.lifecycle.viewModelScope
 import it.polito.workstream.FilterParams
 import it.polito.workstream.ui.models.Task
@@ -40,7 +40,7 @@ class TaskListViewModel(
 ) : ViewModel() {
     val filterParams = filterParamsState.value
     val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
-    val teamMembers = activeTeamMembers.asLiveData()
+    val teamMembers = activeTeamMembers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     val tasks = getTasks(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList()) //tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     val sections = fetchSections(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
@@ -73,14 +73,15 @@ class TaskListViewModel(
     }
 
 
-    var sectionExpanded = mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
-        private set
+    var sectionExpanded : MutableState<MutableMap<String, Boolean>>  = mutableStateOf(mutableMapOf())//mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+
 
     var statusList = mutableListOf("To do", "In progress", "Paused", "On review", "Completed")
 
     fun toggleSectionExpansion(section: String) {
-        if (activeTeam.value == null || !activeTeam.value!!.sections.contains(section)) return
-        sectionExpanded[section] = !sectionExpanded[section]!!
+        //if (activeTeam.value == null || !activeTeam.value!!.sections.contains(section)) return
+        sectionExpanded.value[section] = !sectionExpanded.value[section]!!
+
     }
 
     fun getAssignees(): List<String> {
@@ -92,7 +93,7 @@ class TaskListViewModel(
     }
 
     private fun addSection(section: String) {
-        sectionExpanded[section] = true
+        sectionExpanded.value[section] = true
         onAddSection(section)
     }
 
@@ -105,7 +106,7 @@ class TaskListViewModel(
         if (tasksList.any { it.section == section }) return // If the section is not empty, do not remove it
 
         onDeleteSection(section)
-        sectionExpanded.remove(section)
+        sectionExpanded.value.remove(section)
     }
 
 
