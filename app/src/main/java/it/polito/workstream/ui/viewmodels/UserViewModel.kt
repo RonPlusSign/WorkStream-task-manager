@@ -35,8 +35,9 @@ class UserViewModel(
     val chatModel: ChatModel,
     val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit,
     fetchActiveTeam: (String) -> Flow<Team?>,
-    activeTeamId: MutableStateFlow<String>,
-    fetchUsers: (String) -> Flow<List<User>>
+    val activeTeamId: MutableStateFlow<String>,
+    fetchUsers: (String) -> Flow<List<User>>,
+    val getTasks: (String) -> Flow<List<Task>>
 ) : ViewModel() {
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)

@@ -40,7 +40,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 updateUser = app::updateUser,
                 app::fetchActiveTeam,
                 app.activeTeamId,
-                app::fetchUsers
+                app::fetchUsers,
                 app::getTasks
             ) as T
 
