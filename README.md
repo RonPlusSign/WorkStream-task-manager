@@ -19,7 +19,7 @@
 <img src="readme_images/task_filters.jpg" width=330 />
 <img src="readme_images/task_sort.jpg" width=330 />
 <img src="readme_images/task_info.jpg" width=330 />
-<img src="readme_images/team_personal.jpg" width=330 />
+<img src="readme_images/task_personal.jpg" width=330 />
 
 ## User profile
 
