@@ -171,10 +171,11 @@ fun ContentView(
     val activeTeamId = vm.activeTeamId.collectAsState().value //activeTeam.id //vm.activeTeam.collectAsState().value.id
     val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
     val teamMembers = userVM.teamMembers.collectAsState(initial = listOf()).value
-    val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
+    val tasksList = vm.getTasks(activeTeamId).collectAsState(initial = listOf())//vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
 
     Log.d("activeTeam", activeTeam.name)
+    Log.d("activeTeamId", activeTeamId)
 
     val navController = rememberNavController()
 
@@ -254,14 +255,14 @@ fun ContentView(
                     .fillMaxSize()
                     .padding(padding), color = MaterialTheme.colorScheme.background
             ) {
-                NavHost(navController = navController, startDestination = "/0/${Route.TeamTasks.name}") {
+                NavHost(navController = navController, startDestination = "/${activeTeamId.ifBlank { "no_team" }}/${Route.TeamTasks.name}") {
 
                     composable(
                         route = "/{teamId}/${Route.TeamTasks.name}",
                         arguments = listOf(navArgument("teamId") { type = NavType.StringType; nullable = false; defaultValue = "" })
                     ) {
                         //TODO: questo manda tutto a puttane
-                        //vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
+                        vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
                     }
@@ -312,7 +313,8 @@ fun ContentView(
                             removeTeam = vm.removeTeam,
                             leaveTeam = vm.leaveTeam,
                             context = LocalContext.current,
-                            navigateTo = navigateTo
+                            navigateTo = navigateTo,
+                            user= vm.user
                         )
                     }
 
@@ -327,9 +329,9 @@ fun ContentView(
                         route = "${Route.TeamTasks.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.IntType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
@@ -343,6 +345,7 @@ fun ContentView(
                             val assignee = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { u -> u.email == it.assignee }
                             ShowTaskDetails(it, assignee, onComplete = { task ->
                                 task.complete()
+                                taskVM.onTaskUpdated(task)
                                 onItemSelect(1, null, null, null, null)
                             })
                         }
@@ -352,16 +355,16 @@ fun ContentView(
                         route = "${Route.EditTask.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.IntType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
-                        val index = entry.arguments?.getInt("index")
-                        val taskEditing = tasksList.value.find { it.id.toInt() == index }
+                        val index = entry.arguments?.getString("index")
+                        val taskEditing = tasksList.value.find { it.id == index }
 
-                        tasksList.value.find { it.id.toInt() == index }?.let {
+                        tasksList.value.find { it.id == index }?.let {
                             vm.setActivePage(it.title)
                             if (taskVM.task.value.id != it.id)
                                 taskVM.setTask(it)
@@ -376,9 +379,9 @@ fun ContentView(
                         route = "${Route.UserView.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.IntType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
@@ -386,7 +389,7 @@ fun ContentView(
                         val userId = entry.arguments?.getString("index")
                         var user = User()
                         if (userId != null) {
-                            user = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId } ?: User()
+                            user = vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList()).value.find { it.email == userId } ?: User()
                         }
                         UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }

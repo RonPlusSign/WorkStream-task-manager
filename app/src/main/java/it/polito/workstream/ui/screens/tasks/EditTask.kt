@@ -43,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -80,6 +81,7 @@ fun EditTaskScreen(
     val datePickerState = rememberDatePickerState(initialDisplayMode = DisplayMode.Picker)
 
     val assignee: User? = teamVM.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == taskVM.assigneeValue }
+    val sections by taskListVM.sections.collectAsState(listOf())
 
     @Composable
     fun EditTaskInfo() {
@@ -216,7 +218,8 @@ fun EditTaskScreen(
                             onDismissRequest = taskVM::toggleSectionExpanded,
                             modifier = Modifier.wrapContentSize(Alignment.Center)
                         ) {
-                            taskVM.activeTeamFlow.collectAsState(initial = null).value?.sections?.forEach { sectionItem ->
+
+                            sections.forEach { sectionItem ->//QUI
                                 DropdownMenuItem(text = { Text(text = sectionItem) }, onClick = { taskVM.setSection(sectionItem); taskVM.toggleSectionExpanded() })
                             }
                         }

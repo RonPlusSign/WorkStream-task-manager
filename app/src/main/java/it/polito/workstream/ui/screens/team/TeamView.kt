@@ -3,6 +3,7 @@ package it.polito.workstream.ui.screens.team
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,31 +67,42 @@ import it.polito.workstream.Route
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.shared.ProfilePicture
+import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 @Composable
 fun TeamScreen(
     vm: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
-    removeTeam: (teamId: String) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, , userMail: String?) -> Unit,
+    removeTeam: (teamId: String, team: Team) -> Unit,
     leaveTeam: (teamId: String, userId: String) -> Unit,
     context: Context,
-    navigateTo: (route: String) -> Any
+    navigateTo: (route: String) -> Any,
+    tasksVm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    user: StateFlow<User>,
 ) {
+
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var showLeaveConfirmationDialog by remember { mutableStateOf(false) }
-
+    val userProfile = user.collectAsState(initial = null).value
     val team = vm.team.collectAsState(initial = null).value ?: Team(name = "Loading...")
+    val teamMembers =  vm.teamMembers.collectAsState(initial = emptyList()).value
+    val teamTasks  = tasksVm.tasks.collectAsState(initial = emptyList()).value
+
+    val profilePictureValue = remember {mutableStateOf(team.profilePicture)}
+    profilePictureValue.value = team.profilePicture
 
     var nameValue by remember { mutableStateOf(team.name) }
 
-    val numberOfMembers = team.members.size  // Number of members
-    val tasksCompleted = team.tasks.filter { it.completed }.size    // Total number of tasks completed
-    val tasksToComplete = team.tasks.size - tasksCompleted // Number of tasks to complete
-    val top3Users = (team.members.sortedByDescending { team.tasks.filter { task -> task.assignee == it && task.completed }.size }.take(3))
+    val numberOfMembers = teamMembers.size  // Number of members
+    Log.d("TeamScreen", "Number of members: $numberOfMembers")
+    val tasksCompleted = teamTasks.filter { it.completed }.size    // Total number of tasks completed
+    val tasksToComplete = teamTasks.size - tasksCompleted // Number of tasks to complete
+    val top3Users = (teamMembers.sortedByDescending { teamTasks.filter { task -> task.assignee == it.email && task.completed }.size }.take(3))
 
     val link = "https://www.workstream.it/${team.id}"
     val scope = rememberCoroutineScope()
@@ -103,7 +115,11 @@ fun TeamScreen(
         DeleteTeamConfirmationDialog(
             onDismiss = { showDeleteConfirmationDialog = false },
             onConfirm = {
-                removeTeam(team.id)
+                removeTeam(team.id,team )
+
+                userProfile?.teams?.firstOrNull { it != team.id }
+                    .let { vm.changeActiveTeamId(it ?: "no_team") }
+
                 showDeleteConfirmationDialog = false
                 onTaskClick(1, null, null, null, null)
                 navigateTo(Route.TeamScreen.name)
@@ -132,12 +148,19 @@ fun TeamScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     ProfilePicture(
+                        profilePictureValue = profilePictureValue,
                         profilePicture = team.profilePicture,
                         photoBitmapValue = team.profileBitmap,
                         isEditing = (vm.currentUser.email == team.admin),
                         name = team.name,
-                        edit = { scope.launch { vm.setProfilePicture(it) } },
-                        setPhotoBitmap = { scope.launch { vm.setProfileBitmap(it) } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
+                        edit = { scope.launch {
+                            team.profilePicture = it
+                            vm.updateTeam(team)
+                        } },
+                        setPhotoBitmap = { scope.launch {
+                            team.profileBitmap = it
+                            vm.updateTeam(team)
+                        } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -212,8 +235,8 @@ fun TeamScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Row {
                     top3Users.forEachIndexed { index, userId ->
-                        val user = vm.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId }
-                        val numOfTasksCompleted = team.tasks.filter { it.completed && (it.assignee == userId) }.size
+                        val user = vm.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId.email }
+                        val numOfTasksCompleted = teamTasks.filter { it.completed && (it.assignee == userId.email) }.size
 
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                             Box {
@@ -369,7 +392,10 @@ fun MemberItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onTaskClick(6, member.email, null, null, null) }
+            .clickable {
+                //onTaskClick(6, member.email, null, null)
+                navigateTo("${Route.UserView.name}/${member.email}")
+            }
             .background(
                 MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(16.dp)

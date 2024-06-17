@@ -26,7 +26,9 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 removeMemberFromTeam = app::leaveTeam,
                 app::fetchActiveTeam,
                 app.activeTeamId,
-                app::fetchUsers
+                app::fetchUsers,
+                app::changeActiveTeamId,
+
             ) as T
 
             modelClass.isAssignableFrom(UserViewModel::class.java) -> UserViewModel(
@@ -39,6 +41,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 app::fetchActiveTeam,
                 app.activeTeamId,
                 app::fetchUsers
+                app::getTasks
             ) as T
 
             modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
@@ -62,6 +65,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::getTasks,
                     app::fetchSections,
                     app::fetchActiveTeam,
+                    app::fetchUsers,
                 ) as T
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->
@@ -80,10 +84,12 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::fetchActiveTeam,
                     app.user,
                     app.activeTeamId,
-                    app::getTeams
+                    app::getTeams,
+                    app::getTasks,
+                    app::fetchUsers,
                 ) as T
 
-            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam) as T
+            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam,app.activeTeamId,app::onTaskUpdated) as T
 
             else -> throw IllegalArgumentException("ViewModel class not found")
         }

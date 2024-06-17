@@ -19,14 +19,16 @@ class TeamViewModel(
     val _team: Flow<Team?>,
     val _teamMembers: Flow<List<User>>,
     val currentUser: User,
-    private val updateTeam: (team: Team) -> Unit,
+    val updateTeam: (team: Team) -> Unit,
     private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,
     private val teamIdsetProfilePicture: (teamId: String, n: String) -> Unit,
     private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit,
     fetchTeam: (String) -> Flow<Team?>,
     activeTeamId: MutableStateFlow<String>,
-    fetchUsers: (String) -> Flow<List<User>>
-) : ViewModel() {
+    fetchUsers: (String) -> Flow<List<User>>,
+    val changeActiveTeamId: (String) -> Unit,
+
+    ) : ViewModel() {
     val team = fetchTeam(activeTeamId.value)
     val teamMembers =fetchUsers(activeTeamId.value)
 
@@ -34,7 +36,8 @@ class TeamViewModel(
         withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfilePicture(it.id, n) } }
     }
 
-    suspend fun setProfileBitmap(b: Bitmap?) {
+
+    suspend fun setProfileBitmap(b: Bitmap? ) {
         withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfileBitmap(it.id, b) } }
     }
 
