@@ -3,6 +3,7 @@ package it.polito.workstream.ui.screens.userprofile
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -17,6 +18,7 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
     val vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
     vm.setUser(user)
+    val tasks = vm.getTasks(vm.activeTeamId.collectAsState().value).collectAsState(initial = listOf()).value.filter { it.assignee == user.email }
 
     WorkStreamTheme {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -38,8 +40,8 @@ fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
                 vm.profilePictureValue,
                 vm::setProfilePicture,
                 vm.numberOfTeams,
-                vm.tasksCompleted,
-                vm.tasksToComplete,
+                tasks.filter { it.completed }.size,
+                tasks.filter { !it.completed }.size,
                 vm::edit,
                 { println("Changing user password") },
                 onLogout,

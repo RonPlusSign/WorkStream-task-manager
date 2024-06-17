@@ -14,8 +14,8 @@ import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 class UserViewModel(
@@ -24,9 +24,12 @@ class UserViewModel(
     teamMembersFlow: Flow<List<User>>,
     activeTeamFlow: Flow<Team?>,
     val chatModel: ChatModel,
-    val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit
+    val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit,
+    val activeTeamId: MutableStateFlow<String>,
+    val getTasks: (String) -> Flow<List<Task>>
 ) : ViewModel() {
-    val userTasks = userTasksFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
+
+    var userTasks = userTasksFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
     val teamMembers = teamMembersFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = emptyList())
 
     var isEditing by mutableStateOf(false)
