@@ -2,53 +2,38 @@
 
 ## Login page
 
-<img src="readme_images/login_page.jpg" width=300 />
-
-<img src="readme_images/welcome_screen.jpg" width=300 />
-
-<img src="readme_images/create_team.jpg" width=300 />
+<img src="readme_images/login_page.jpg" width=330 />
+<img src="readme_images/welcome_screen.jpg" width=330 />
+<img src="readme_images/create_team.jpg" width=330 />
 
 ## Teams
 
-![team_list](readme_images/team_list.jpg)
-
-![team_profile](readme_images/team_profile.jpg)
-
-![team_members](readme_images/team_members.jpg)
-
-![team_invite](readme_images/invite.jpg)
+<img src="readme_images/team_list.jpg" width=330 />
+<img src="readme_images/team_profile.jpg" width=330 />
+<img src="readme_images/team_members.jpg" width=330 />
+<img src="readme_images/invite.jpg" width=330 />
 
 ## Tasks
 
-![task_list](readme_images/task_list.jpg)
-
-![task_filters](readme_images/task_filters.jpg)
-
-![task_sort](readme_images/task_sort.jpg)
-
-![task_info](readme_images/task_info.jpg)
-
-![personal_tasks](readme_images/task_personal.jpg)
+<img src="readme_images/task_list.jpg" width=330 />
+<img src="readme_images/task_filters.jpg" width=330 />
+<img src="readme_images/task_sort.jpg" width=330 />
+<img src="readme_images/task_info.jpg" width=330 />
+<img src="readme_images/team_personal.jpg" width=330 />
 
 ## User profile
 
-![user_profile](readme_images/user_profile.jpg)
-
-![user_info](readme_images/user_info.jpg)
-
-![user_edit](readme_images/user_edit.jpg)
+<img src="readme_images/user_profile.jpg" width=330 />
+<img src="readme_images/user_info.jpg" width=330 />
+<img src="readme_images/user_edit.jpg" width=330 />
 
 ## Chats
 
-![chats](readme_images/chats.jpg)
-
-![chats_team](readme_images/chats_team.jpg)
-
-![chats_single](readme_images/chats_single.jpg)
-
-![chats_new](readme_images/chats_new.jpg)
-
+<img src="readme_images/chats.jpg" width=330 />
+<img src="readme_images/chats_team.jpg" width=330 />
+<img src="readme_images/chats_single.jpg" width=330 />
+<img src="readme_images/chats_new.jpg" width=330 />
 
 ## Responsive layout
 
-![responsiveness](readme_images/responsive_layout.jpg)
+<img src="readme_images/responsive_layout.jpg" width=700 />
