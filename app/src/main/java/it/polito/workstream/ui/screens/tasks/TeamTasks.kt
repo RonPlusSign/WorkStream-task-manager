@@ -61,7 +61,7 @@ fun TeamTasksScreen(
 
     _users: StateFlow<List<User>>,
     getOfSection: (String, String) -> List<Task>,
-    sectionExpanded: SnapshotStateMap<String, Boolean>,
+
     newSectionValue: String,
     toggleSectionExpansion: (String) -> Unit,
     isAddingSection: Boolean,
@@ -291,7 +291,7 @@ fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelF
         //_sections = vm.sections ,
         _users = vm.teamMembers,
         getOfSection = vm::getOfSection,
-        sectionExpanded = vm.sectionExpanded,
+
         newSectionValue = vm.newSectionValue,
         toggleSectionExpansion = vm::toggleSectionExpansion,
         isAddingSection = vm.isAddingSection,
