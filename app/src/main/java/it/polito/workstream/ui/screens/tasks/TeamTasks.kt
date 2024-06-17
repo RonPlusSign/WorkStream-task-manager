@@ -76,11 +76,12 @@ fun TeamTasksScreen(
 ) {
 
     val activeteam = vm.activeTeam.collectAsState()
+    val activeTeamId by vm.activeTeamId.collectAsState()
     Log.d("TeamTasksScreen", "${ activeteam.value}")
     //var sectionExpanded = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
     vm.initSectionExpanded(mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf()))
     //val sectionExpanded = vm.sectionExpanded
-    val users by _users.collectAsState(initial = emptyList())
+    val users by vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList())
     val taskList = vm.tasks.collectAsState(initial = emptyList()).value
     val sections by vm.sections.collectAsState(listOf())
     var isDeletingSection by remember { mutableStateOf(false) }
@@ -202,7 +203,7 @@ fun TeamTasksScreen(
                                     // Tasks of the section
                                     if ( vm.sectionExpanded[section] == true) {//sectionExpanded[section] == true
                                         vm.getOfSectionByList(section, sortOrder, taskList ).forEach { task ->
-                                            val assignee = users?.find { it.email == task.assignee }
+                                            val assignee = users.find { it.email == task.assignee }
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
                                                 modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null) } // navigation

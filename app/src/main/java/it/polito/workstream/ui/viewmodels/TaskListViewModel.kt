@@ -38,6 +38,7 @@ class TaskListViewModel(
     val getTasks: (String) -> Flow<List<Task>>,
     fetchSections: (String) -> Flow<List<String>>,
     fetchActiveTeam: (String) -> Flow<Team?>,
+    val fetchUsers: (String) -> Flow<List<User>>,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
     val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)

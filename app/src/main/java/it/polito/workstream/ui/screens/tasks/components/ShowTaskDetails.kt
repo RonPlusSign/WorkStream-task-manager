@@ -35,6 +35,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -44,10 +46,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.WorkStreamTheme
+import it.polito.workstream.ui.viewmodels.TaskListViewModel
+import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,9 +60,14 @@ import java.util.Locale
 
 @SuppressLint("Range")
 @Composable
-fun ShowTaskDetails(task: Task, assignee: User?, onComplete: (Task) -> Unit) {
+fun ShowTaskDetails(_task: Task, _assignee: User?, onComplete: (Task) -> Unit, vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
     // Responsive layout: 1 column with 2 rows for vertical screens, 2 columns with 1 row for horizontal screens
+    val activeTeamId by vm.activeTeamId.collectAsState()
+    val tasks by vm.getTasks(activeTeamId).collectAsState(initial = emptyList())
+    val users by vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList())
 
+    val task = tasks.find { it.id == _task.id } ?: Task()
+    val assignee = users.find { it.email == task.assignee }
     val context = LocalContext.current
     val takeDocument = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
 
