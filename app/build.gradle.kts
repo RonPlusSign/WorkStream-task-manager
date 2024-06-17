@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.barcode.scanning.common)
     implementation(libs.play.services.code.scanner)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

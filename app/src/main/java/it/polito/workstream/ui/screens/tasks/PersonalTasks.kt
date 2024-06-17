@@ -63,7 +63,7 @@ fun PersonalTasksScreen(
                         .padding(padding)
                         .padding(16.dp),
                 ) {
-                    getOfUser(activeUser, tasksList ).forEach { task ->
+                    getOfUser(activeUser, tasksList).forEach { task ->
                         item {
                             Column(
                                 modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) }

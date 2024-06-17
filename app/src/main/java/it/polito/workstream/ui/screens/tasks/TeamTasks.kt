@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.tasks
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,13 +54,14 @@ import it.polito.workstream.ui.screens.tasks.components.SmallTaskBox
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun TeamTasksScreen(
-    sections: List<String>,
-    users: List<User>,
+
+    _users: StateFlow<List<User>>,
     getOfSection: (String, String) -> List<Task>,
-    sectionExpanded: Map<String, Boolean>,
+    sectionExpanded: MutableState<MutableMap<String, Boolean>>,
     newSectionValue: String,
     toggleSectionExpansion: (String) -> Unit,
     isAddingSection: Boolean,
@@ -71,6 +74,15 @@ fun TeamTasksScreen(
     currentSortOrder: MutableStateFlow<String>,
     vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
+
+    val activeteam = vm.activeTeam.collectAsState()
+    Log.d("TeamTasksScreen", "${ activeteam.value}")
+    //var sectionExpanded = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+    vm.sectionExpanded.value = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+    val sectionExpanded = vm.sectionExpanded
+    val users by _users.collectAsState(initial = emptyList())
+    val taskList = vm.tasks.collectAsState(initial = emptyList()).value
+    val sections by vm.sections.collectAsState(listOf())
     var isDeletingSection by remember { mutableStateOf(false) }
     val sortOrder by currentSortOrder.collectAsState()
     Column(modifier = Modifier.fillMaxSize()) {
@@ -107,7 +119,8 @@ fun TeamTasksScreen(
                         .padding(start = 16.dp, end = 16.dp, top = 8.dp),
                     contentPadding = PaddingValues(bottom = heightInDp + 55.dp)
                 ) {
-                    for (section in sections) {
+                    for (section in sections ) {
+                        Log.d("Section" , section )
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -136,7 +149,7 @@ fun TeamTasksScreen(
                                         )
 
                                         Icon(
-                                            if (sectionExpanded[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                            if (sectionExpanded.value[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                                             contentDescription = "Expand/Collapse",
                                             tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier
@@ -187,9 +200,9 @@ fun TeamTasksScreen(
                                     }
 
                                     // Tasks of the section
-                                    if (sectionExpanded[section] == true) {
-                                        getOfSection(section, sortOrder).forEach { task ->
-                                            val assignee = users.find { it.email == task.assignee }
+                                    if ( sectionExpanded.value[section] == true) {//sectionExpanded[section] == true
+                                        vm.getOfSectionByList(section, sortOrder, taskList ).forEach { task ->
+                                            val assignee = users?.find { it.email == task.assignee }
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
                                                 modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) } // navigation
@@ -275,8 +288,8 @@ fun TeamTasksScreen(
 @Composable
 fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit) {
     TeamTasksScreen(
-        sections = vm.activeTeam.value?.sections ?: emptyList(),
-        users = vm.teamMembers.collectAsState().value,
+        //_sections = vm.sections ,
+        _users = vm.teamMembers,
         getOfSection = vm::getOfSection,
         sectionExpanded = vm.sectionExpanded,
         newSectionValue = vm.newSectionValue,
