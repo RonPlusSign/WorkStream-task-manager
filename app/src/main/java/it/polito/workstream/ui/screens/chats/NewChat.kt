@@ -48,39 +48,41 @@ fun NewChat(
                 .padding(16.dp)
         ) {
             teamMembers.forEach { user ->
-                item {
-                    Card(
-                        modifier = Modifier
-                            .height(70.dp)
-                            .fillMaxWidth()
-                            .padding(top = 5.dp, bottom = 5.dp)
-                            .clickable {
-                                if (chats.find { it.user1Id == user.email || it.user2Id == user.email } != null)
-                                    onChatClick(8, null, null, null, user.email)
-                                else {
-                                    vm.newChat(user.email)
-                                    onChatClick(8, null, null, null, user.email)
-                                }
-                            },
-                        border = BorderStroke(0.5.dp, Color.Black),
-                        shape = RoundedCornerShape(6.dp),
-                        elevation = CardDefaults.elevatedCardElevation(8.dp),
-                    ) {
-                        Row(
+                if (user.email != vm.user.email) {
+                    item {
+                        Card(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentHeight(Alignment.CenterVertically)
-                                .padding(start = 8.dp),
-                            verticalAlignment = Alignment.Bottom,
+                                .height(70.dp)
+                                .fillMaxWidth()
+                                .padding(top = 5.dp, bottom = 5.dp)
+                                .clickable {
+                                    if (chats?.find { it.user1Id == user.email || it.user2Id == user.email } != null)
+                                        onChatClick(8, null, null, null, user.email)
+                                    else {
+                                        vm.newChat(user.email)
+                                        onChatClick(8, null, null, null, user.email)
+                                    }
+                                },
+                            border = BorderStroke(0.5.dp, Color.Black),
+                            shape = RoundedCornerShape(6.dp),
+                            elevation = CardDefaults.elevatedCardElevation(8.dp),
                         ) {
-                            Icon(Icons.Default.Person, contentDescription = "Chat", modifier = Modifier.size(40.dp))
-                            Text(
-                                text = user.firstName + " " + user.lastName,
-                                fontSize = 25.sp, modifier =
-                                Modifier.padding(start = 8.dp, bottom = 5.dp),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .wrapContentHeight(Alignment.CenterVertically)
+                                    .padding(start = 8.dp),
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = "Chat", modifier = Modifier.size(40.dp))
+                                Text(
+                                    text = user.firstName + " " + user.lastName,
+                                    fontSize = 25.sp, modifier =
+                                    Modifier.padding(start = 8.dp, bottom = 5.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }

@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.viewmodels
 
 import android.graphics.Bitmap
+import android.util.Log
 import android.util.Patterns
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -170,14 +172,27 @@ class UserViewModel(
     }
 
     // Chats
-    val chats = chatModel.chats
+    val chats = fetchChats(activeTeamId.value, user.email).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = chatModel.fetchChats(teamId, userId)
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
     fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
     fun editMessage(destUserId: String, messageId: String, newText: String) = chatModel.editMessage(destUserId, messageId, newText)
     fun deleteMessage(destUserId: String, messageId: String) = chatModel.deleteMessage(destUserId, messageId)
-    fun setMessageAsSeen(destUser: User, messageId: Long) = chatModel.setMessageAsSeen(destUser, messageId)
-    fun countUnseenChatMessages(destUser: User) = chatModel.countUnseenChatMessages(destUser)
+    fun setMessageAsSeen(destUser: String, messageId: String) = chatModel.setMessageAsSeen(destUser, messageId)
+    fun countUnseenChatMessages(destUserId: String) = chatModel.countUnseenChatMessages(destUserId)
+//    fun countUnseenChatMessages(destUserId: String): Int {
+//        var count = 0
+//        Log.d("chat", "Chats è lungo: ${chats.value?.size}")
+//        chats.value
+//            ?.find { (it.user1Id == user.email && it.user2Id == destUserId) ||  (it.user1Id == destUserId && it.user2Id == user.email) }
+//            ?.messages
+//            ?.forEach {
+//                Log.d("chat", "Ho trovato il messaggio: $it")
+//                if (!it.seenBy.contains(user.email))
+//                    count++
+//            }
+//        return count
+//    }
     fun sendTestMessage() = chatModel.sendTestMessage()
 
     var showEditDialog by mutableStateOf(false)
@@ -193,7 +208,27 @@ class UserViewModel(
     fun deleteGroupMessage(messageId: String) = chatModel.deleteGroupMessage(messageId)
     fun setGroupMessageAsSeen(messageId: String) = chatModel.setGroupMessageAsSeen(messageId)
     fun countUnseenGroupMessages() = chatModel.countUnseenGroupMessages()
-    fun countAllUnseenMessages() = chatModel.countAllUnseenMessages()
+    val unseenGroupMessages = countUnseenGroupMessages().stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+//    fun countUnseenGroupMessages(): Int {
+//        var count = 0
+//        groupChat.value?.messages
+//            ?.forEach {
+//                if (!it.seenBy.contains(user.email))
+//                    count++
+//            }
+//        return count
+//    }
+//    fun countAllUnseenMessages(members: List<User>): Int {
+//        Log.d("chat", "Numero di membri: ${members.size}")
+//        var count = 0
+//        for (m in members) {
+//            count += countUnseenChatMessages(m.email)
+//        }
+//        val counterone = countUnseenGroupMessages()
+//        count += counterone
+//        Log.d("chat", "Counterone: $counterone")
+//        return count
+//    }
 
     /* Number of teams */
     var numberOfTeams by mutableIntStateOf(user.teams.size)

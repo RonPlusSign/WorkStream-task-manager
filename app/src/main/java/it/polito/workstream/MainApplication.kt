@@ -379,78 +379,6 @@ class ChatModel(
     val currentTeamId: MutableStateFlow<String>,
     val db: FirebaseFirestore
 ) {
-//    private val _chats: MutableStateFlow<MutableMap<Team, MutableMap<Pair<User, User>, MutableList<ChatMessage>>>> = MutableStateFlow(
-//        mutableStateMapOf(
-//            teamList[0] to
-//                    mutableStateMapOf(
-//                        Pair(userList[0], userList[1]) to mutableStateListOf(
-//                            ChatMessage(
-//                                "Buongiorno! Quando possiamo organizzare un meeting?",
-//                                userList[1],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[0], userList[1])
-//                            ),
-//                            ChatMessage(
-//                                "Buondì, io sono sempre disponibile!",
-//                                userList[0],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[0], userList[1])
-//                            ),
-//                            ChatMessage(
-//                                "Perfetto, allora contatto il manager e cerco di programmarlo per la prossima settimana",
-//                                userList[1],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[1])
-//                            )
-//                        ),
-//                        Pair(userList[2], userList[3]) to mutableStateListOf(
-//                            ChatMessage(
-//                                "Hey, non dovresti poter vedere questa chat tu!",
-//                                userList[2],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[2], userList[3])
-//                            )
-//                        ),
-//                        Pair(userList[0], userList[2]) to mutableStateListOf(
-//                            ChatMessage(
-//                                "Mi sono stancato della democrazia",
-//                                userList[2],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[0], userList[2])
-//                            ),
-//                            ChatMessage(
-//                                "Dovresti andare un po' in vacanza",
-//                                userList[0],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[0], userList[2])
-//                            ),
-//                            ChatMessage(
-//                                "Oppure fare una dittatura",
-//                                userList[2],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[0], userList[2])
-//                            )
-//                        ),
-//                        Pair(userList[0], userList[3]) to mutableStateListOf(
-//                            ChatMessage(
-//                                "Che noia queste chat di prova",
-//                                userList[2],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[0], userList[3])
-//                            ),
-//                            ChatMessage(
-//                                "Non me ne parlare",
-//                                userList[0],
-//                                LocalDateTime.now(),
-//                                mutableListOf(userList[0], userList[3])
-//                            ),
-//                        )
-//                    )
-//        )
-//    )
-
-    //val chats: StateFlow<MutableMap<Team, MutableMap<Pair<User, User>, MutableList<ChatMessage>>>> = _chats
-
     // First get chats of team, second get my chats
     fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
         val listener = db.collection("chats")
@@ -469,13 +397,13 @@ class ChatModel(
                         Log.d("Chat", "${document.id} => ${document.data}")
                         document.reference.collection("messages").get().addOnSuccessListener {
                             val messages = it.toObjects(ChatMessage::class.java)
-                            chat.messages.addAll(messages)
-                        }
+                            chat.messages = messages.toMutableList()
 
-                        chats.add(chat)
+                            chats.add(chat)
+                            trySend(chats)
+                        }
                     }
 
-                    trySend(chats)
                 } else {
                     Log.d("Chat", "Error getting private chats: ", e)
                 }
@@ -483,8 +411,6 @@ class ChatModel(
 
         awaitClose { listener.remove() }
     }
-
-    val chats: Flow<List<Chat>> = fetchChats(currentTeamId.value, currentUser.value.email)
 
     fun newChat(destUserId: String) {
         val chatData = hashMapOf(
@@ -508,12 +434,14 @@ class ChatModel(
     fun sendMessage(destUserId: String, message: ChatMessage) {
         val chatUsers = listOf(currentUser.value.email, destUserId)
         val newMessage = hashMapOf(
-            "senderId" to destUserId,
-            "text" to message,
-            "timestamp" to Timestamp.now()
+            "id" to "",
+            "authorId" to currentUser.value.email,
+            "text" to message.text,
+            "timestamp" to message.timestamp
         )
 
         db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
             .whereIn("user1Id", chatUsers)
             .whereIn("user2Id", chatUsers)
             .get()
@@ -523,16 +451,18 @@ class ChatModel(
                 } else {
                     val chatDocId = doc.documents[0].id
 
-                    db.collection("chats").document(chatDocId)
+                    val docRef = db.collection("chats")
+                        .document(chatDocId)
                         .collection("messages")
-                        .add(newMessage)
-                        .addOnSuccessListener { doc ->
-                            // Assegna al messaggio lo stesso id del documento
-                            doc.update("id", doc.id)
-                            Log.d("chat","Message added successfully!")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.d("chat","Error adding message: $e")
+                        .document()
+
+                    newMessage["id"] = docRef.id
+
+                    docRef.set(newMessage)
+                        .addOnSuccessListener {
+                            Log.d("chat", "Message added successfully with ID: ${docRef.id}")
+                        }.addOnFailureListener { e ->
+                            Log.d("chat", "Error adding message: $e")
                         }
                 }
             }
@@ -547,6 +477,7 @@ class ChatModel(
         val chatUsers = listOf(currentUser.value.email, destUserId)
 
         db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
             .whereIn("user1Id", chatUsers)
             .whereIn("user2Id", chatUsers)
             .get()
@@ -571,23 +502,66 @@ class ChatModel(
             }
     }
 
-    fun setMessageAsSeen(destUser: User, messageId: Long) {
-//        _chats.value[currentTeam.value]?.entries?.find {
-//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
-//        }?.value?.find { it.id == messageId }?.seenBy?.add(currentUser.value)
+    fun setMessageAsSeen(destUserId: String, messageId: String) {
+        val chatUsers = listOf(currentUser.value.email, destUserId)
 
+        db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("chats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
+                        .addOnSuccessListener {
+                            Log.d("chat","Private message seen successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error seeing private message: $e")
+                        }
+                }
+            }
     }
 
-    fun countUnseenChatMessages(destUser: User): Int {
-//        var count = 0
-//        _chats.value[currentTeam.value]?.entries?.find {
-//            it.key.first == currentUser.value && it.key.second == destUser || it.key.first == destUser && it.key.second == currentUser.value
-//        }?.value?.forEach {
-//            if(!it.seenBy.contains(currentUser.value))
-//                count++
-//        }
-//        return count
-        return 0
+    fun countUnseenChatMessages(destUserId: String): Flow<Int> = callbackFlow {
+        var count = 0
+        val chatUsers = listOf(currentUser.value.email, destUserId)
+
+        val listener = db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .addSnapshotListener { r, e ->
+                if (r != null) {
+                    val chats = mutableListOf<Chat>()
+
+                    for (document in r) {
+                        val chat = document.toObject(Chat::class.java)
+
+                        Log.d("Chat", "${document.id} => ${document.data}")
+                        document.reference.collection("messages").get().addOnSuccessListener {
+                            val messages = it.toObjects(ChatMessage::class.java)
+                            for (m in messages)
+                                if (!m.seenBy.contains(currentUser.value.email))
+                                    count++
+                            trySend(count)
+                        }
+                    }
+
+                } else {
+                    Log.d("Chat", "Error getting private chats: ", e)
+                }
+            }
+
+        awaitClose { listener.remove() }
     }
 
     fun sendTestMessage() {
@@ -599,55 +573,6 @@ class ChatModel(
 //            it.key.first == currentUser.value && it.key.second == userList[1] || it.key.first == userList[1] && it.key.second == currentUser.value
 //        }?.value?.add(ChatMessage(randomElement, userList[1], LocalDateTime.now(), mutableListOf(userList[1])))
     }
-
-    private val _groupChats: MutableStateFlow<MutableMap<Team, MutableList<ChatMessage>>> =
-        MutableStateFlow(
-            mutableStateMapOf(
-//            teamList[0] to
-//                    mutableStateListOf(
-//                        ChatMessage(
-//                            "Benvenuti a tutti nella chat di gruppo!",
-//                            userList[0],
-//                            LocalDateTime.now(),
-//                            mutableListOf(userList[0], userList[1], userList[2], userList[3])
-//                        ),
-//                        ChatMessage(
-//                            "Ciao ragazzi!",
-//                            userList[1],
-//                            LocalDateTime.now(),
-//                            mutableListOf(userList[0], userList[1], userList[2], userList[3])
-//                        ),
-//                        ChatMessage(
-//                            "Non scrivete troppi messaggi",
-//                            userList[2],
-//                            LocalDateTime.now(),
-//                            mutableListOf(userList[0], userList[1], userList[2], userList[3])
-//                        ),
-//                        ChatMessage(
-//                            "Sennimondoesistesseunpodibene",
-//                            userList[3],
-//                            LocalDateTime.now(),
-//                            mutableListOf(userList[1], userList[2], userList[3])
-//                        ),
-//                    ),
-//            teamList[1] to
-//                    mutableStateListOf(
-//                        ChatMessage(
-//                            "Un'altra chat di gruppo",
-//                            userList[0],
-//                            LocalDateTime.now(),
-//                            mutableListOf(userList[0], userList[1], userList[2])
-//                        ),
-//                        ChatMessage(
-//                            "Di nuovo",
-//                            userList[2],
-//                            LocalDateTime.now(),
-//                            mutableListOf(userList[1], userList[2])
-//                        ),
-//                    )
-            )
-        )
-    //val groupChats: StateFlow<MutableMap<Team, MutableList<ChatMessage>>> = _groupChats
 
     fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {
         val listener = db.collection("groupChats")
@@ -681,7 +606,6 @@ class ChatModel(
             }
         awaitClose { listener.remove() }
     }
-    val groupChat = fetchGroupChat("9vJ0F8M8CowyiMiq2Qdc")
 
     fun sendGroupMessage(newMessage: ChatMessage) {
         val messageToAdd = hashMapOf(
@@ -727,32 +651,85 @@ class ChatModel(
 
     fun deleteGroupMessage(messageId: String) {
         db.collection("groupChats")
-            .document(currentTeamId.value)
-            .collection("messages")
-            .document(messageId)
-            .delete()
-            .addOnSuccessListener {
-                Log.d("chat","Chat message deleted successfully!")
-            }
-            .addOnFailureListener { e ->
-                Log.d("chat","Error deleting chat message: $e")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("groupChats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .delete()
+                        .addOnSuccessListener {
+                            Log.d("chat","Group message deleted successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error deleting group message: $e")
+                        }
+                }
             }
     }
 
     fun setGroupMessageAsSeen(messageId: String) {
-        //_groupChats.value[currentTeam.value]?.find { it.id == messageId }?.seenBy?.add(currentUser.value)
+        db.collection("groupChats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("groupChats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
+                        .addOnSuccessListener {
+                            Log.d("chat","Group message seen successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error seeing group message: $e")
+                        }
+                }
+            }
     }
 
-    fun countUnseenGroupMessages(): Int {
-//        Log.d("unseen", currentTeam.value.name)
-//        var count = 0
-//        _groupChats.value[currentTeam.value]?.forEach {
-//            if (!it.seenBy.contains(currentUser.value)) {
-//                count++
-//            }
-//        }
-//        return count
-        return 0
+    fun countUnseenGroupMessages(): Flow<Int> = callbackFlow {
+        var count = 0
+        val listener = db.collection("groupChats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .addSnapshotListener { querySnapshot, exception ->
+                if (querySnapshot != null && !querySnapshot.isEmpty) {
+                    // Group chat exists, retrieve the document
+                    val chatDocument = querySnapshot.documents.first()
+
+                    // Aggiungiamo un listener alla collezione "messages"
+                    val secondListener = chatDocument.reference.collection("messages")
+                        .addSnapshotListener { messagesSnapshot, messagesException ->
+                            if (messagesException != null) {
+                                Log.d("Chat", "Error fetching chat message: $exception")
+                            }
+
+                            val messages = messagesSnapshot?.toObjects(ChatMessage::class.java)
+                                ?: mutableListOf()
+
+                            for (m in messages)
+                                if (!m.seenBy.contains(currentUser.value.email))
+                                    count++
+
+                            trySend(count)
+                    }
+                } else {
+                    Log.d("Chat", "Error fetching chat message: $exception")
+                }
+            }
+        awaitClose { listener.remove() }
+        Log.d("chat", "Model found $count unseen group messages")
     }
 
     fun countAllUnseenMessages(): Int {

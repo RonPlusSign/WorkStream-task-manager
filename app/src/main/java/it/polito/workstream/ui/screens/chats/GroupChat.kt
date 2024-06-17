@@ -52,6 +52,7 @@ import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -64,6 +65,13 @@ fun GroupChat(
 
     val groupChat = vm.groupChat.collectAsState(initial = null).value
     Log.d("chat", "messages in compose: " + groupChat?.messages?.size)
+
+    if (groupChat!=null && groupChat.messages.size > 0) {
+        for (mex in groupChat.messages){
+            if (!mex.seenBy.contains(vm.user.email))
+                vm.setGroupMessageAsSeen(mex.id)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -95,7 +103,6 @@ fun GroupChatMessageBox(
     isFromMe: Boolean
 ) {
     var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
-
     val messageAuthor = vm.teamMembers.collectAsState(initial = listOf()).value.find { it.email == message.authorId }
 
     Row(
@@ -130,7 +137,8 @@ fun GroupChatMessageBox(
                 .padding(16.dp)
         ) {
             Column {
-                Text(text = messageAuthor?.firstName + " " + messageAuthor?.lastName, fontSize = 12.sp, fontStyle = FontStyle.Italic)
+                if (!isFromMe)
+                    Text(text = messageAuthor?.firstName + " " + messageAuthor?.lastName, fontSize = 12.sp, fontStyle = FontStyle.Italic)
                 Text(text = message.text)
                 Row(
                     modifier = Modifier
@@ -139,7 +147,7 @@ fun GroupChatMessageBox(
                 ) {
                     message.timestamp.let {
                         Text(
-                            text = it.toDate().toString(),
+                            text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
                             fontSize = 12.sp
                         )
                     }

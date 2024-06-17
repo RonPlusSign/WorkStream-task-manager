@@ -170,6 +170,7 @@ fun ContentView(
 
     val activeTeamId = vm.activeTeamId.collectAsState().value //activeTeam.id //vm.activeTeam.collectAsState().value.id
     val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
+    val teamMembers = userVM.teamMembers.collectAsState(initial = listOf()).value
     val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
 
@@ -286,7 +287,7 @@ fun ContentView(
                         )
                     ) { entry ->
                         val userId = entry.arguments?.getString("index")
-                        val destUser = userId?.let { app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId } }
+                        val destUser = userId?.let { teamMembers.find { it.email == userId } }
 
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")

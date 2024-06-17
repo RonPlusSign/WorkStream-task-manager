@@ -42,6 +42,12 @@ fun ChatList(
 
     val lastMessageAuthor = teamMembers.find { it.email == groupChat?.messages?.lastOrNull()?.authorId }
 
+    if (chats != null){
+        for (c in chats)
+            Log.d("chat","Chat tra " + c.user1Id + " e " + c.user2Id + " con numero di messaggi " + c.messages.size)
+    }
+
+
     WorkStreamTheme {
         Scaffold (
             floatingActionButton = {
@@ -74,15 +80,15 @@ fun ChatList(
                                 userName = "Team chat",
                                 lastMessage = (lastMessageAuthor?.firstName?:"") + " : " + groupChat?.messages?.lastOrNull()?.text,
                                 timestamp = groupChat?.messages?.lastOrNull()?.timestamp,
-                                isGroup = true
+                                isGroup = true,
+                                unseenMessages = vm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
                             )
                         }
                     }
                     item { HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)) }
                     // Private chats
                     item { Text(text = "Private chats", fontSize = 20.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 8.dp)) }
-                    chats.forEach { chat ->
-                        Log.d("Chat", "Chat with id " + chat.user1Id + " " + chat.user2Id)
+                    chats?.forEach { chat ->
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
                             val destUser = teamMembers.find {
@@ -97,9 +103,10 @@ fun ChatList(
                             ) {
                                 SmallChatBox(
                                     userName = destUser?.firstName + " " + destUser?.lastName,
-                                    lastMessage = chat.messages.lastOrNull()?.text?:"No message",
-                                    timestamp = chat.messages.lastOrNull()?.timestamp?: Timestamp.now(),
-                                    isGroup = false
+                                    lastMessage = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.text?:"No message",
+                                    timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp?: Timestamp.now(),
+                                    isGroup = false,
+                                    unseenMessages = vm.countUnseenChatMessages(destUserId).collectAsState(initial = 0).value
                                 )
 
                             }

@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.chats
 
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -58,12 +59,19 @@ fun Chat(
 //    messages: List<ChatMessage>?,
 //    sendMessage: (User, ChatMessage) -> Unit
 ) {
-    val chat = vm.chats.collectAsState(listOf()).value.find {
+    val chat = vm.chats.collectAsState(listOf()).value?.find {
         it.user1Id == destUserId || it.user2Id == destUserId
     };
 
     val activeTeam = vm.activeTeam.collectAsState(initial = null).value
     val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
+
+    if (chat!=null && chat.messages.size > 0) {
+        for (mex in chat.messages){
+            if (!mex.seenBy.contains(vm.user.email))
+                vm.setMessageAsSeen(destUserId, mex.id)
+        }
+    }
 
     Column {
         // The list of messages
@@ -74,7 +82,7 @@ fun Chat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            chat?.messages?.reversed()?.forEach { mex ->
+            chat?.messages?.sortedBy { it.timestamp }?.reversed()?.forEach { mex ->
                 val sender = teamMembers.find { it.email == mex.authorId }
                 val isFromMe = mex.authorId == vm.user.email
                 item {

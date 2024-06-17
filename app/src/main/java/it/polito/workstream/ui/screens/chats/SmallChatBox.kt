@@ -1,8 +1,10 @@
 package it.polito.workstream.ui.screens.chats
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -25,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,8 +47,10 @@ fun SmallChatBox(
     userName: String,
     lastMessage: String,
     timestamp: Timestamp?,
-    isGroup: Boolean
+    isGroup: Boolean,
+    unseenMessages: Int
 ) {
+    Log.d("chat", "Found $unseenMessages unseen messages...is it group: $isGroup")
     Card(
         modifier = Modifier.fillMaxWidth(),
         border = BorderStroke(0.5.dp, Color.Black),
@@ -87,6 +93,17 @@ fun SmallChatBox(
                     Text(text = DateTimeFormatter.ofPattern("HH:mm").format(timestamp.toDate().toInstant().atZone(
                         ZoneId.systemDefault()).toLocalDateTime()))
                 }
+                if (unseenMessages > 0)
+                    Box (
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color.Red)
+                    ) {
+                        Text(text = unseenMessages.toString(), fontSize = 20.sp, color = Color.White)
+                    }
             }
         }
     }
