@@ -21,7 +21,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 removeMemberFromTeam = app::leaveTeam,
                 app::fetchActiveTeam,
                 app.activeTeamId,
-                app::fetchUsers
+                app::fetchUsers,
+
             ) as T
 
             modelClass.isAssignableFrom(UserViewModel::class.java) -> UserViewModel(
@@ -72,7 +73,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::fetchActiveTeam,
                     app.user,
                     app.activeTeamId,
-                    app::getTeams
+                    app::getTeams,
+                    app::getTasks
                 ) as T
 
             modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam) as T

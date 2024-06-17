@@ -168,7 +168,7 @@ fun ContentView(
 
     val activeTeamId = vm.activeTeamId.collectAsState().value //activeTeam.id //vm.activeTeam.collectAsState().value.id
     val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
-    val tasksList = vm.teamTasks.collectAsState(initial = emptyList())
+    val tasksList = vm.getTasks(activeTeamId).collectAsState(initial = listOf())//vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
 
     Log.d("activeTeam", activeTeam.name)
@@ -317,9 +317,9 @@ fun ContentView(
                         route = "${Route.TeamTasks.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.IntType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
