@@ -386,7 +386,10 @@ fun MemberItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onTaskClick(6, member.email, null, null) }
+            .clickable {
+                //onTaskClick(6, member.email, null, null)
+                navigateTo("${Route.UserView.name}/${member.email}")
+            }
             .background(
                 MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(16.dp)

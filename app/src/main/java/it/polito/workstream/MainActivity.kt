@@ -368,9 +368,9 @@ fun ContentView(
                         route = "${Route.UserView.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.IntType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
@@ -378,7 +378,7 @@ fun ContentView(
                         val userId = entry.arguments?.getString("index")
                         var user = User()
                         if (userId != null) {
-                            user = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { it.email == userId } ?: User()
+                            user = vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList()).value.find { it.email == userId } ?: User()
                         }
                         UserScreen(user = user, personalInfo = false, onLogout = onLogout)
                     }

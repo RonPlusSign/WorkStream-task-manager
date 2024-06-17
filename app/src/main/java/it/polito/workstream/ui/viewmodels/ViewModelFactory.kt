@@ -74,7 +74,8 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app.user,
                     app.activeTeamId,
                     app::getTeams,
-                    app::getTasks
+                    app::getTasks,
+                    app::fetchUsers,
                 ) as T
 
             modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam,app.activeTeamId,app::onTaskUpdated) as T
