@@ -170,7 +170,7 @@ fun ContentView(
     val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
     val tasksList = vm.getTasks(activeTeamId).collectAsState(initial = listOf())//vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
-
+    val user by vm.user.collectAsState()
     Log.d("activeTeam", activeTeam.name)
     Log.d("activeTeamId", activeTeamId)
 
@@ -393,12 +393,12 @@ fun ContentView(
                         "profile?id={teamId}",
                         deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}" }),
                     ) { entry ->
-                        val teamId = entry.arguments?.getString("teamId")
+                        val teamId = entry.arguments?.getString("teamId")!!
                         ConfirmJoinTeamPage(
                             navController = navController,
                             teamId = teamId,
                             onConfirm = { team ->
-                                vm.joinTeam(team.id, app.user.value.email)
+                                vm.joinTeam(teamId, user.email)
                                 navController.navigate("/${team.id}/${Route.TeamTasks.name}")
                             },
                             onCancel = {

@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,13 +49,13 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun ConfirmJoinTeamPage(
     navController: NavController,
-    teamId: String?,
+    teamId: String,
     onConfirm: (Team) -> Unit,
     onCancel: () -> Unit,
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
 ) {
     val teams = vm.teams.collectAsState(initial = emptyList())
-    val team = teamId?.let { id -> teams.value.find { it.id == id } }
+    val team =  vm.fetchTeam(teamId).collectAsState(initial = null).value  //teamId?.let { id -> teams.value.find { it.id == id } }
     val members = vm.teamMembers.collectAsState(initial = emptyList()).value
 
     Column(
