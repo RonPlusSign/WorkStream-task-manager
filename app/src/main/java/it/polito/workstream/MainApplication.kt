@@ -626,15 +626,15 @@ class ChatModel(
         val listener = db.collection("groupChats")
             .whereEqualTo("teamId", teamId)
             .addSnapshotListener { querySnapshot, exception ->
-
+                Log.d("chat", "Document id: ${querySnapshot?.documents?.first()?.id}")
                 if (querySnapshot != null && !querySnapshot.isEmpty) {
                     // Group chat exists, retrieve the document
                     val chatDocument = querySnapshot.documents.first()
                     val groupChat = chatDocument.toObject(GroupChat::class.java)
-                    Log.d("chat", "groupChat: $groupChat")
+
                     if (groupChat != null) {
                         // Aggiungiamo un listener alla collezione "messages"
-                        chatDocument.reference.collection("messages")
+                        val secondListener = chatDocument.reference.collection("messages")
                             .addSnapshotListener { messagesSnapshot, messagesException ->
                                 if (messagesException != null) {
                                     Log.d("Chat", "Error fetching chat message: $exception")

@@ -2,6 +2,7 @@ package it.polito.workstream.ui.viewmodels
 
 import android.graphics.Bitmap
 import android.util.Patterns
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -17,9 +18,12 @@ import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class UserViewModel(
     val user: User,
@@ -179,8 +183,20 @@ class UserViewModel(
     }
 
     // Group chat
-    val groupChat = chatModel.groupChat
-    fun fetchGroupChat(): Flow<GroupChat> = chatModel.fetchGroupChat(activeTeam.value?.id ?: " ")
+    val _groupChat = MutableStateFlow<GroupChat>(GroupChat())
+    val groupChat: StateFlow<GroupChat> get() = _groupChat
+    //fun fetchGroupChat() = chatModel.fetchGroupChat("9vJ0F8M8CowyiMiq2Qdc")
+
+    init {
+        fetchGroupChat()
+    }
+    fun fetchGroupChat() {
+        viewModelScope.launch {
+            chatModel.fetchGroupChat("9vJ0F8M8CowyiMiq2Qdc").collect {
+                _groupChat.value = it
+            }
+        }
+    }
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
     fun editGroupMessage(messageId: String, newText: String) = chatModel.editGroupMessage(messageId, newText)
     fun deleteGroupMessage(messageId: String) = chatModel.deleteGroupMessage(messageId)

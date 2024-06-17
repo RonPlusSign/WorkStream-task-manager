@@ -59,8 +59,8 @@ import java.util.Locale
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val groupChat by vm.fetchGroupChat().collectAsState(initial = null)
-    Log.d("chat", "messages in compose: " + groupChat?.messages.toString())
+    val groupChat by vm.groupChat.collectAsState()
+    Log.d("chat", "messages in compose: " + groupChat.messages.toString())
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -134,9 +134,9 @@ fun GroupChatMessageBox(
                         .align(if (isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
-                    message.timestamp?.let {
+                    message.timestamp.let {
                         Text(
-                            text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(it),
+                            text = it.toString(),
                             fontSize = 12.sp
                         )
                     }
