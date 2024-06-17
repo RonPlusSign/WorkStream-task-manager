@@ -246,7 +246,7 @@ class MainApplication : Application() {
             it.set(newTeamRef, newTeam)
             it.update(userRef, "teams", FieldValue.arrayUnion(newTeamRef.id))
         }
-        .addOnSuccessListener { Log.d("Firestore", "User added to team") }
+        .addOnSuccessListener { activeTeamId.value = newTeamId; Log.d("Firestore", "User added to team") }
         .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
 
 
