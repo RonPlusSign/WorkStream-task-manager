@@ -10,13 +10,14 @@ import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
+class TaskViewModel(val activeTeamFlow: Flow<Team?>,val  activeTeamId: MutableStateFlow<String>) : ViewModel() {
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
     val statuses = listOf("To do", "In progress", "Paused", "On review", "Completed")
@@ -190,7 +191,7 @@ class TaskViewModel(val activeTeamFlow: Flow<Team?>) : ViewModel() {
         task.value.recurrent = isRecurrentValue
         task.value.frequency = frequencyValue
         task.value.status = statusValue
-        task.value.teamId = activeTeam.value?.id
+        task.value.teamId = activeTeamId.value //PROBLEMA TODO activeTeam.value è sempre null
 
         return task.value
     }

@@ -342,16 +342,16 @@ fun ContentView(
                         route = "${Route.EditTask.name}/{index}",
                         arguments = listOf(
                             navArgument("index") {
-                                type = NavType.IntType
+                                type = NavType.StringType
                                 nullable = false
-                                defaultValue = 0
+                                defaultValue = ""
                             }
                         )
                     ) { entry ->
-                        val index = entry.arguments?.getInt("index")
-                        val taskEditing = tasksList.value.find { it.id.toInt() == index }
+                        val index = entry.arguments?.getString("index")
+                        val taskEditing = tasksList.value.find { it.id == index }
 
-                        tasksList.value.find { it.id.toInt() == index }?.let {
+                        tasksList.value.find { it.id == index }?.let {
                             vm.setActivePage(it.title)
                             if (taskVM.task.value.id != it.id)
                                 taskVM.setTask(it)

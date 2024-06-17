@@ -249,7 +249,10 @@ class MainApplication : Application() {
     //update task
     fun onTaskUpdated(updatedTask: Task) {
         Log.d("Firestore", "Task updated: $updatedTask")
-        db.collection("task").document(updatedTask.id).set(updatedTask)
+        updatedTask.teamId = activeTeamId.value
+        db.collection("Tasks").document(updatedTask.id).set(updatedTask.toDTO())
+            .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
     }
 
     fun deleteTask(task: Task) {
