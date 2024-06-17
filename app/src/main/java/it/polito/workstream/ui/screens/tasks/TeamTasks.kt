@@ -33,13 +33,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -61,7 +61,7 @@ fun TeamTasksScreen(
 
     _users: StateFlow<List<User>>,
     getOfSection: (String, String) -> List<Task>,
-    sectionExpanded: MutableState<MutableMap<String, Boolean>>,
+    sectionExpanded: SnapshotStateMap<String, Boolean>,
     newSectionValue: String,
     toggleSectionExpansion: (String) -> Unit,
     isAddingSection: Boolean,
@@ -78,8 +78,8 @@ fun TeamTasksScreen(
     val activeteam = vm.activeTeam.collectAsState()
     Log.d("TeamTasksScreen", "${ activeteam.value}")
     //var sectionExpanded = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
-    vm.sectionExpanded.value = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
-    val sectionExpanded = vm.sectionExpanded
+    vm.initSectionExpanded(mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf()))
+    //val sectionExpanded = vm.sectionExpanded
     val users by _users.collectAsState(initial = emptyList())
     val taskList = vm.tasks.collectAsState(initial = emptyList()).value
     val sections by vm.sections.collectAsState(listOf())
@@ -134,7 +134,7 @@ fun TeamTasksScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(bottom = 5.dp)
-                                            .clickable { toggleSectionExpansion(section) }) {
+                                            .clickable { vm.toggleSectionExpansion(section) }) {
                                         Text(
                                             text = section,
                                             style = MaterialTheme.typography.headlineSmall,
@@ -149,7 +149,7 @@ fun TeamTasksScreen(
                                         )
 
                                         Icon(
-                                            if (sectionExpanded.value[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                            if (vm.sectionExpanded[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                                             contentDescription = "Expand/Collapse",
                                             tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier
@@ -159,7 +159,7 @@ fun TeamTasksScreen(
 
 
                                         // Button to delete a section
-                                        if (getOfSection(section, sortOrder).isEmpty() && section != "General") {
+                                        if (vm.getOfSection(section, sortOrder).isEmpty() && section != "General") {
                                             IconButton(onClick = { isDeletingSection = true }) {
                                                 Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Section")
                                             }
@@ -200,7 +200,7 @@ fun TeamTasksScreen(
                                     }
 
                                     // Tasks of the section
-                                    if ( sectionExpanded.value[section] == true) {//sectionExpanded[section] == true
+                                    if ( vm.sectionExpanded[section] == true) {//sectionExpanded[section] == true
                                         vm.getOfSectionByList(section, sortOrder, taskList ).forEach { task ->
                                             val assignee = users?.find { it.email == task.assignee }
                                             Column(

@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.lifecycle.ViewModel
 
 import androidx.lifecycle.viewModelScope
@@ -73,14 +74,14 @@ class TaskListViewModel(
     }
 
 
-    var sectionExpanded : MutableState<MutableMap<String, Boolean>>  = mutableStateOf(mutableMapOf())//mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+    var sectionExpanded : SnapshotStateMap<String, Boolean> = mutableStateMapOf()//mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
 
 
     var statusList = mutableListOf("To do", "In progress", "Paused", "On review", "Completed")
 
     fun toggleSectionExpansion(section: String) {
         //if (activeTeam.value == null || !activeTeam.value!!.sections.contains(section)) return
-        sectionExpanded.value[section] = !sectionExpanded.value[section]!!
+        sectionExpanded[section] = !sectionExpanded[section]!!
 
     }
 
@@ -93,7 +94,7 @@ class TaskListViewModel(
     }
 
     private fun addSection(section: String) {
-        sectionExpanded.value[section] = true
+        sectionExpanded[section] = true
         onAddSection(section)
     }
 
@@ -106,7 +107,12 @@ class TaskListViewModel(
         if (tasksList.any { it.section == section }) return // If the section is not empty, do not remove it
 
         onDeleteSection(section)
-        sectionExpanded.value.remove(section)
+        sectionExpanded.remove(section)
+    }
+    fun initSectionExpanded(m:Map<String,Boolean>){
+        for(k in m.entries){
+            sectionExpanded[k.key] = k.value
+        }
     }
 
 
