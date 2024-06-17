@@ -77,7 +77,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::getTasks
                 ) as T
 
-            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam,app.activeTeamId) as T
+            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam,app.activeTeamId,app::onTaskUpdated) as T
 
             else -> throw IllegalArgumentException("ViewModel class not found")
         }

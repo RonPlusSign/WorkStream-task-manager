@@ -17,7 +17,10 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class TaskViewModel(val activeTeamFlow: Flow<Team?>,val  activeTeamId: MutableStateFlow<String>) : ViewModel() {
+class TaskViewModel(
+    val activeTeamFlow: Flow<Team?>,
+    val  activeTeamId: MutableStateFlow<String>,
+    val onTaskUpdated: (updatedTask: Task) -> Unit,) : ViewModel() {
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
     val statuses = listOf("To do", "In progress", "Paused", "On review", "Completed")
