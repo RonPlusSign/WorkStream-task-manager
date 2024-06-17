@@ -14,6 +14,8 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.storage
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.TaskDTO
@@ -21,6 +23,7 @@ import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.models.toDTO
 import it.polito.workstream.ui.models.toTask
+import it.polito.workstream.ui.models.uploadFile
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,12 +36,14 @@ import kotlinx.coroutines.flow.update
 
 class MainApplication : Application() {
     lateinit var db: FirebaseFirestore
+    lateinit var storage: FirebaseStorage
 
     lateinit var context: Context
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         db = Firebase.firestore
+        storage =  Firebase.storage
     }
 
     val _user = MutableStateFlow(User())
@@ -157,7 +162,14 @@ class MainApplication : Application() {
     }
 
     fun updateTeam(team: Team) {
-        db.collection("Teams").document(activeTeamId.value).set(team)
+        val t = team.toDTO()
+        /*t.uploadFile(storage.reference)// Register observers to listen for when the download is done or if it fails
+        .addOnFailureListener {
+          Log.d("FireStorage", "errore ")
+        }.addOnSuccessListener { taskSnapshot ->
+                Log.d("FireStorage", "file caricato ")
+        }*/
+        db.collection("Teams").document(activeTeamId.value).set(team.toDTO())
             .addOnSuccessListener { Log.d("Firestore", "Team successfully updated!") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error updating team", e) }
     }
@@ -338,7 +350,8 @@ class MainApplication : Application() {
     }
 
     fun setTeamProfileBitmap(s: String, bitmap: Bitmap?) {
-        TODO("Not yet implemented")
+
+        //<<<<updateTeam>>>>()
     }
 
     fun setTeamProfilePicture(s: String, s1: String) {

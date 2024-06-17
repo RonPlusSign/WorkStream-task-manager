@@ -2,6 +2,7 @@ package it.polito.workstream.ui.shared
 
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -43,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -63,7 +65,8 @@ fun ProfilePicture(
     isEditing: Boolean = false,
     photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
-    name: String
+    name: String,
+    profilePictureValue: MutableState<String> = mutableStateOf(""),
 ) {
 
     var showDialog by remember { mutableStateOf(false) }
@@ -78,8 +81,8 @@ fun ProfilePicture(
             println(uri.toString())
             setPhotoBitmap(null)
             //bitmap = null
-            Log.i("info", "uri: $uri")
-            Log.i("info", "profilePicture: $profilePicture")
+            Log.i("URI", "uri: $uri")
+            Log.i("URI", "profilePicture: $profilePicture")
             Toast.makeText(context, "Image selected from gallery: $uri", Toast.LENGTH_SHORT)
                 .show()
         }
@@ -132,8 +135,12 @@ fun ProfilePicture(
             }
 
         } else if (photoBitmapValue == null) {
-            AsyncImage(
-                model = profilePicture,
+            /*Image(
+                bitmap = context.contentResolver.openInputStream(Uri.parse(profilePictureValue.value))?.use { inputStream ->
+                    BitmapFactory.decodeStream(inputStream).asImageBitmap()
+                }!!,*/
+                AsyncImage(
+                    model = profilePicture,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

@@ -20,7 +20,7 @@ class TeamViewModel(
     val _team: Flow<Team?>,
     val _teamMembers: Flow<List<User>>,
     val currentUser: User,
-    private val updateTeam: (team: Team) -> Unit,
+    val updateTeam: (team: Team) -> Unit,
     private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,
     private val teamIdsetProfilePicture: (teamId: String, n: String) -> Unit,
     private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit,
@@ -36,7 +36,8 @@ class TeamViewModel(
         withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfilePicture(it.id, n) } }
     }
 
-    suspend fun setProfileBitmap(b: Bitmap?) {
+
+    suspend fun setProfileBitmap(b: Bitmap? ) {
         withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfileBitmap(it.id, b) } }
     }
 

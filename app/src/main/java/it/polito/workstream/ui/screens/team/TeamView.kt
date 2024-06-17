@@ -79,11 +79,15 @@ fun TeamScreen(
     context: Context,
     navigateTo: (route: String) -> Any
 ) {
+
     var showDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var showLeaveConfirmationDialog by remember { mutableStateOf(false) }
 
     val team = vm.team.collectAsState(initial = null).value ?: Team(name = "Loading...")
+
+    val profilePictureValue = remember {mutableStateOf(team.profilePicture)}
+    profilePictureValue.value = team.profilePicture
 
     var nameValue by remember { mutableStateOf(team.name) }
 
@@ -132,12 +136,19 @@ fun TeamScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     ProfilePicture(
+                        profilePictureValue = profilePictureValue,
                         profilePicture = team.profilePicture,
                         photoBitmapValue = team.profileBitmap,
                         isEditing = (vm.currentUser.email == team.admin),
                         name = team.name,
-                        edit = { scope.launch { vm.setProfilePicture(it) } },
-                        setPhotoBitmap = { scope.launch { vm.setProfileBitmap(it) } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
+                        edit = { scope.launch {
+                            team.profilePicture = it
+                            vm.updateTeam(team)
+                        } },
+                        setPhotoBitmap = { scope.launch {
+                            team.profileBitmap = it
+                            vm.updateTeam(team)
+                        } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
