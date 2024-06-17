@@ -381,12 +381,11 @@ class ChatModel(
 ) {
     // First get chats of team, second get my chats
     fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
+        val chatUsers = listOf(currentUser.value.email, userId)
         val listener = db.collection("chats")
             .whereEqualTo("teamId", teamId)
-            .where(Filter.or(
-                Filter.equalTo("user1Id", userId),
-                Filter.equalTo("user2Id", userId)
-            ))
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
             .addSnapshotListener { r, e ->
                 if (r != null) {
                     val chats = mutableListOf<Chat>()
