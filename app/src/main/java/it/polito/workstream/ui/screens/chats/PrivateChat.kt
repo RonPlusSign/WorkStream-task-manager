@@ -46,6 +46,7 @@ import it.polito.workstream.ui.theme.Purple80
 import it.polito.workstream.ui.theme.PurpleGrey80
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -59,19 +60,24 @@ fun Chat(
 //    messages: List<ChatMessage>?,
 //    sendMessage: (User, ChatMessage) -> Unit
 ) {
-    val chat = vm.chats.collectAsState(listOf()).value?.find {
-        it.user1Id == destUserId || it.user2Id == destUserId
-    };
+//    val chat = vm.chats.map { it.find { it.user1Id == destUserId || it.user2Id == destUserId } }.collectAsState(
+//        initial = null
+//    )
+
+    val chat = vm.fetchChats(vm.activeTeam.collectAsState(initial = null).value?.id ?: "", destUserId).collectAsState(
+        initial = listOf()
+    ).value.find { it.user1Id == destUserId || it.user2Id == destUserId }
 
     val activeTeam = vm.activeTeam.collectAsState(initial = null).value
     val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
 
-    if (chat!=null && chat.messages.size > 0) {
-        for (mex in chat.messages){
-            if (!mex.seenBy.contains(vm.user.email))
-                vm.setMessageAsSeen(destUserId, mex.id)
-        }
-    }
+//    if (chat!=null && chat!!.messages.size > 0) {
+//        for (mex in chat!!.messages){
+//            if (!mex.seenBy.contains(vm.user.email))
+//                vm.setMessageAsSeen(destUserId, mex.id)
+//        }
+//    }
+
 
     Column {
         // The list of messages
@@ -104,6 +110,9 @@ fun ChatMessageBox(
     isFromMe: Boolean
 ) {
     var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
+
+    if (!message.seenBy.contains(vm.user.email))
+        vm.setMessageAsSeen(destUserId, message.id)
 
     Row (
         horizontalArrangement =  if (isFromMe) Arrangement.End else Arrangement.Start,

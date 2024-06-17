@@ -88,7 +88,7 @@ fun ChatList(
                     item { HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)) }
                     // Private chats
                     item { Text(text = "Private chats", fontSize = 20.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 8.dp)) }
-                    chats?.forEach { chat ->
+                    chats.forEach { chat ->
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
                             val destUser = teamMembers.find {

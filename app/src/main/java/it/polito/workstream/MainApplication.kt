@@ -437,6 +437,7 @@ class ChatModel(
             "id" to "",
             "authorId" to currentUser.value.email,
             "text" to message.text,
+            "seenBy" to mutableListOf<String>(),
             "timestamp" to message.timestamp
         )
 

@@ -172,7 +172,7 @@ class UserViewModel(
     }
 
     // Chats
-    val chats = fetchChats(activeTeamId.value, user.email).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    val chats = fetchChats(activeTeamId.value, user.email)
     fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = chatModel.fetchChats(teamId, userId)
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
     fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
