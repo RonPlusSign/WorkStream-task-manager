@@ -261,7 +261,7 @@ class MainApplication : Application() {
 
     fun deleteTask(task: Task) {
         // Remove the task from the user's tasks list
-        val taskRef = db.collection("task").document(task.id)
+        val taskRef = db.collection("Tasks").document(task.id)
         val userRef = task.assignee?.let { db.collection("users").document(it) }
         val teamRef = db.collection("Teams").document(activeTeamId.value)
         db.runTransaction { t ->
