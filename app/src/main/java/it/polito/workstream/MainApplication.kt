@@ -16,9 +16,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.TaskDTO
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.models.toDTO
+import it.polito.workstream.ui.models.toTask
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -115,7 +117,8 @@ class MainApplication : Application() {
     fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
         val listener = db.collection("Tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
             if (r != null) {
-                val tasks = r.toObjects(Task::class.java)
+                val tasks = r.toObjects(TaskDTO::class.java).map { it.toTask() }
+
                 trySend(tasks)
             }
         }
