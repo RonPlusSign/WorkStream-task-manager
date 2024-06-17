@@ -76,7 +76,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun TeamScreen(
     vm: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, , userMail: String?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     removeTeam: (teamId: String, team: Team) -> Unit,
     leaveTeam: (teamId: String, userId: String) -> Unit,
     context: Context,
