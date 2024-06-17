@@ -2,11 +2,11 @@
 
 ## Login page
 
-![login page](readme_images/login_page.jpg)
+<img src="readme_images/login_page.jpg" width=300 />
 
-![welcome_screen](readme_images/welcome_screen.jpg)
+<img src="readme_images/welcome_screen.jpg" width=300 />
 
-![create_team](readme_images/create_team.jpg)
+<img src="readme_images/create_team.jpg" width=300 />
 
 ## Teams
 
