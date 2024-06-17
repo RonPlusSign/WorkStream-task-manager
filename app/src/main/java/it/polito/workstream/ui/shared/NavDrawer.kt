@@ -78,6 +78,7 @@ private fun DrawerContent(
     navigateTo: (String) -> Any,
 ) {
     val teams = vm.getTeams().collectAsState(initial = emptyList()).value
+
     var active by rememberSaveable { mutableStateOf(false) }
 
     var searchQuery by remember { mutableStateOf("") }
@@ -225,7 +226,7 @@ fun NavDrawer(
     activeUser: StateFlow<User?>,
     content: @Composable () -> Unit = {},
 ) {
-    val activeTeamId: String = vm.activeTeam.collectAsState(initial = null).value?.id.toString()
+    val activeTeamId by vm.activeTeamId.collectAsState()
     val scope = rememberCoroutineScope()
 
     val team = vm.getTeams().collectAsState(initial = emptyList()).value.find { it.id == activeTeamId }

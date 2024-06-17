@@ -172,6 +172,7 @@ fun ContentView(
     val sections = activeTeam.sections
 
     Log.d("activeTeam", activeTeam.name)
+    Log.d("activeTeamId", activeTeamId)
 
     val navController = rememberNavController()
 
@@ -244,14 +245,14 @@ fun ContentView(
                     .fillMaxSize()
                     .padding(padding), color = MaterialTheme.colorScheme.background
             ) {
-                NavHost(navController = navController, startDestination = "/0/${Route.TeamTasks.name}") {
+                NavHost(navController = navController, startDestination = "/${activeTeamId.ifBlank { "no_team" }}/${Route.TeamTasks.name}") {
 
                     composable(
                         route = "/{teamId}/${Route.TeamTasks.name}",
                         arguments = listOf(navArgument("teamId") { type = NavType.StringType; nullable = false; defaultValue = "" })
                     ) {
                         //TODO: questo manda tutto a puttane
-                        //vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
+                        vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
                     }

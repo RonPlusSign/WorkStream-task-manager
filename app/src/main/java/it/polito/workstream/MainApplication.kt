@@ -170,7 +170,8 @@ class MainApplication : Application() {
     }
 
     fun changeActiveTeamId(teamId: String) {
-        activeTeamId.value = teamId
+        if (teamId != "no_team" && !teamId.isBlank())
+            activeTeamId.value = teamId
     }
 
     fun leaveTeam(teamId: String, userId: String) {
