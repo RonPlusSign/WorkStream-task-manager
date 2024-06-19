@@ -13,9 +13,10 @@ data class TeamDTO(
     val members: MutableList<String>,
     val name: String,
     val sections: MutableList<String>,
-    val profilePicture: String
+    val profilePicture: String,
+
 )
-fun TeamDTO.toTeam() = Team(admin = admin, id = id, members = members, name = name , sections = sections, profilePicture = profilePicture)
+fun TeamDTO.toTeam() = Team(admin = admin, id = id, members = members, name = name , sections = sections, profilePicture = profilePicture, )
 
 fun Team.toDTO() : TeamDTO {
 
@@ -23,7 +24,7 @@ fun Team.toDTO() : TeamDTO {
 //    this.profileBitmap?.compress(Bitmap.CompressFormat.JPEG, 100, baos)
 //    val data = baos.toByteArray()
 
-    return TeamDTO(admin = admin, id = id, members = members, name = name , sections = sections, profilePicture = profilePicture)
+    return TeamDTO(admin = admin, id = id, members = members, name = name , sections = sections, profilePicture = profilePicture, )
 }
 
 fun TeamDTO.uploadFile(storageRef: StorageReference): UploadTask {

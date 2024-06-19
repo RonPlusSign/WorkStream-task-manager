@@ -93,8 +93,8 @@ fun TeamScreen(
     val teamMembers =  vm.teamMembers.collectAsState(initial = emptyList()).value
     val teamTasks  = tasksVm.tasks.collectAsState(initial = emptyList()).value
 
-    val profilePictureValue = remember {mutableStateOf(team.profilePicture)}
-    profilePictureValue.value = team.profilePicture
+    val photoState = remember {mutableStateOf(team.photo)}
+    photoState.value = team.photo
 
     var nameValue by remember { mutableStateOf(team.name) }
 
@@ -148,17 +148,20 @@ fun TeamScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     ProfilePicture(
-                        profilePictureValue = profilePictureValue,
+                        photo = photoState,
                         profilePicture = team.profilePicture,
                         photoBitmapValue = team.profileBitmap,
                         isEditing = (vm.currentUser.email == team.admin),
                         name = team.name,
                         edit = { scope.launch {
-                            team.profilePicture = it
+                            photoState.value = "LocalImage"
+                            team.photo = "LocalImage"
                             vm.updateTeam(team)
                         } },
                         setPhotoBitmap = { scope.launch {
                             team.profileBitmap = it
+                            photoState.value = "LocalImage"
+                            team.photo= "LocalImage"
                             vm.updateTeam(team)
                         } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
                     )

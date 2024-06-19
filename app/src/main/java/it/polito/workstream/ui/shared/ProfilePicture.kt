@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.shared
 
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -52,8 +53,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toFile
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.util.DebugLogger
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,41 +71,50 @@ fun ProfilePicture(
     photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
     name: String,
-    profilePictureValue: MutableState<String> = mutableStateOf(""),
+    photo: MutableState<String> = mutableStateOf(""),
 ) {
 
     var showDialog by remember { mutableStateOf(false) }
-    //var bitmap by remember {  mutableStateOf<Bitmap?>(null) }
+
 
 
     val context = LocalContext.current
     val pickImage = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-            // Handle the returned Uri
-            edit(uri.toString())
+
             println(uri.toString())
-            setPhotoBitmap(null)
-            //bitmap = null
-            Log.i("URI", "uri: $uri")
-            Log.i("URI", "profilePicture: $profilePicture")
-            Toast.makeText(context, "Image selected from gallery: $uri", Toast.LENGTH_SHORT)
-                .show()
+            val a =  context.contentResolver.openInputStream(uri)?.use { it.readBytes()  }
+            context.openFileOutput("LocalImage", Context.MODE_PRIVATE).use{
+                it.write(a)
+            }
+            Toast.makeText(context, "Image selected from gallery: $uri", Toast.LENGTH_SHORT).show()
+
+            photo.value = "LocalImage"
+            edit("")
         }
     }
 
     val takePicture = rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicturePreview()) { result ->
         // Handle the captured Bitmap
         if (result != null) {
+
+
             Toast.makeText(context, "Image captured from camera", Toast.LENGTH_SHORT).show()
-            setPhotoBitmap(result)
+            val stream = ByteArrayOutputStream()
+            result.compress(Bitmap.CompressFormat.PNG,100, stream)
+            context.openFileOutput("LocalImage", Context.MODE_PRIVATE).use{
+                it.write(stream.toByteArray())
+            }
+            photo.value = "LocalImage"
             edit("")
+
         }
     }
 
     // Round Profile picture with small "edit" button (circle with a pencil in bottom right corner)
     // Default value for the profile picture is the initials of the user in a circle
     Box(contentAlignment = Alignment.Center) {
-        if (profilePicture.isEmpty() && photoBitmapValue == null) {
+        if (photo.value.isEmpty()) {
 
             // Show a monogram with the initials of his first and last name
             // The monogram is a circle with the first letter of the first name and the first letter of the last name
@@ -134,23 +148,10 @@ fun ProfilePicture(
                 }
             }
 
-        } else if (photoBitmapValue == null) {
-            /*Image(
-                bitmap = context.contentResolver.openInputStream(Uri.parse(profilePictureValue.value))?.use { inputStream ->
-                    BitmapFactory.decodeStream(inputStream).asImageBitmap()
-                }!!,*/
+        } else  {
+
                 AsyncImage(
-                    model = profilePicture,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-        } else {
-            Image(
-                bitmap = photoBitmapValue.asImageBitmap(),
+                    model = context.getFileStreamPath(photo.value).absolutePath, //minchia ci siamo
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

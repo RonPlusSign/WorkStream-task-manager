@@ -4,19 +4,18 @@ import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.util.DebugLogger
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.toObject
 import it.polito.workstream.ui.models.Chat
@@ -27,28 +26,18 @@ import it.polito.workstream.ui.models.GroupChat
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.TaskDTO
 import it.polito.workstream.ui.models.Team
-import it.polito.workstream.ui.models.TeamDTO
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.models.toDTO
-import it.polito.workstream.ui.screens.chats.GroupChat
 import it.polito.workstream.ui.models.toTask
-import it.polito.workstream.ui.models.toTeam
-import it.polito.workstream.ui.models.uploadFile
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import java.time.LocalDateTime
-import kotlin.random.Random
 
 
-class MainApplication : Application() {
+class MainApplication : Application(), ImageLoaderFactory {
     lateinit var db: FirebaseFirestore
     lateinit var chatModel: ChatModel
     lateinit var storage: FirebaseStorage
@@ -60,6 +49,15 @@ class MainApplication : Application() {
         db = Firebase.firestore
         chatModel = ChatModel(_user, activeTeamId, db)
         storage =  Firebase.storage
+        context = this.applicationContext
+
+
+    }
+
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .crossfade(true).logger(DebugLogger())
+            .build()
     }
 
     val _user = MutableStateFlow(User())
@@ -75,9 +73,11 @@ class MainApplication : Application() {
                  .addSnapshotListener { value, error ->
                      if (value != null) {
                          val team = value.toObject(Team::class.java)
+                             if (team != null) {
+                                 downloadPhoto(team.photo, team.photo)
+                             }
 
-                         //activeTeamId.value = team?.id!!
-                         //Log.d("Firestore", "Active team ID: ${team.id}")
+                         Log.d("Firestore", "Active team ID: ${team}")
                          trySend(team)
                      } else {
                          Log.d("ERRORE", "ERRORE GRAVE")
@@ -175,15 +175,13 @@ class MainApplication : Application() {
 
     fun updateTeam(team: Team) {
         val t = team.toDTO()
-        /*t.uploadFile(storage.reference)// Register observers to listen for when the download is done or if it fails
-        .addOnFailureListener {
-          Log.d("FireStorage", "errore ")
-        }.addOnSuccessListener { taskSnapshot ->
-                Log.d("FireStorage", "file caricato ")
-        }*/
+
+
         db.collection("Teams").document(activeTeamId.value).set(team.toDTO())
             .addOnSuccessListener { Log.d("Firestore", "Team successfully updated!") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error updating team", e) }
+        if(team.photo.isNotEmpty())
+            uploadPhoto(team)
     }
 
     var activePageValue = MutableStateFlow(Route.TeamTasks.name)
@@ -264,7 +262,7 @@ class MainApplication : Application() {
 
 
     fun createEmptyTeam(nameTeam: String): Result<String> {
-        val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email))
+        val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email), photo= "")
 
 
         // Create the team in Firestore
@@ -406,8 +404,60 @@ class MainApplication : Application() {
         //<<<<updateTeam>>>>()
     }
 
+    fun downloadPhoto(pathNameDB:String, pathNameLocal: String ){
+        if(pathNameDB.isEmpty())
+            return
+        Log.d("pathNameDB", "pathNameDB: $pathNameDB")
+        val dbRef = storage.reference.child("images").child(pathNameDB)
+        val file = try {
+            context.getFileStreamPath(pathNameLocal)
+        }catch (_: Exception) {
+            context.openFileOutput(pathNameLocal, Context.MODE_PRIVATE).write(1)
+            context.getFileStreamPath(pathNameLocal)
+        }
+        dbRef.getFile(file)
+            .addOnSuccessListener { Log.d("FireStorage", "file scaricato file: $file ") }
+            .addOnFailureListener { e -> Log.w("FireStorage", "errore $e file: $file")         }
+    }
+
+    fun uploadPhoto(team : Team){
+            if(team.photo.isNotEmpty()){
+                //ogni volta che si esegue upload photo si carica un nuovo file
+                val imRef = db.collection("Images").document()
+                val teamRef = db.collection("Teams").document(team.id)
+                team.photo = imRef.id
+
+                db.runTransaction {
+                    val newImage = mapOf("path" to imRef.id)
+                    it.set(imRef,newImage)
+                    it.update(teamRef, "photo", imRef.id)
+                }
+                    .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
+                    .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+
+
+                val dbRef = storage.reference.child("images/${imRef.id}")
+
+                val byteArray = context.openFileInput("LocalImage").readBytes()
+                if (dbRef != null) {
+                    dbRef.putBytes(byteArray)
+                        .addOnSuccessListener { Log.d("FireStorage", "file caricato") }
+                        ?.addOnFailureListener {
+                            Log.d("FireStorage", "errore ")
+                        }
+                }
+            }
+    }
+
     fun setTeamProfilePicture(s: String, s1: String) {
         TODO("Not yet implemented")
+        /*val t = team.toDTO()
+        t.uploadFile(storage.reference)// Register observers to listen for when the download is done or if it fails
+            .addOnFailureListener {
+                Log.d("FireStorage", "errore ")
+            }.addOnSuccessListener { taskSnapshot ->
+                Log.d("FireStorage", "file caricato ")
+            }*/
     }
 
     fun updateUser(firstName: String, lastName: String, email: String, location: String) {
