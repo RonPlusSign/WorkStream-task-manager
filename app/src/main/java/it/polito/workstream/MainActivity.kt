@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         val loginIntent = Intent(context, LoginActivity::class.java)
                         context.startActivity(loginIntent)
-                        Log.d("Merda", "sono finito")
+
                         finish() // Finish MainActivity so the user cannot go back to it
                     }
                 } else {
@@ -240,10 +240,7 @@ fun ContentView(
         if (s != Route.Back.name) navController.navigate(s) else navController.popBackStack()
     }
 
-    if (activeTeam.id == "no_team") {
-        NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("profile?id=$it") })
-        return
-    }
+
 
     NavDrawer(navigateTo = navigateTo, drawerState = drawerState, activeUser = app.user) {
         Scaffold(
@@ -415,6 +412,12 @@ fun ContentView(
                                 navController.popBackStack()
                             },
                         )
+                    }
+
+                    composable(
+                        "no_team/${Route.TeamTasks.name}"
+                    ){
+                        NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("profile?id=$it") })
                     }
                 }
             }
