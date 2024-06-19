@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.shared
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -135,7 +136,8 @@ private fun DrawerContent(
                     .clickable { onMenuClick(it.route) }
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)) {
-                    if (team.profileBitmap == null && team.profilePicture.isBlank()) {
+                    if ( team.photo.isEmpty() || ! LocalContext.current.getFileStreamPath(team.photo).exists()) {
+                        Log.d("DrawerContent", "team.photo: ${team.photo}")
                         Box(
                             modifier = Modifier
                                 .size(50.dp)
@@ -152,19 +154,9 @@ private fun DrawerContent(
                                 fontSize = 20.sp
                             )
                         }
-                    } else if (team.profileBitmap != null && team.profilePicture.isBlank()) {
-                        Image(
-                            bitmap = team.profileBitmap!!.asImageBitmap(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                        )
                     } else {
                         AsyncImage(
-                            model = team.profilePicture,
+                            model = LocalContext.current.getFileStreamPath(team.photo).absolutePath,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier

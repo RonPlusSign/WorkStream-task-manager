@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.util.DebugLogger
@@ -73,9 +74,9 @@ class MainApplication : Application(), ImageLoaderFactory {
                  .addSnapshotListener { value, error ->
                      if (value != null) {
                          val team = value.toObject(Team::class.java)
-                             if (team != null) {
-                                 downloadPhoto(team.photo, team.photo)
-                             }
+                         if (team != null) {
+                             downloadPhoto(team.photo, team.photo)
+                         }
 
                          Log.d("Firestore", "Active team ID: ${team}")
                          trySend(team)
@@ -121,6 +122,9 @@ class MainApplication : Application(), ImageLoaderFactory {
 
             if (r != null) {
                 val teams = r.toObjects(Team::class.java)
+                teams.forEach {
+                    downloadPhoto(it.photo, it.photo)
+                }
                 trySend(teams)
             } else {
                 trySend(emptyList())
@@ -405,7 +409,7 @@ class MainApplication : Application(), ImageLoaderFactory {
     }
 
     fun downloadPhoto(pathNameDB:String, pathNameLocal: String ){
-        if(pathNameDB.isEmpty())
+        if(pathNameDB.isEmpty() ||  context.getFileStreamPath(pathNameLocal).exists())
             return
         Log.d("pathNameDB", "pathNameDB: $pathNameDB")
         val dbRef = storage.reference.child("images").child(pathNameDB)
