@@ -419,13 +419,7 @@ class MainApplication : Application(), ImageLoaderFactory {
                 val teamRef = db.collection("Teams").document(team.id)
                 team.photo = imRef.id
 
-                db.runTransaction {
-                    val newImage = mapOf("path" to imRef.id)
-                    it.set(imRef,newImage)
-                    it.update(teamRef, "photo", imRef.id)
-                }
-                    .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
-                    .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+
 
 
                 val dbRef = storage.reference.child("images/${imRef.id}")
@@ -433,7 +427,18 @@ class MainApplication : Application(), ImageLoaderFactory {
                 val byteArray = context.openFileInput("LocalImage").readBytes()
                 if (dbRef != null) {
                     dbRef.putBytes(byteArray)
-                        .addOnSuccessListener { Log.d("FireStorage", "file caricato") }
+                        .addOnSuccessListener {
+                            Log.d("FireStorage", "file caricato")
+
+                            db.runTransaction {
+                                val newImage = mapOf("path" to imRef.id)
+                                it.set(imRef,newImage)
+                                it.update(teamRef, "photo", imRef.id)
+                            }
+                                .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
+                                .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+
+                        }
                         ?.addOnFailureListener {
                             Log.d("FireStorage", "errore ")
                         }
