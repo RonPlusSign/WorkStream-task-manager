@@ -90,6 +90,8 @@ class MainApplication : Application(), ImageLoaderFactory {
          awaitClose()
     }
 
+    val refetchMe = MutableStateFlow("")
+
     fun fetchSections(activeTeamId: String): Flow<List<String>> = callbackFlow {
 
         Log.d("Firestore1", "Active team ID: ${activeTeamId}")
@@ -283,20 +285,6 @@ class MainApplication : Application(), ImageLoaderFactory {
         .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
 
 
-        /*db.collection("Teams").add(newTeam)
-            .addOnSuccessListener { documentReference ->
-                Log.d("Firestore", "Team created with ID: ${documentReference.id}")
-                newTeam.id = documentReference.id
-
-                // Add the team to the user's teams list
-                db.collection("users").document(user.value.email).update("teams", FieldValue.arrayUnion(documentReference.id))
-                    .addOnSuccessListener {
-                        Log.d("Firestore", "Team added to user")
-                        newTeamId = documentReference.id
-                    }
-                    .addOnFailureListener { e -> Log.w("Firestore", "Error adding team to user", e) }
-            }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a team", e) }*/
 
         if (newTeamId == "") return Result.failure(Exception("Error creating team"))
         return Result.success(newTeamId)

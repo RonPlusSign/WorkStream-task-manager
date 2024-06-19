@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import it.polito.workstream.Route
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
@@ -77,8 +78,10 @@ private fun DrawerContent(
     myProfile: () -> Unit,
     drawerState: DrawerState,
     navigateTo: (String) -> Any,
+    teams: List<Team> = emptyList(),
+
 ) {
-    val teams = vm.getTeams().collectAsState(initial = emptyList()).value
+    //val teams = vm.getTeams().collectAsState(initial = emptyList()).value
 
     var active by rememberSaveable { mutableStateOf(false) }
 
@@ -156,7 +159,10 @@ private fun DrawerContent(
                         }
                     } else {
                         AsyncImage(
-                            model = LocalContext.current.getFileStreamPath(team.photo).absolutePath,
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(LocalContext.current.getFileStreamPath(team.photo).absolutePath)
+                                .crossfade(true)
+                                .build(),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
@@ -222,12 +228,14 @@ fun NavDrawer(
     val scope = rememberCoroutineScope()
 
     val team = vm.getTeams().collectAsState(initial = emptyList()).value.find { it.id == activeTeamId }
+    val teams = vm.getTeams().collectAsState(initial = emptyList()).value
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
                 DrawerContent(
+                    teams = teams,
                     activeTeamId = activeTeamId,
                     onMenuClick = {
                         scope.launch { drawerState.close() }

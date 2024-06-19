@@ -4,11 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import it.polito.workstream.MainApplication
-import it.polito.workstream.ui.models.Task
-import it.polito.workstream.ui.models.User
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 
 class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
@@ -28,6 +23,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 app.activeTeamId,
                 app::fetchUsers,
                 app::changeActiveTeamId,
+                app::uploadPhoto
 
             ) as T
 

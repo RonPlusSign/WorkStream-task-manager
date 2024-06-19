@@ -154,15 +154,15 @@ fun TeamScreen(
                         isEditing = (vm.currentUser.email == team.admin),
                         name = team.name,
                         edit = { scope.launch {
-                            photoState.value = "LocalImage"
+
                             team.photo = "LocalImage"
-                            vm.updateTeam(team)
+                            vm.uploadPhoto(team)
                         } },
                         setPhotoBitmap = { scope.launch {
                             team.profileBitmap = it
-                            photoState.value = "LocalImage"
+
                             team.photo= "LocalImage"
-                            vm.updateTeam(team)
+                            vm.uploadPhoto(team)
                         } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
                     )
                     Spacer(modifier = Modifier.height(8.dp))

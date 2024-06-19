@@ -27,6 +27,7 @@ class TeamViewModel(
     activeTeamId: MutableStateFlow<String>,
     fetchUsers: (String) -> Flow<List<User>>,
     val changeActiveTeamId: (String) -> Unit,
+    val uploadPhoto: (team :Team) -> Unit,
 
     ) : ViewModel() {
     val team = fetchTeam(activeTeamId.value)

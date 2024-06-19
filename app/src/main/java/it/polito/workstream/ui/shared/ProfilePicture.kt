@@ -151,7 +151,11 @@ fun ProfilePicture(
         } else  {
 
                 AsyncImage(
-                    model = context.getFileStreamPath(photo.value).absolutePath, //minchia ci siamo
+                    model =
+                    ImageRequest.Builder(LocalContext.current)
+                        .data(context.getFileStreamPath(photo.value).absolutePath)
+                        .crossfade(true)
+                        .build(), //minchia ci siamo
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
