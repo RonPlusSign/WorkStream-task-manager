@@ -19,6 +19,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,50 +35,54 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun NewChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    onChatClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit
+    onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit
 ) {
-    val users = vm.getUsers()
+    val chats by vm.chats.collectAsState(initial = listOf())
+    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
 
     Column {
-        LazyColumn (
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            users.forEach { user ->
-                item {
-                    Card (
-                        modifier = Modifier
-                            .height(70.dp)
-                            .fillMaxWidth()
-                            .padding(top = 5.dp, bottom = 5.dp)
-                            .clickable {
-                               if(vm.chats.value[user] != null)
-                                   onChatClick(8, null, null, user.id)
-                               else {
-                                   vm.newChat(user)
-                                   onChatClick(8, null, null, user.id)
-                               }
-                            },
-                        border = BorderStroke(0.5.dp, Color.Black),
-                        shape = RoundedCornerShape(6.dp),
-                        elevation = CardDefaults.elevatedCardElevation(8.dp),
-                    ) {
-                        Row (
+            teamMembers.forEach { user ->
+                if (user.email != vm.user.email) {
+                    item {
+                        Card(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentHeight(Alignment.CenterVertically)
-                                .padding(start = 8.dp),
-                            verticalAlignment = Alignment.Bottom,
+                                .height(70.dp)
+                                .fillMaxWidth()
+                                .padding(top = 5.dp, bottom = 5.dp)
+                                .clickable {
+                                    if (chats?.find { it.user1Id == user.email || it.user2Id == user.email } != null)
+                                        onChatClick(8, null, null, null, user.email)
+                                    else {
+                                        vm.newChat(user.email)
+                                        onChatClick(8, null, null, null, user.email)
+                                    }
+                                },
+                            border = BorderStroke(0.5.dp, Color.Black),
+                            shape = RoundedCornerShape(6.dp),
+                            elevation = CardDefaults.elevatedCardElevation(8.dp),
                         ) {
-                            Icon(Icons.Default.Person, contentDescription = "Chat", modifier = Modifier.size(40.dp))
-                            Text(
-                                text = user.firstName + " " + user.lastName,
-                                fontSize = 25.sp, modifier =
-                                Modifier.padding(start = 8.dp, bottom = 5.dp),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .wrapContentHeight(Alignment.CenterVertically)
+                                    .padding(start = 8.dp),
+                                verticalAlignment = Alignment.Bottom,
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = "Chat", modifier = Modifier.size(40.dp))
+                                Text(
+                                    text = user.firstName + " " + user.lastName,
+                                    fontSize = 25.sp, modifier =
+                                    Modifier.padding(start = 8.dp, bottom = 5.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }

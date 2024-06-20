@@ -5,25 +5,33 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>) : ViewModel() {
+class TaskViewModel(
+    val activeTeamFlow: Flow<Team?>,
+    val  activeTeamId: MutableStateFlow<String>,
+    val onTaskUpdated: (updatedTask: Task) -> Unit,) : ViewModel() {
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
     val statuses = listOf("To do", "In progress", "Paused", "On review", "Completed")
 
+    val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
 
-    var task = Task(title = "New Task", section = sections[0])
+    var task = mutableStateOf( Task(title = "New Task", section = activeTeam.value?.sections?.get(0) ?: "General"))
         private set
 
     fun setTask(value: Task) {
-        task = value
+        task.value = value
         taskBeforeEditing = value.copy()
         titleValue = value.title
         descriptionValue = value.description
@@ -46,7 +54,7 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
     }
 
     // ------- Mutable state variables to store the values of the task -------
-    var dueDateValue by mutableStateOf(task.dueDate)
+    var dueDateValue by mutableStateOf(task.value.dueDate)
         private set
     var dueDateError by mutableStateOf("")
         private set
@@ -61,7 +69,7 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
         else ""
     }
 
-    var titleValue by mutableStateOf(task.title)
+    var titleValue by mutableStateOf(task.value.title)
         private set
     var titleError by mutableStateOf("")
         private set
@@ -74,17 +82,16 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
         titleError = if (titleValue.isEmpty()) "Title must not be empty" else ""
     }
 
-    var descriptionValue by mutableStateOf(task.description)
+    var descriptionValue by mutableStateOf(task.value.description)
         private set
 
     fun setDescription(value: String) {
         descriptionValue = value
     }
 
-    var assigneeValue by mutableStateOf(task.assignee)
-        private set
+    var assigneeValue by mutableStateOf(task.value.assignee)
 
-    var sectionValue by mutableStateOf(task.section)
+    var sectionValue by mutableStateOf(task.value.section)
         private set
     var sectionError by mutableStateOf("")
         private set
@@ -97,21 +104,21 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
         sectionError = if (sectionValue.isEmpty()) "Section must not be empty" else ""
     }
 
-    var isRecurrentValue by mutableStateOf(task.recurrent)
+    var isRecurrentValue by mutableStateOf(task.value.recurrent)
         private set
 
     fun setRecurrent(value: Boolean) {
         isRecurrentValue = value
     }
 
-    var frequencyValue by mutableStateOf(task.frequency)
+    var frequencyValue by mutableStateOf(task.value.frequency)
         private set
 
     fun setFrequency(value: String?) {
         frequencyValue = value
     }
 
-    var statusValue by mutableStateOf(task.status)
+    var statusValue by mutableStateOf(task.value.status)
         private set
 
     fun setStatus(value: String) {
@@ -143,8 +150,8 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
         isDatePickerOpen = !isDatePickerOpen
     }
 
-    // ------- Functions to validate the values of the task -------
-    private var taskBeforeEditing = task.copy()
+    // ------- Functions to validate the values of the task.value -------
+    private var taskBeforeEditing = task.value.copy()
 
     /**
      * Checks if the provided task parameters are valid.
@@ -177,19 +184,19 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
     }
 
     fun save(): Task {
-        updateTaskHistory(taskBeforeEditing, task)
+        updateTaskHistory(taskBeforeEditing, task.value)
 
-        task.dueDate = dueDateValue
-        task.title = titleValue
-        task.description = descriptionValue
-        task.assignee = assigneeValue
-        task.section = sectionValue
-        task.recurrent = isRecurrentValue
-        task.frequency = frequencyValue
-        task.status = statusValue
-        task.team= activeTeam.value
+        task.value.dueDate = dueDateValue
+        task.value.title = titleValue
+        task.value.description = descriptionValue
+        task.value.assignee = assigneeValue
+        task.value.section = sectionValue
+        task.value.recurrent = isRecurrentValue
+        task.value.frequency = frequencyValue
+        task.value.status = statusValue
+        task.value.teamId = activeTeamId.value //PROBLEMA TODO activeTeam.value è sempre null
 
-        return task
+        return task.value
     }
 
     private fun updateTaskHistory(taskBeforeEditing: Task, updatedTask: Task) {
@@ -230,11 +237,8 @@ class TaskViewModel(val sections: List<String>, val activeTeam: StateFlow<Team>)
             SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(it) < SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(Timestamp(System.currentTimeMillis()))
         } ?: false
     }
-    fun assigneeToString(): String {
-        return this.assigneeValue?.let { "${it.firstName} ${it.lastName}" } ?: "Anyone"
-    }
 
     fun setAssignee(m: User) {
-        assigneeValue = m
+        assigneeValue = m.email
     }
 }

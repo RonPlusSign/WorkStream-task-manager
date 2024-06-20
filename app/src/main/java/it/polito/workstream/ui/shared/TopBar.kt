@@ -1,15 +1,21 @@
 package it.polito.workstream.ui.shared
 
+import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +29,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.Route
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
+import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.launch
 
@@ -40,7 +49,9 @@ fun TopBar(
     title: String,
     drawerState: DrawerState? = null,
     navigateTo: (String) -> Any,
-    content: @Composable () -> Unit = {}
+    content: @Composable () -> Unit = {},
+    unseenMessagesCount: Int,
+    activePage: String
 ) {
     val scope = rememberCoroutineScope()
 
@@ -83,11 +94,32 @@ fun TopBar(
 
     @Composable
     fun actions() {
-        IconButton(onClick = { navigateTo(Route.ChatScreen.name) }) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Default.Message,
-                contentDescription = "Localized description"
-            )
+        Box {
+            if (activePage.contains(Route.ChatScreen.title))
+                IconButton(onClick = {  }) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Localized description"
+                    )
+                }
+            else
+                IconButton(onClick = { navigateTo(Route.ChatScreen.name) }) {
+                    //val tintColor = if (unseenMessagesCount > 0) Color.Red else MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Default.Message,
+                        contentDescription = "Localized description",
+                    )
+                }
+            if (unseenMessagesCount > 0)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(Color.Red)
+                ) {
+                    Text(text = unseenMessagesCount.toString(), fontSize = 20.sp, color = Color.White)
+                }
         }
     }
 
@@ -118,8 +150,14 @@ fun TopBar(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBarWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), drawerState: DrawerState? = null, navigateTo: (String) -> Any) {
+fun TopBarWrapper(
+    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    userVm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    drawerState: DrawerState? = null,
+    navigateTo: (String) -> Any
+) {
     val activepage = vm.activePageValue.collectAsState().value
+    val teamMembers = userVm.teamMembers.collectAsState(initial = listOf()).value
     // Serve per la gestione della activepage nella chat, e per togliere la bottombar
     val title =
         if (activepage.contains(Route.ChatScreen.title + "/"))
@@ -127,38 +165,52 @@ fun TopBarWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(L
         else if (activepage == Route.ChatScreen.title) "Chats"
         else activepage
 
-    TopBar(title = title, drawerState = drawerState, navigateTo, content = {
-        TopAppBarSurface(
-            scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
-            modifier = Modifier
-        ) {
-            //  Show searchbar only if the active page is TeamTasks or MyTasks
-            if (activepage == Route.TeamTasks.title || activepage == Route.MyTasks.title) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    TopSearchBar(
-                        vm.searchQuery,
-                        vm::setSearchQuery.get(),
-                        vm.showFilterDialogValue,
-                        vm::toggleShowFilterDialog,
-                        vm.showSortDialogValue,
-                        vm::toggleShowSortDialog,
-                        activePage = vm.activePageValue.collectAsState().value,
-                        allSortOrders = vm.allSortOrders,
-                        currentSortOption = vm.currentSortOrder,
-                        changeSortOption = vm::setSortOrder.get(),
-                        filterParams = vm.filterParams,
-                        vm::areThereActiveFilters,
-                        sections = vm.sections,
-                        statusList = vm.statusList,
-                        recurrentList = vm.recurrentList,
-                        assignee = vm.getAssignees()
-                    )
+    var unseenMessagesCount = 0;
+    for (m in teamMembers){
+        unseenMessagesCount += userVm.countUnseenChatMessages(m.email).collectAsState(initial = 0).value
+    }
+    unseenMessagesCount += userVm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
+    if(activepage.contains("no_team")) //bruttissimo
+        return
+
+    TopBar(
+        title = title,
+        drawerState = drawerState,
+        navigateTo,
+        unseenMessagesCount = unseenMessagesCount,
+        activePage = activepage,
+        content = {
+            TopAppBarSurface(
+                scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
+                modifier = Modifier
+            ) {
+                //  Show searchbar only if the active page is TeamTasks or MyTasks
+                if (activepage == Route.TeamTasks.title || activepage == Route.MyTasks.title ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        TopSearchBar(
+                            vm.searchQuery,
+                            vm::setSearchQuery.get(),
+                            vm.showFilterDialogValue,
+                            vm::toggleShowFilterDialog,
+                            vm.showSortDialogValue,
+                            vm::toggleShowSortDialog,
+                            activePage = vm.activePageValue.collectAsState().value,
+                            allSortOrders = vm.allSortOrders,
+                            currentSortOption = vm.currentSortOrder,
+                            changeSortOption = vm::setSortOrder.get(),
+                            filterParams = vm.filterParams,
+                            vm::areThereActiveFilters,
+                            sections = vm.activeTeam.value?.sections ?: emptyList(),
+                            statusList = vm.statusList,
+                            recurrentList = vm.recurrentList,
+                            assignee = vm.getAssignees()
+                        )
+                    }
                 }
             }
-        }
     })
 }

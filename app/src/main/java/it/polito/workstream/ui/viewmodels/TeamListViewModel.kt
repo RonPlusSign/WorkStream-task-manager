@@ -1,41 +1,37 @@
 package it.polito.workstream.ui.viewmodels
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.runtime.MutableState
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
-import it.polito.workstream.ui.shared.DrawerMenu
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlin.reflect.KFunction1
-
+import kotlinx.coroutines.flow.stateIn
 
 class TeamListViewModel(
-    val teams: StateFlow<List<Team>>,
-    val addTeam: (Team) -> Unit,
-    val removeTeam: (teamId: Long) -> Unit,
-    val activeTeam: StateFlow<Team>,
+    val _activeTeam: Flow<Team?>,
+    val teams: Flow<List<Team>>,
+    val teamTasks: Flow<List<Task>>,
+    val teamMembers: Flow<List<User>>,
     val activePageValue: MutableStateFlow<String>,
     val setActivePage: (page: String) -> Unit,
-    val changeActiveTeamId: KFunction1<Long, Unit>,
-    val leaveTeam: (team: Team, user: User) -> Unit,
-    val searchQuery: MutableState<String>,
-    val setSearchQuery: (newQuery: String) -> Unit,
-    val createEmptyTeam: (name: String) -> Unit,
-) : ViewModel() {
+    val changeActiveTeamId: (teamId: String) -> Unit,
+    val removeTeam: (teamId: String, team: Team) -> Unit,
+    val leaveTeam: (teamId: String, userId: String) -> Unit,
+    val joinTeam: (teamId: String, userId: String) -> Unit,
+    val createEmptyTeam: (nameTeam: String) -> Result<String>,
+    val fetchActiveTeam: (String) -> Flow<Team?>,
+    val user: StateFlow<User>,
+    val activeTeamId: MutableStateFlow<String>,
+    val getTeams: () -> Flow<List<Team>>,
+    val getTasks: (teamId: String) -> Flow<List<Task>>,
+    val fetchUsers: (String) -> Flow<List<User>>,
+    val fetchTeam: (String) -> Flow<Team>,
 
-    fun teamsToDrawerMenu(user:  StateFlow<User?>): List<DrawerMenu> {
-        return teams.value.filter { u-> u.members.contains(user.value) }.map { DrawerMenu(Icons.Filled.Face, it.name , it.id.toString(), it.members.size) }
-    }
 
-    fun joinTeam(team: Team, user: StateFlow<User?>) {
-        user.value?.let { currentUser ->
-            if (currentUser != null) {
-                team.addMember(currentUser)
-            }
-            currentUser.teams.add(team)
-        }
+    ) : ViewModel(){
+    val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.Lazily, null)
     }
-}

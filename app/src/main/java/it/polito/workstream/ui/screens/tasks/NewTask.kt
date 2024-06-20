@@ -16,10 +16,11 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
  */
 @Composable
 fun NewTaskScreen(
-    changeRoute: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    changeRoute: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     vm: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    taskListVM: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    saveTask: (Task) -> Unit = taskListVM::onTaskCreated,
+    tasklistvm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+
+
 ) {
-    EditTaskScreen(saveTask = saveTask, changeRoute = changeRoute, vm = vm)
+    EditTaskScreen( changeRoute = changeRoute, taskVM = vm, saveTask = tasklistvm::onTaskCreated.get())
 }

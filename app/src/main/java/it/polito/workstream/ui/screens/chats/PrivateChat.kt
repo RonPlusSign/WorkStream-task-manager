@@ -1,17 +1,14 @@
 package it.polito.workstream.ui.screens.chats
 
-import android.graphics.drawable.shapes.Shape
-import androidx.compose.foundation.BorderStroke
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +21,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -39,32 +35,49 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.firebase.Timestamp
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.Purple80
 import it.polito.workstream.ui.theme.PurpleGrey80
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlinx.coroutines.delay
-import java.lang.Thread.sleep
+import kotlinx.coroutines.flow.map
+import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun Chat(
-    destUser: User,
+    destUserId: String,
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 //    messages: List<ChatMessage>?,
 //    sendMessage: (User, ChatMessage) -> Unit
 ) {
-    val chats by vm.chats.collectAsState();
+//    val chat = vm.chats.map { it.find { it.user1Id == destUserId || it.user2Id == destUserId } }.collectAsState(
+//        initial = null
+//    )
+
+    val chat = vm.fetchChats(vm.activeTeam.collectAsState(initial = null).value?.id ?: "", destUserId).collectAsState(
+        initial = listOf()
+    ).value.find { it.user1Id == destUserId || it.user2Id == destUserId }
+
+    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
+
+//    if (chat!=null && chat!!.messages.size > 0) {
+//        for (mex in chat!!.messages){
+//            if (!mex.seenBy.contains(vm.user.email))
+//                vm.setMessageAsSeen(destUserId, mex.id)
+//        }
+//    }
+
 
     Column {
         // The list of messages
@@ -75,24 +88,34 @@ fun Chat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            chats[destUser]?.reversed()?.forEach { mex ->
+            chat?.messages?.sortedBy { it.timestamp }?.reversed()?.forEach { mex ->
+                val sender = teamMembers.find { it.email == mex.authorId }
+                val isFromMe = mex.authorId == vm.user.email
                 item {
-                    ChatMessageBox(mex, destUser, vm);
+                    ChatMessageBox(mex, destUserId, vm, isFromMe);
                 }
             }
         }
         // The input box to send a message
-        ChatInputBox(vm, destUser)
+        ChatInputBox(vm, destUserId)
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
-    var messageToEdit by rememberSaveable { mutableStateOf<Long?>(null) }
+fun ChatMessageBox(
+    message: ChatMessage,
+    destUserId: String,
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    isFromMe: Boolean
+) {
+    var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
+
+    if (!message.seenBy.contains(vm.user.email))
+        vm.setMessageAsSeen(destUserId, message.id)
 
     Row (
-        horizontalArrangement =  if (message.isFromMe) Arrangement.End else Arrangement.Start,
+        horizontalArrangement =  if (isFromMe) Arrangement.End else Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
             //.align(if (mex.isFromMe) Alignment.End else Alignment.Start)
@@ -100,7 +123,7 @@ fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = vie
             .combinedClickable(
                 onClick = { },
                 onLongClick = {
-                    if (message.isFromMe) {
+                    if (isFromMe) {
                         messageToEdit = message.id;
                         vm.toggleShowEditDialog();
                     }
@@ -114,38 +137,39 @@ fun ChatMessageBox(message: ChatMessage, destUser: User, vm: UserViewModel = vie
                     RoundedCornerShape(
                         topStart = 48f,
                         topEnd = 48f,
-                        bottomStart = if (message.isFromMe) 48f else 0f,
-                        bottomEnd = if (message.isFromMe) 0f else 48f
+                        bottomStart = if (isFromMe) 48f else 0f,
+                        bottomEnd = if (isFromMe) 0f else 48f
                     )
                 )
                 .widthIn(10.dp, 320.dp)
-                .background(if (message.isFromMe) Purple80 else PurpleGrey80)
+                .background(if (isFromMe) Purple80 else PurpleGrey80)
                 .padding(16.dp)
         ) {
             Column {
                 Text(text = message.text);
                 Row(
                     modifier = Modifier
-                        .align(if (message.isFromMe) Alignment.Start else Alignment.End)
+                        .align(if (isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
-                    message.timestamp?.let {
-                        Text(
-                            text = it.format(DateTimeFormatter.ofPattern("HH:mm")),
-                            fontSize = 12.sp
-                        )
-                    }
+                    Text(
+                        text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
+                        fontSize = 12.sp
+                    )
                 }
 
             }
         }
     }
 
-    messageToEdit?.let { EditMessageSheet(destUser, it, vm) }
+    messageToEdit?.let { EditMessageSheet( destUserId, it, vm) }
 }
 
 @Composable
-fun ChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), destUser: User) {
+fun ChatInputBox(
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    destUserId: String
+) {
     var newMessage by remember { mutableStateOf("") }
 
     Row (
@@ -165,7 +189,7 @@ fun ChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalC
                 Icon(Icons.AutoMirrored.Filled.Send,
                     contentDescription = "",
                     modifier = Modifier.clickable {
-                        vm.sendMessage(destUser, ChatMessage(newMessage, destUser, true, LocalDateTime.now()));
+                        vm.sendMessage(destUserId, ChatMessage("", newMessage, destUserId, Timestamp.now()));
                         newMessage = "";
 //                        sleep(5000);
 //                        sendMessage(destUser, ChatMessage("Risposta di prova", "Autore", false))
@@ -179,7 +203,11 @@ fun ChatInputBox(vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalC
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun EditMessageSheet(destUser: User, messageToEdit: Long, vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
+fun EditMessageSheet(
+    destUserId: String,
+    messageToEdit: String,
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+) {
     if (!vm.showEditDialog) return;
     val sheetState = rememberModalBottomSheetState();
 
@@ -199,7 +227,7 @@ fun EditMessageSheet(destUser: User, messageToEdit: Long, vm: UserViewModel = vi
             Button(
                 modifier = Modifier.padding(5.dp),
                 onClick = {
-                    vm.deleteMessage(destUser, messageToEdit);
+                    vm.deleteMessage(destUserId, messageToEdit);
                     vm.toggleShowEditDialog()
                 }
             ) {

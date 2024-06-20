@@ -45,9 +45,9 @@ fun EditPanel(
     setEmail: (String) -> Unit,
     locationValue: String,
     setLocation: (String) -> Unit,
-    profilePictureValue: MutableState<String>,
+    profilePictureValue: String,
     setProfilePicture: (String) -> Unit,
-    photoBitmapValue: MutableState<Bitmap?>,
+    photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
     validate: () -> Unit,
     save: () -> Unit,
@@ -74,7 +74,8 @@ fun EditPanel(
                     isEditing = true,
                     photoBitmapValue,
                     setPhotoBitmap,
-                    "$firstNameValue $lastNameValue"
+                    "$firstNameValue $lastNameValue",
+                    setPhoto = {}
                 )
             }
 
@@ -125,7 +126,8 @@ fun EditPanel(
                     isEditing = true,
                     photoBitmapValue,
                     setPhotoBitmap,
-                    "$firstNameValue $lastNameValue"
+                    "$firstNameValue $lastNameValue",
+                    setPhoto = {}
                 )
             }
             Column(

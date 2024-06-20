@@ -38,7 +38,7 @@ fun PresentationPanel(
     lastName: String,
     email: String,
     location: String?,
-    profilePicture: MutableState<String>,
+    profilePicture: String,
     setProfilePicture: (String) -> Unit,
     numberOfTeams: Int,
     tasksCompleted: Int,
@@ -46,7 +46,7 @@ fun PresentationPanel(
     edit: () -> Unit,
     changePassword: () -> Unit,
     logout: () -> Unit,
-    photoBitmapValue: MutableState<Bitmap?>,
+    photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
     personalInfo: Boolean
 ) {
@@ -60,7 +60,7 @@ fun PresentationPanel(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                ProfilePicture(profilePicture, setProfilePicture, isEditing = false, photoBitmapValue, setPhotoBitmap, "$firstName $lastName")
+                ProfilePicture(profilePicture, setProfilePicture, isEditing = false, photoBitmapValue, setPhotoBitmap, "$firstName $lastName", setPhoto = {})
             }
             Column(
                 modifier = Modifier
@@ -81,7 +81,7 @@ fun PresentationPanel(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
-                ProfilePicture(profilePicture, setProfilePicture, isEditing = false, photoBitmapValue, setPhotoBitmap, "$firstName $lastName")
+                ProfilePicture(profilePicture, setProfilePicture, isEditing = false, photoBitmapValue, setPhotoBitmap, "$firstName $lastName", setPhoto = {})
             }
             Row(
                 modifier = Modifier
@@ -135,7 +135,7 @@ fun UserInfoWithButtons(
                                 showLogoutDialog.value = false
                                 logout()
                             },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White, containerColor =  Color.Red)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White, containerColor = Color.Red)
                         ) {
                             Text("Confirm")
                         }

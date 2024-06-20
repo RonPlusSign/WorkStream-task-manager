@@ -1,392 +1,385 @@
 package it.polito.workstream
 
-import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.platform.LocalContext
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.util.DebugLogger
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.toObject
+import it.polito.workstream.ui.models.Chat
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.storage
 import it.polito.workstream.ui.models.ChatMessage
-import it.polito.workstream.ui.models.Comment
+import it.polito.workstream.ui.models.GroupChat
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.TaskDTO
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import it.polito.workstream.ui.models.toDTO
+import it.polito.workstream.ui.models.toTask
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.update
-import java.sql.Timestamp
-import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 
 
-class MainApplication : Application() {
+class MainApplication : Application(), ImageLoaderFactory {
     lateinit var db: FirebaseFirestore
+    lateinit var chatModel: ChatModel
+    lateinit var storage: FirebaseStorage
 
     lateinit var context: Context
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
         db = Firebase.firestore
+        chatModel = ChatModel(_user, activeTeamId, db)
+        storage =  Firebase.storage
+        context = this.applicationContext
+
+
     }
 
-    fun fetchUsers(): Flow<List<User>> = callbackFlow {
-        val listener = db.collection("users").addSnapshotListener { r, e ->
-            if (r != null) {
-                val users = r.toObjects(User::class.java)
-                trySend(users)
-                for (document in r) {
-                    Log.d("User", "${document.id} => ${document.data}")
+    override fun newImageLoader(): ImageLoader {
+        return ImageLoader.Builder(this)
+            .crossfade(true).logger(DebugLogger())
+            .build()
+    }
+
+    val _user = MutableStateFlow(User())
+    val user: StateFlow<User> = _user
+
+    val LocalPhotos = mutableStateListOf<String>()
+
+    var activeTeamId = MutableStateFlow("")
+     fun fetchActiveTeam(activeTeamId: String): Flow<Team?> =  callbackFlow {
+        //val listener = db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
+
+            Log.d("Firestore1", "Active team ID: ${activeTeamId}")
+         if (activeTeamId.isNotEmpty()) {
+             db.collection("Teams").document(activeTeamId)
+                 .addSnapshotListener { value, error ->
+                     if (value != null) {
+                         val team = value.toObject(Team::class.java)
+                         if (team != null) {
+                             downloadPhoto(team.photo, team.photo)
+                         }
+
+                         Log.d("Firestore", "Active team ID: ${team}")
+                         trySend(team)
+                     } else {
+                         Log.d("ERRORE", "ERRORE GRAVE")
+                         trySend(null)
+                     }
+                 }
+         }
+
+         awaitClose()
+    }
+
+    val refetchMe = MutableStateFlow("")
+
+    fun fetchSections(activeTeamId: String): Flow<List<String>> = callbackFlow {
+
+        Log.d("Firestore1", "Active team ID: ${activeTeamId}")
+        if (activeTeamId.isNotEmpty()) {
+            db.collection("Teams").document(activeTeamId)
+                .addSnapshotListener { value, error ->
+                    if (value != null) {
+                        val sections = value.toObject(Team::class.java)?.sections
+                        if (sections != null) {
+                            trySend(sections)
+                        }
+                    } else {
+                        Log.d("ERRORE", "ERRORE GRAVE $error")
+                        trySend(emptyList() )
+                    }
                 }
+        }
+
+        awaitClose { }
+
+
+    }
+
+    val activeTeam = fetchActiveTeam(activeTeamId.value)
+
+    fun getTeams(): Flow<List<Team>> = callbackFlow {
+        val userId: String = user.value.email
+        Log.d("Firestore email", "User ID: $userId")
+        val listener = db.collection("Teams").whereArrayContains("members", userId ).addSnapshotListener { r, e ->
+
+            if (r != null) {
+                val teams = r.toObjects(Team::class.java)
+                teams.forEach {
+                    downloadPhoto(it.photo, it.photo)
+                }
+                trySend(teams)
             } else {
-                Log.d("User", "Error getting documents: ", e)
+                trySend(emptyList())
             }
         }
+        awaitClose { listener.remove() }
+    }
+
+    val userTeams = getTeams()  // Teams of the current user
+
+    fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
+        val listener = db.collection("Tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
+            if (r != null) {
+                val tasks = r.toObjects(TaskDTO::class.java).map { it.toTask() }
+
+                trySend(tasks)
+            }
+        }
+        awaitClose { listener.remove() }
+    }
+
+    val teamTasks = getTasks(activeTeamId.value)
+
+
+    fun fetchUsers(teamId: String): Flow<List<User>> = callbackFlow {
+        val listener = db.collection("users").whereArrayContains("teams", teamId)
+            .addSnapshotListener { r, e ->
+                if (r != null) {
+                    val users = r.toObjects(User::class.java)
+                    trySend(users)
+                } else {
+                    trySend(emptyList())
+                }
+            }
 
         awaitClose { listener.remove() }
     }
 
-    val users = fetchUsers()    // TODO: ricordati di chiamarla sennò non vedi nulla!
+    val activeTeamMembers = fetchUsers(activeTeamId.value)
 
-    // Insert initial data here, to be fetched in the view model factory
-    var _userList = MutableStateFlow(
-        mutableListOf(
-            User(
-                firstName = "Cristoforo",
-                lastName = "Colombo",
-                email = "Cristoforo.Colombo@gmail.com",
-                location = "Genova"
-            ),
-            User(
-                firstName = "Sergio",
-                lastName = "Mattarella",
-                email = "Sergio.Mattarella@gmail.com",
-                location = "Roma"
-            ),
-            User(
-                firstName = "Antonio",
-                lastName = "Giovanni",
-                email = "Antonio.Giovanni@gmail.com",
-                location = "Torino"
-            ),
-            User(
-                firstName = "Giovanni",
-                lastName = "Malnati",
-                email = "Giovanni.Malnati@gmail.com",
-                location = "Milano",
-                teams = mutableStateListOf()
-            ),
-        )
-    )
-        private set
-
-    val userList: StateFlow<List<User>> = _userList
-
-    private fun getUserByName(name: String): User {
-        return _userList.value.filter { (it.firstName + " " + it.lastName) == name }[0]
+    fun createTask(task: Task) {
+        db.collection("Tasks").add(task)
+            .addOnSuccessListener { documentReference -> Log.d("Firestore", "Task created with ID: ${documentReference.id}") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a task", e) }
     }
 
-    @SuppressLint("SimpleDateFormat")
-    var _tasksList = MutableStateFlow(
-        mutableListOf(
-            // Task list from tasksList
-            Task(
-                "Test this app",
-                assignee = getUserByName("Cristoforo Colombo"),
-                attachments = mutableStateListOf("attachment1", "attachment2", "attachment3"),
-                comments = mutableStateListOf(Comment(text = "prova", author = "chris")),
-                history = mutableStateMapOf(
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "To do",
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-                ),
-                status = "To do",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-01")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "Finish the project ASAP please",
-                assignee = getUserByName("Cristoforo Colombo"),
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-                ),
-                status = "In progress",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-10")
-                    ?.let { Timestamp(it.time) }
-            ),
-            Task(
-                "Submit the project",
-                assignee = getUserByName("Giovanni Malnati"),
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(),
-                status = "To do",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-20")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "Buy apples",
-                assignee = getUserByName("Cristoforo Colombo"),
-                section = "Personal",
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(),
-                status = "To do",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-15")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "Clean the house",
-                assignee = getUserByName("Sergio Mattarella"),
-                section = "Personal",
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(),
-                status = "In progress",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "Organize meeting",
-                assignee = getUserByName("Cristoforo Colombo"),
-                section = "Work",
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(),
-                status = "Paused",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-21")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "End of April recap meeting",
-                assignee = getUserByName("Cristoforo Colombo"),
-                section = "Work",
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                status = "Completed",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-04-27")
-                    ?.let { Timestamp(it.time) },
-                completed = true,
-            ),
-            // Task list from tasksList1
-            Task(
-                "Test this app111",
-                assignee = getUserByName("Cristoforo Colombo"),
-                attachments = mutableStateListOf("attachment1", "attachment2", "attachment3"),
-                comments = mutableStateListOf(Comment(text = "prova", author = "chris")),
-                history = mutableStateMapOf(
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "To do",
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-                ),
-                status = "To do",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-01")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "Finish the project1",
-                assignee = getUserByName("Cristoforo Colombo"),
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "Created",
-                    Timestamp(SimpleDateFormat("yyyy-MM-dd").parse("2024-05-10")!!.time) to "In progress"
-                ),
-                status = "In progress",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-10")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "Submit the project1",
-                assignee = getUserByName("Giovanni Malnati"),
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(),
-                status = "To do",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-06-20")
-                    ?.let { Timestamp(it.time) },
-            ),
-            Task(
-                "Buy apples1",
-                assignee = getUserByName("Cristoforo Colombo"),
-                section = "Funny ideas",
-                attachments = mutableStateListOf(),
-                comments = mutableStateListOf(),
-                history = mutableStateMapOf(),
-                status = "To do",
-                dueDate = SimpleDateFormat("yyyy-MM-dd").parse("2024-05-15")
-                    ?.let { Timestamp(it.time) },
-            ),
-        )
-    )
-        private set
-
-    var tasksList: MutableStateFlow<MutableList<Task>> = _tasksList
-
-    fun getTaskById(id: Long): Task {
-        return tasksList.value.find { it.id == id }!!
+    fun createTeam(team: Team) {
+        db.collection("Teams").add(team)
+            .addOnSuccessListener { documentReference -> Log.d("Firestore", "Team created with ID: ${documentReference.id}") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a team", e) }
     }
 
-    fun getTasksListOfTeam(teamId: Int): MutableStateFlow<MutableList<Task>> {
-        return tasksList   // TODO: Filter tasks by team
+    fun updateTeam(team: Team) {
+        val t = team.toDTO()
+
+
+        db.collection("Teams").document(activeTeamId.value).set(team.toDTO())
+            .addOnSuccessListener { Log.d("Firestore", "Team successfully updated!") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error updating team", e) }
+        if(team.photo.isNotEmpty())
+            uploadPhoto(team)
     }
 
-    @SuppressLint("MutableCollectionMutableState")
-    var _teams = MutableStateFlow(
-        mutableListOf(
-            Team(
-                name = "Dream Team",
-                members = mutableListOf(
-                    getUserByName("Cristoforo Colombo"),
-                    getUserByName("Sergio Mattarella"),
-                    getUserByName("Antonio Giovanni"),
-                    getUserByName("Giovanni Malnati")
-                ),
-                tasks = mutableListOf(
-                    getTaskById(1),
-                    getTaskById(2),
-                    getTaskById(3),
-                    getTaskById(4),
-                    getTaskById(5),
-                    getTaskById(6),
-                    getTaskById(7)
-                ),
-                sections = mutableListOf("General", "Work", "Personal")
-            ),
-            Team(
-                name = "Another Team",
-                members = mutableListOf(
-                    getUserByName("Sergio Mattarella"),
-                    getUserByName("Giovanni Malnati"),
-                    getUserByName("Cristoforo Colombo")
-                ),
-                tasks = mutableListOf(
-                    getTaskById(8),
-                    getTaskById(9),
-                    getTaskById(10),
-                ),
-                sections = mutableListOf("General", "Funny ideas")
-            )
-        )
-    )
-
-    val teams: StateFlow<List<Team>> = _teams
-    fun getSectionsOfTeam(teamId: Long): SnapshotStateList<String> {
-        val s = _teams.value[teamId.toInt()].sections
-        return mutableStateListOf(*s.toTypedArray())
-    }
-
-    fun addTeam(team: Team) {
-        _teams.value.add(team)
-    }
-
-    val _activeTeam: MutableStateFlow<Team> = MutableStateFlow(_teams.value[0])
-    val activeTeam: StateFlow<Team> = _activeTeam
-
-
-    fun createEmptyTeam(name: String) {
-        val newTeam = Team(name, sections = mutableListOf("General"))
-        newTeam.admin = user.value
-
-        user.value?.let { newTeam.addMember(it) }
-        user.value?.teams?.add(newTeam)
-
-        _teams.value.add(newTeam)
-    }
-
-    fun leaveTeam(team: Team, user: User) {
-        // Rimuovi il team dalla lista di team dell'utente
-        _userList.value.find { it.id == user.id }?.teams?.remove(team)
-
-        // Rimuovi i task dell'utente associati al team
-        _userList.value.find { it.id == user.id }?.tasks?.removeAll(user.tasks.filter { it.team?.id == team.id })
-
-        _tasksList.value.forEach() {
-            if (it.team?.id == team.id && it.assignee?.id == user.id) {
-                it.assignee = null
-            }
-        }
-
-
-        // Rimuovi l'utente dalla lista di membri del team
-        _teams.value.find { it.id == team.id }?.members?.remove(user)
-
-        // Cambia il team attivo se necessario
-        if (user.teams.isNotEmpty()) {
-            changeActiveTeamId(
-                _userList.value.find { it.id == user.id }?.teams?.get(0)?.id ?: 0
-            )
-        } else {
-            changeActiveTeamId(0)
-        }
-    }
-
-
-    fun removeTeam(teamId: Long) {
-        // Rimuovi il team dalla lista di team di ogni membro e rimuovi i task associati al team cancellato
-        _teams.value.forEach { team -> Log.d("Team", "teamid: ${team.id}") }
-        Log.d("Team", "teamId da rimuovere: $teamId")
-
-        _teams.value.find { it.id == teamId }?.let { team ->
-            //val roba =tasksList.value.filter { task -> team.tasks.map { it.id }.contains(task.id) }
-            //roba.forEach { Log.d("taskdarimuovere", "taskid: ${it.id}")  }
-
-            team.members.forEach { member ->
-                member.teams.remove(team)
-                val tasksToRemove = member.tasks.filter { task -> task.team?.id == team.id }
-                member.tasks.removeAll(tasksToRemove)
-            }
-        }
-        user.value?.teams?.get(0)?.let { changeActiveTeamId(it.id) }
-        _teams.value.remove(_teams.value.find { it.id == teamId }!!)
-
-    }
-
-    fun changeActiveTeamId(teamId: Long) {
-        Log.d("Team", "teamId da cambiare: $teamId")
-        _activeTeam.value = _teams.value.find { it.id == teamId } ?: _teams.value[0]
-        tasksList = MutableStateFlow(activeTeam.value.tasks)
-    }
-
-    var activePageValue =
-        MutableStateFlow(Route.TeamTasks.name) //by mutableStateOf(Route.TeamTasks.name)
+    var activePageValue = MutableStateFlow(Route.TeamTasks.name)
         private set
 
     fun setActivePage(page: String) {
         activePageValue.value = page
     }
 
-    val _user = MutableStateFlow(User())
-    val user: StateFlow<User?> = _user
-
-    fun updateUserInFirestore(user: User) {
-        db.collection("users").document(user.email).set(user)
-            .addOnSuccessListener {
-                Log.d("UserProfile", "User profile updated successfully")
-            }
-            .addOnFailureListener { e ->
-                Log.e("UserProfile", "Error updating user profile", e)
-            }
+    fun changeActiveTeamId(teamId: String) {
+        if (teamId != "no_team" && !teamId.isBlank())
+            activeTeamId.value = teamId
     }
-    fun editUser(firstName : String, lastName : String, email : String, location : String) {
-        _user.value.firstName = firstName
-        _user.value.lastName = lastName
-        _user.value.location = location
-        updateUserInFirestore(_user.value)
+
+    fun leaveTeam(teamId: String, userId: String) {
+
+        val teamRef = db.collection("Teams").document(teamId)
+        val userRef = db.collection("users").document(userId)
+        db.runTransaction {
+            teamRef.update("members", FieldValue.arrayRemove(userId))
+            userRef.update("teams", FieldValue.arrayRemove(teamId))
+        }
+        .addOnSuccessListener {
+            Log.d("Firestore", "Team removed from user")
+            val nextTeam = user.value.teams.firstOrNull { it != teamId }
+            activeTeamId.value = nextTeam ?: ""
+        }
+        .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }
+
+
+
+    }
+
+    fun removeTeam(teamId: String, team: Team) {
+        val usersRefs = team.members.map { db.collection("users").document(it) }
+        val teamRef = db.collection("Teams").document(teamId)
+        db.runTransaction{
+            for(u in usersRefs){
+                it.update(u, "teams", FieldValue.arrayRemove(teamId))
+            }
+            it.delete(teamRef)
+        } .addOnSuccessListener {
+            Log.d("Firestore", "Team $teamId deleted")
+            val nextTeam = user.value.teams.firstOrNull { it != teamId }
+            activeTeamId.value = nextTeam ?: ""
+        }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error deleting team $teamId", e) }
+
+        //db.collection("Teams").document(teamId).delete()
+
+    }
+
+    fun joinTeam(teamId: String, userId: String) {
+        // Add the user to the team's members list
+        val teamReaf= db.collection("Teams").document(teamId)
+        val userRef = db.collection("users").document(userId)
+        db.runTransaction {
+            it.update(teamReaf, "members", FieldValue.arrayUnion(userId))
+            it.update(userRef, "teams", FieldValue.arrayUnion(teamId))
+        }
+            .addOnSuccessListener { Log.d("Firestore", "Team $teamId joined")  }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error join team $teamId", e) }
+        activeTeamId.value=teamId
+
+    }
+    fun fetchTeam(teamId: String) : Flow<Team> = callbackFlow {
+        val  l = db.collection("Teams").document(teamId).addSnapshotListener{
+            r,e ->
+            if (r!= null) {
+                r.toObject<Team>()?.let { trySend(it) }
+            }
+
+        }
+        awaitClose{l.remove()}
+    }
+
+
+
+    fun createEmptyTeam(nameTeam: String): Result<String> {
+        val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email), photo= "")
+
+
+        // Create the team in Firestore
+        Log.d("Firestore", "newTeam ID: ${newTeam.id} email ${user.value.email }")
+        val newTeamRef = db.collection("Teams").document()
+        val newTeamId = newTeamRef.id
+        newTeam.id = newTeamRef.id // se lo tocchi ti taglio le mani
+        val userRef = db.collection("users").document(user.value.email)
+        db.runTransaction {
+            it.set(newTeamRef, newTeam)
+            it.update(userRef, "teams", FieldValue.arrayUnion(newTeamRef.id))
+        }
+        .addOnSuccessListener { activeTeamId.value = newTeamId; Log.d("Firestore", "User added to team") }
+        .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
+
+
+
+        if (newTeamId == "") return Result.failure(Exception("Error creating team"))
+
+        return Result.success(newTeamId)
+    }
+
+    fun addSectionToTeam(section: String) {
+        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayUnion(section))
+            .addOnSuccessListener { Log.d("Firestore", "Section added to team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error adding section to team", e) }
+    }
+
+    fun removeSectionFromTeam(section: String) {
+        db.collection("Teams").document(activeTeamId.value).update("sections", FieldValue.arrayRemove(section))
+            .addOnSuccessListener { Log.d("Firestore", "Section removed from team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing section from team", e) }
+    }
+
+    //TaskListViewModel
+
+    //update task
+    fun onTaskUpdated(updatedTask: Task) {
+        Log.d("Firestore", "Task updated: $updatedTask")
+        updatedTask.teamId = activeTeamId.value
+        db.collection("Tasks").document(updatedTask.id).set(updatedTask.toDTO())
+            .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+    }
+
+    fun deleteTask(task: Task) {
+        // Remove the task from the user's tasks list
+        val taskRef = db.collection("Tasks").document(task.id)
+        val userRef = task.assignee?.let { db.collection("users").document(it) }
+        val teamRef = db.collection("Teams").document(activeTeamId.value)
+        db.runTransaction { t ->
+            t.delete(taskRef)
+            task.assignee?.let {
+                if (userRef != null) {
+                    t.update(userRef, "tasks", FieldValue.arrayRemove(task.id))
+                    t.update(teamRef,"tasks", FieldValue.arrayRemove(task.id))
+                }
+            }
+        }
+            .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+
+        // Remove the task from the team's tasks list
+        /*
+        db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(task.id))
+            .addOnSuccessListener { Log.d("Firestore", "Task removed from team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }*/
+    }
+
+    fun onTaskCreated(t: Task) {
+        // Add the task to the user's tasks list
+        val task = t.copy()
+        task.teamId = activeTeamId.value
+        val userRef = t.assignee?.let { db.collection("users").document(it) }
+        val taskRef = db.collection("Tasks").document()
+        task.id = taskRef.id
+        db.runTransaction {
+            if (userRef != null) {
+                it.update(userRef, "tasks", FieldValue.arrayUnion(taskRef.id))
+            }
+            it.set(taskRef, task.toDTO())
+        }
+            .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+
+        // Add the task to the team's tasks list questo rompe tutto per ora
+
+        /*db.collection("Teams").document(activeTeamId.value).update("tasks", FieldValue.arrayUnion(taskRef.id))
+            .addOnSuccessListener { Log.d("Firestore", "Task added to team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error adding task to team", e) }*/
+    }
+
+    fun onTaskDeleted(t: Task) {
+        // Remove the task from the user's tasks list
+        val taskRef = db.collection("task").document(t.id)
+        val userRef = t.assignee?.let { db.collection("users").document(it) }
+        val teamRef = db.collection("Teams").document(activeTeamId.value)
+        db.runTransaction { tr ->
+            tr.delete(taskRef)
+            tr.update(userRef!!, "tasks", FieldValue.arrayRemove(t.id))
+            tr.update(teamRef,"tasks", FieldValue.arrayRemove(t.id))
+        }
+            .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+
+        // Remove the task from the team's tasks list
+        /*db.collection("Teams").document(activeTeamId.value.toString()).update("tasks", FieldValue.arrayRemove(t.id))
+            .addOnSuccessListener { Log.d("Firestore", "Task removed from team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing task from team", e) }*/
     }
 
     val currentSortOrder: MutableStateFlow<String> = MutableStateFlow("Due date")
@@ -395,128 +388,469 @@ class MainApplication : Application() {
     }
 
     val filterParams = mutableStateOf(FilterParams())
-
     val searchQuery = mutableStateOf("")
 
     fun setSearchQuery(newQuery: String) {
         searchQuery.value = newQuery
     }
 
-    fun teamIdsetProfileBitmap(teamId: Long, b: Bitmap?) {
-        teams.value.find { it.id == teamId }?.profileBitmap?.value = b
+    fun setTeamProfileBitmap(s: String, bitmap: Bitmap?) {
+
+        //<<<<updateTeam>>>>()
     }
 
-    fun teamIdsetProfilePicture(teamId: Long, n: String) {
-        teams.value.find { it.id == teamId }?.profilePicture?.value = n
+    fun downloadPhoto(pathNameDB:String, pathNameLocal: String ){
+        val fileList: Array<String> = context.fileList()
+
+        Log.d( "fileList", "fileList: ${fileList.joinToString(separator = ", ")}")
+        if(pathNameDB.isEmpty() ||  context.getFileStreamPath(pathNameLocal).exists() || LocalPhotos.contains(pathNameDB) )
+            return
+        Log.d("pathNameDB", "pathNameDB: $pathNameDB")
+        val dbRef = storage.reference.child("images").child(pathNameDB)
+        val file = try {
+            context.getFileStreamPath(pathNameLocal)
+        }catch (_: Exception) {
+            context.openFileOutput(pathNameLocal, Context.MODE_PRIVATE).write(1)
+            context.getFileStreamPath(pathNameLocal)
+        }
+        dbRef.getFile(file)
+            .addOnSuccessListener { Log.d("FireStorage", "file scaricato file: $file ") }
+            .addOnFailureListener { e -> Log.w("FireStorage", "errore $e file: $file")         }
     }
 
-    fun removeMemberFromTeam(teamId: Long, userId: Long) {
-        _teams.value.find { it.id == teamId }?.members?.remove(teams.value.find { it.id == teamId }?.members?.find { it.id == userId })
+    fun uploadPhoto(team : Team){
+            if(team.photo.isNotEmpty()){
+                //ogni volta che si esegue upload photo si carica un nuovo file
+                val imRef = db.collection("Images").document(team.photo)
+                val teamRef = db.collection("Teams").document(team.id)
+                team.photo = imRef.id
+
+
+
+
+                val dbRef = storage.reference.child("images/${imRef.id}")
+
+                val byteArray = context.openFileInput(team.photo).readBytes() //prima LocalImage
+
+                dbRef.putBytes(byteArray)
+                    .addOnSuccessListener {
+                        Log.d("FireStorage", "file caricato")
+
+                        db.runTransaction {
+                            LocalPhotos.add(team.photo)
+                            LocalPhotos.add(imRef.id)
+                            val newImage = mapOf("path" to team.photo)
+                            it.set(imRef,newImage)
+                            it.update(teamRef, "photo", imRef.id)
+                        }
+                            .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
+                            .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+
+                    }
+                    .addOnFailureListener {
+                        Log.d("FireStorage", "errore ")
+                    }
+
+            }
     }
 
-    val chatModel = ChatModel(_userList.value)
+    fun setTeamProfilePicture(s: String, s1: String) {
+        TODO("Not yet implemented")
+        /*val t = team.toDTO()
+        t.uploadFile(storage.reference)// Register observers to listen for when the download is done or if it fails
+            .addOnFailureListener {
+                Log.d("FireStorage", "errore ")
+            }.addOnSuccessListener { taskSnapshot ->
+                Log.d("FireStorage", "file caricato ")
+            }*/
+    }
+
+    fun updateUser(firstName: String, lastName: String, email: String, location: String) {
+        _user.value.firstName = firstName
+        _user.value.lastName = lastName
+        _user.value.email = email
+        _user.value.location = location
+
+        db.collection("users").document(email).set(_user.value)
+            .addOnSuccessListener { Log.d("UserProfile", "User profile updated successfully") }
+            .addOnFailureListener { e -> Log.e("UserProfile", "Error updating user profile", e) }
+    }
 
 }
 
-class ChatModel(userList: List<User>) {
-    private val _chats: MutableStateFlow<MutableMap<User, MutableList<ChatMessage>>> =
-        MutableStateFlow(
-            mutableStateMapOf(
-                (userList[1] to mutableStateListOf(
-                    ChatMessage(
-                        "Buongiorno! Quando possiamo organizzare un meeting?",
-                        userList[1],
-                        false,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Buondì, io sono sempre disponibile!",
-                        userList[0],
-                        true,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Perfetto, allora contatto il manager e cerco di programmarlo per la prossima settimana",
-                        userList[1],
-                        false,
-                        LocalDateTime.now()
-                    )
-                )),
-                userList[2] to mutableStateListOf(
-                    ChatMessage(
-                        "Mi sono stancato della democrazia",
-                        userList[2],
-                        false,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Dovresti andare un po' in vacanza",
-                        userList[0],
-                        true,
-                        LocalDateTime.now()
-                    ),
-                    ChatMessage(
-                        "Oppure fare una dittatura",
-                        userList[2],
-                        false,
-                        LocalDateTime.now()
-                    )
-                )
-            )
+
+class ChatModel(
+    val currentUser: MutableStateFlow<User>,
+    val currentTeamId: MutableStateFlow<String>,
+    val db: FirebaseFirestore
+) {
+    // First get chats of team, second get my chats
+    fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
+        val listener = db.collection("chats")
+            .whereEqualTo("teamId", teamId)
+            .where(Filter.or(
+                Filter.equalTo("user1Id", currentUser.value.email),
+                Filter.equalTo("user2Id", currentUser.value.email)
+            ))
+            .addSnapshotListener { r, e ->
+                if (r != null) {
+                    val chats = mutableListOf<Chat>()
+
+                    for (document in r) {
+                        val chat = document.toObject(Chat::class.java)
+
+                        Log.d("Chat", "${document.id} => ${document.data}")
+                        document.reference.collection("messages").get().addOnSuccessListener {
+                            val messages = it.toObjects(ChatMessage::class.java)
+                            chat.messages = messages.toMutableList()
+
+                            chats.add(chat)
+                            trySend(chats)
+                        }
+                    }
+
+                } else {
+                    Log.d("Chat", "Error getting private chats: ", e)
+                }
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+    fun newChat(destUserId: String) {
+        val chatData = hashMapOf(
+            "teamId" to currentTeamId.value,
+            "user1Id" to currentUser.value.email,
+            "user2Id" to destUserId
         )
-    val chats: StateFlow<MutableMap<User, MutableList<ChatMessage>>> = _chats
-    fun newChat(user: User) {
-        _chats.value.put(user, mutableStateListOf())
+
+        db.collection("chats")
+            .document()
+            .set(chatData)
+            .addOnSuccessListener {
+                Log.d("chat", "Chat creata con successo")
+            }
+            .addOnFailureListener { e ->
+                Log.d("chat", "Errore nella creazione della chat: $e")
+            }
     }
 
-    fun sendMessage(destUser: User, message: ChatMessage) {
-        _chats.value[destUser]?.add(message)
-    }
 
-    fun editMessage(destUser: User, messageId: Long, newText: String) {
-        _chats.value[destUser]?.find { it.id == messageId }?.text = newText
-    }
-
-    fun deleteMessage(user: User, messageId: Long) {
-        _chats.value[user]?.removeIf { it.id == messageId }
-    }
-
-    private val _groupChat: MutableStateFlow<MutableList<ChatMessage>> = MutableStateFlow(
-        mutableStateListOf(
-            ChatMessage(
-                "Benvenuti a tutti nella chat di gruppo!",
-                userList[0],
-                true,
-                LocalDateTime.now()
-            ),
-            ChatMessage("Ciao ragazzi!", userList[1], false, LocalDateTime.now()),
-            ChatMessage(
-                "Non scrivete troppi messaggi",
-                userList[2],
-                false,
-                LocalDateTime.now()
-            ),
-            ChatMessage(
-                "Sennimondoesistesseunpodibene",
-                userList[3],
-                false,
-                LocalDateTime.now()
-            ),
+    fun sendMessage(destUserId: String, message: ChatMessage) {
+        val chatUsers = listOf(currentUser.value.email, destUserId)
+        val newMessage = hashMapOf(
+            "id" to "",
+            "authorId" to currentUser.value.email,
+            "text" to message.text,
+            "seenBy" to mutableListOf<String>(),
+            "timestamp" to message.timestamp
         )
-    )
-    val groupChat: StateFlow<MutableList<ChatMessage>> = _groupChat
-    fun sendGroupMessage(message: ChatMessage) {
-        _groupChat.value.add(message)
+
+        db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    val docRef = db.collection("chats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document()
+
+                    newMessage["id"] = docRef.id
+
+                    docRef.set(newMessage)
+                        .addOnSuccessListener {
+                            Log.d("chat", "Message added successfully with ID: ${docRef.id}")
+                        }.addOnFailureListener { e ->
+                            Log.d("chat", "Error adding message: $e")
+                        }
+                }
+            }
+
     }
 
-    fun editGroupMessage(messageId: Long, newText: String) {
-        _groupChat.value[messageId.toInt()].text = newText
+    fun editMessage(destUserId: String, messageId: String, newText: String) {
+        //_chats.value[destUser]?.find { it.id == messageId }?.text = newText
     }
 
-    fun deleteGroupMessage(messageId: Long) {
-        _groupChat.value.removeIf { it.id == messageId }
+    fun deleteMessage(destUserId: String, messageId: String) {
+        val chatUsers = listOf(currentUser.value.email, destUserId)
+
+        db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("chats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .delete()
+                        .addOnSuccessListener {
+                            Log.d("chat","Message deleted successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error deleting message: $e")
+                        }
+                }
+            }
+    }
+
+    fun setMessageAsSeen(destUserId: String, messageId: String) {
+        val chatUsers = listOf(currentUser.value.email, destUserId)
+
+        db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("chats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
+                        .addOnSuccessListener {
+                            Log.d("chat","Private message seen successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error seeing private message: $e")
+                        }
+                }
+            }
+    }
+
+    fun countUnseenChatMessages(destUserId: String): Flow<Int> = callbackFlow {
+        var count = 0
+        val chatUsers = listOf(currentUser.value.email, destUserId)
+
+        val listener = db.collection("chats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .whereIn("user1Id", chatUsers)
+            .whereIn("user2Id", chatUsers)
+            .addSnapshotListener { r, e ->
+                if (r != null) {
+                    val chats = mutableListOf<Chat>()
+
+                    for (document in r) {
+                        val chat = document.toObject(Chat::class.java)
+
+                        Log.d("Chat", "${document.id} => ${document.data}")
+                        document.reference.collection("messages").get().addOnSuccessListener {
+                            val messages = it.toObjects(ChatMessage::class.java)
+                            for (m in messages)
+                                if (!m.seenBy.contains(currentUser.value.email))
+                                    count++
+                            trySend(count)
+                        }
+                    }
+
+                } else {
+                    Log.d("Chat", "Error getting private chats: ", e)
+                }
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+    fun sendTestMessage() {
+//        val list = listOf("Ciao bel maschione", "Smettila di drogarti", "Mandami il tuo numero di conto corrente, serve per salvare il paese", "Aiuto sono stato rapito.......dal tuo sguardo pupa", "Mattarella non esiste, sono il suo sostituto robotico, MatTechRella", "Fi falve buonafera, fono proprio io Fergione")
+//        val randomIndex = Random.nextInt(list.size)
+//        val randomElement = list[randomIndex]
+//
+//        _chats.value[currentTeam.value]?.entries?.find {
+//            it.key.first == currentUser.value && it.key.second == userList[1] || it.key.first == userList[1] && it.key.second == currentUser.value
+//        }?.value?.add(ChatMessage(randomElement, userList[1], LocalDateTime.now(), mutableListOf(userList[1])))
+    }
+
+    fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {
+        val listener = db.collection("groupChats")
+            .whereEqualTo("teamId", teamId)
+            .addSnapshotListener { querySnapshot, exception ->
+                if (querySnapshot != null && !querySnapshot.isEmpty) {
+                    // Group chat exists, retrieve the document
+                    val chatDocument = querySnapshot.documents.first()
+                    val groupChat = chatDocument.toObject(GroupChat::class.java)
+
+                    if (groupChat != null) {
+                        // Aggiungiamo un listener alla collezione "messages"
+                        val secondListener = chatDocument.reference.collection("messages")
+                            .addSnapshotListener { messagesSnapshot, messagesException ->
+                                if (messagesException != null) {
+                                    Log.d("Chat", "Error fetching chat message: $exception")
+                                }
+
+                                val messages = messagesSnapshot?.toObjects(ChatMessage::class.java)
+                                    ?: mutableListOf()
+                                groupChat.messages = messages.toMutableList()
+                                Log.d("chat", "messages: ${groupChat.messages.size}")
+                                trySend(groupChat)
+                            }
+                    } else {
+                        Log.d("Chat", "Error fetching chat message: $exception")
+                    }
+                } else {
+                    Log.d("Chat", "Error fetching chat message: $exception")
+                }
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun sendGroupMessage(newMessage: ChatMessage) {
+        val messageToAdd = hashMapOf(
+            "authorId" to currentUser.value.email,
+            "text" to newMessage.text,
+            "timestamp" to Timestamp.now()
+        )
+
+        db.collection("groupChats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                if (querySnapshot != null && !querySnapshot.isEmpty) {
+                    // Supponiamo che ci sia solo una chat per teamId
+                    val chatDocument = querySnapshot.documents.first()
+
+                    // Aggiungi il nuovo messaggio alla collezione "messages" di questo documento
+                    chatDocument.reference.collection("messages")
+                        .add(messageToAdd)
+                        .addOnSuccessListener {
+                            it.update("id", it.id)
+                            Log.d("Chat", "Message added successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("Chat", "Error adding message: ", e)
+                        }
+                } else {
+                    Log.d("Chat", "No chat found with teamId: ${currentTeamId.value}")
+                    // Puoi anche gestire il caso in cui non esiste una chat per il teamId
+                    // Ad esempio, puoi creare una nuova chat qui se lo desideri
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.d("Chat", "Error getting chats: ", e)
+            }
+
+
+    }
+
+    fun editGroupMessage(messageId: String, newText: String) {
+        //_groupChat.value[messageId.toInt()].text = newText
+    }
+
+    fun deleteGroupMessage(messageId: String) {
+        db.collection("groupChats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("groupChats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .delete()
+                        .addOnSuccessListener {
+                            Log.d("chat","Group message deleted successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error deleting group message: $e")
+                        }
+                }
+            }
+    }
+
+    fun setGroupMessageAsSeen(messageId: String) {
+        db.collection("groupChats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .get()
+            .addOnSuccessListener { doc ->
+                if (doc.isEmpty){
+                    Log.d("chat", "No collection messages inside chat!!!")
+                } else {
+                    val chatDocId = doc.documents[0].id
+
+                    db.collection("groupChats")
+                        .document(chatDocId)
+                        .collection("messages")
+                        .document(messageId)
+                        .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
+                        .addOnSuccessListener {
+                            Log.d("chat","Group message seen successfully!")
+                        }
+                        .addOnFailureListener { e ->
+                            Log.d("chat","Error seeing group message: $e")
+                        }
+                }
+            }
+    }
+
+    fun countUnseenGroupMessages(): Flow<Int> = callbackFlow {
+        var count = 0
+        val listener = db.collection("groupChats")
+            .whereEqualTo("teamId", currentTeamId.value)
+            .addSnapshotListener { querySnapshot, exception ->
+                if (querySnapshot != null && !querySnapshot.isEmpty) {
+                    // Group chat exists, retrieve the document
+                    val chatDocument = querySnapshot.documents.first()
+
+                    // Aggiungiamo un listener alla collezione "messages"
+                    val secondListener = chatDocument.reference.collection("messages")
+                        .addSnapshotListener { messagesSnapshot, messagesException ->
+                            if (messagesException != null) {
+                                Log.d("Chat", "Error fetching chat message: $exception")
+                            }
+
+                            val messages = messagesSnapshot?.toObjects(ChatMessage::class.java)
+                                ?: mutableListOf()
+
+                            for (m in messages)
+                                if (!m.seenBy.contains(currentUser.value.email))
+                                    count++
+
+                            trySend(count)
+                    }
+                } else {
+                    Log.d("Chat", "Error fetching chat message: $exception")
+                }
+            }
+        awaitClose { listener.remove() }
+        Log.d("chat", "Model found $count unseen group messages")
+    }
+
+    fun countAllUnseenMessages(): Int {
+//        var count = 0;
+//        for (chat in _chats.value[currentTeam.value]?.entries?.filter { it.key.first == currentUser.value || it.key.second == currentUser.value }!!) {
+//            val destUser = if (chat.key.first == currentUser.value) chat.key.second else chat.key.first
+//            count += countUnseenChatMessages(destUser)
+//        }
+//        count += countUnseenGroupMessages()
+//        return count
+        return 0
     }
 }
+
+
 
 // FILTERS VARIABLES
 class FilterParams {

@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.tasks
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -47,28 +49,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
+import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.screens.tasks.components.SmallTaskBox
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlin.reflect.KFunction2
+import kotlinx.coroutines.flow.StateFlow
 
 @Composable
 fun TeamTasksScreen(
-    sections: List<String>,
-    getOfSection: KFunction2<String, String, List<Task>>,
-    sectionExpanded: Map<String, Boolean>,
+
+    _users: StateFlow<List<User>>,
+    getOfSection: (String, String) -> List<Task>,
+
     newSectionValue: String,
     toggleSectionExpansion: (String) -> Unit,
     isAddingSection: Boolean,
     deleteSection: (String) -> Unit,
     setNewSection: (String) -> Unit,
     newSectionError: String,
-    onTaskClick: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit,
+    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     toggleAddSection: () -> Unit,
     validateSection: () -> Unit,
-    currentSortOrder: MutableStateFlow<String>
+    currentSortOrder: MutableStateFlow<String>,
+    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
+
+    val activeteam = vm.activeTeam.collectAsState()
+    val activeTeamId by vm.activeTeamId.collectAsState()
+    Log.d("TeamTasksScreen", "${ activeteam.value}")
+    //var sectionExpanded = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+    vm.initSectionExpanded(mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf()))
+    //val sectionExpanded = vm.sectionExpanded
+    val users by vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList())
+    val taskList = vm.tasks.collectAsState(initial = emptyList()).value
+    val sections by vm.sections.collectAsState(listOf())
     var isDeletingSection by remember { mutableStateOf(false) }
     val sortOrder by currentSortOrder.collectAsState()
     Column(modifier = Modifier.fillMaxSize()) {
@@ -83,7 +98,7 @@ fun TeamTasksScreen(
                     icon = { Icon(Icons.Default.Add, contentDescription = "Add Task") },
                     onClick = {
                         //onAddTask("General")
-                        onTaskClick(3, null, null, null)
+                        onTaskClick(3, null, null, null, null)
                     },
 
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -105,7 +120,8 @@ fun TeamTasksScreen(
                         .padding(start = 16.dp, end = 16.dp, top = 8.dp),
                     contentPadding = PaddingValues(bottom = heightInDp + 55.dp)
                 ) {
-                    for (section in sections) {
+                    for (section in sections ) {
+                        Log.d("Section" , section )
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -119,7 +135,7 @@ fun TeamTasksScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(bottom = 5.dp)
-                                            .clickable { toggleSectionExpansion(section) }) {
+                                            .clickable { vm.toggleSectionExpansion(section) }) {
                                         Text(
                                             text = section,
                                             style = MaterialTheme.typography.headlineSmall,
@@ -134,7 +150,7 @@ fun TeamTasksScreen(
                                         )
 
                                         Icon(
-                                            if (sectionExpanded[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                                            if (vm.sectionExpanded[section] == true) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
                                             contentDescription = "Expand/Collapse",
                                             tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier
@@ -144,7 +160,7 @@ fun TeamTasksScreen(
 
 
                                         // Button to delete a section
-                                        if (getOfSection(section, sortOrder).isEmpty() && section != "General") {
+                                        if (vm.getOfSection(section, sortOrder).isEmpty() && section != "General") {
                                             IconButton(onClick = { isDeletingSection = true }) {
                                                 Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Section")
                                             }
@@ -185,17 +201,20 @@ fun TeamTasksScreen(
                                     }
 
                                     // Tasks of the section
-                                    if (sectionExpanded[section] == true) {
-                                        getOfSection(section, sortOrder).forEach { task ->
+                                    if ( vm.sectionExpanded[section] == true) {//sectionExpanded[section] == true
+                                        vm.getOfSectionByList(section, sortOrder, taskList ).forEach { task ->
+                                            val assignee = users.find { it.email == task.assignee }
                                             Column(
                                                 verticalArrangement = Arrangement.spacedBy(5.dp),
-                                                modifier = Modifier.clickable { onTaskClick(1, task.id.toInt(), task.title, null) }//navigation
+                                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) } // navigation
                                             ) {
-                                                SmallTaskBox(title = task.title, assignee = (task.assignee?.firstName
-                                                    ?: "") + " " + (task.assignee?.lastName ?: ""), section = null, dueDate = task.dueDate, task = task, onEditClick = {
-                                                    //editTask(task)
-                                                    onTaskClick(4, task.id.toInt(), task.title, null)
-                                                })
+                                                SmallTaskBox(title = task.title,
+                                                    task = task,
+                                                    assignee = (assignee?.getFirstAndLastName() ?: ""),
+                                                    section = null,
+                                                    dueDate = task.dueDate,
+                                                    onEditClick = { onTaskClick(4, task.id, task.title, null, null) }
+                                                )
                                                 Spacer(modifier = Modifier.weight(1f))
                                             }
                                         }
@@ -268,11 +287,12 @@ fun TeamTasksScreen(
 }
 
 @Composable
-fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: Int?, taskName: String?, userId: Long?) -> Unit) {
+fun TeamTaskScreenWrapper(vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)), onItemSelect: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit) {
     TeamTasksScreen(
-        sections = vm.sections,
+        //_sections = vm.sections ,
+        _users = vm.teamMembers,
         getOfSection = vm::getOfSection,
-        sectionExpanded = vm.sectionExpanded,
+
         newSectionValue = vm.newSectionValue,
         toggleSectionExpansion = vm::toggleSectionExpansion,
         isAddingSection = vm.isAddingSection,

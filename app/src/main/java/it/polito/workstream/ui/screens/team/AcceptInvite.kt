@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.team
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,12 +49,14 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun ConfirmJoinTeamPage(
     navController: NavController,
-    teamId: String?,
+    teamId: String,
     onConfirm: (Team) -> Unit,
     onCancel: () -> Unit,
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
 ) {
-    val team = teamId?.let { id -> vm.teams.value.find { it.id == id.toLong() } }
+    val teams = vm.teams.collectAsState(initial = emptyList())
+    val team =  vm.fetchTeam(teamId).collectAsState(initial = null).value  //teamId?.let { id -> teams.value.find { it.id == id } }
+    val members = vm.teamMembers.collectAsState(initial = emptyList()).value
 
     Column(
         modifier = Modifier
@@ -62,14 +67,14 @@ fun ConfirmJoinTeamPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (team != null) {
-            ProfilePicture(profilePicture = team.profilePicture, photoBitmapValue = team.profileBitmap, setPhotoBitmap = {}, name = team.name, isEditing = false)
+            ProfilePicture(profilePicture = team.profilePicture, photoBitmapValue = team.profileBitmap, setPhotoBitmap = {}, name = team.name, isEditing = false, setPhoto = {})
             Spacer(modifier = Modifier.height(8.dp))
             Text(team.name, style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(8.dp))
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                 Text(text = "Team Members", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                team.members.forEach { member ->
+                members.forEach { member ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -82,11 +87,14 @@ fun ConfirmJoinTeamPage(
                                 .padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             // Profile picture
-                            member.BitmapValue?.let { bitmap ->
+                            member.BitmapValue?.let { bitmap: Bitmap ->
                                 Image(
                                     bitmap = bitmap.asImageBitmap(), contentDescription = null, modifier = Modifier
                                         .size(30.dp)
-                                        .background(MaterialTheme.colorScheme.onSurface, shape = CircleShape)
+                                        .background(
+                                            MaterialTheme.colorScheme.onSurface,
+                                            shape = CircleShape
+                                        )
                                 )
                             } ?: Box(
                                 modifier = Modifier

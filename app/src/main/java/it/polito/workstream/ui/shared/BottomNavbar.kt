@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.shared
 
+import android.util.Log
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Attribution
@@ -23,7 +24,7 @@ import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 
 @Composable
-fun BottomNavbar(active: String, onRouteChange: (route: String) -> Any, teamId: Long) {
+fun BottomNavbar(active: String, onRouteChange: (route: String) -> Any, teamId: String) {
     // 3 routes: my_tasks, team_tasks, team_members
     val routes = listOf(
         R("Team Tasks", Route.TeamTasks.name, Icons.Default.Checklist, 1),
@@ -41,8 +42,10 @@ fun BottomNavbar(active: String, onRouteChange: (route: String) -> Any, teamId: 
                 label = { Text(route.name) },
                 selected = route.name == active,
                 onClick = {
-                    if (route.route == Route.TeamTasks.name)
+                    if (route.route == Route.TeamTasks.name) {
+                        Log.d("BottomNavbar", "TeamTasks   \"/$teamId/${route.route}\" ")
                         onRouteChange("/$teamId/${route.route}")
+                    }
                     else
                         onRouteChange(route.route)
                 },
@@ -56,15 +59,13 @@ fun BottomNavbar(active: String, onRouteChange: (route: String) -> Any, teamId: 
 fun BottomNavbarWrapper(
     vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     navigateTo: (route: String) -> Any,
-    teamId: Long
+    teamId: String
 ) {
     val activePage = vm.activePageValue.collectAsState().value
 
-    if (activePage != Route.NewChat.title && activePage != Route.ChatScreen.title && !activePage.contains(Route.ChatScreen.title)) {
+    if (activePage != Route.NewChat.title && activePage != Route.ChatScreen.title && !activePage.contains(Route.ChatScreen.title) && !activePage.contains("no_team")) {
         BottomNavbar(active = vm.activePageValue.collectAsState().value, onRouteChange = navigateTo, teamId = teamId)
     }
-
-
 }
 
 private class R(val name: String, val route: String, val icon: ImageVector, val idnav: Int)
