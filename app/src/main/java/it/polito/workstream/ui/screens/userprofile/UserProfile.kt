@@ -35,7 +35,7 @@ fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
                 vm.photoBitmapValue, vm::setPhotoBitmap,
                 vm::validate,
 
-            )
+                )
             else PresentationPanel(
                 firstname.value,
                 lastname.value,
@@ -47,7 +47,6 @@ fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
                 tasks.filter { it.completed }.size,
                 tasks.filter { !it.completed }.size,
                 vm::edit,
-                { println("Changing user password") },
                 onLogout,
                 vm.photoBitmapValue,
                 vm::setPhotoBitmap,
