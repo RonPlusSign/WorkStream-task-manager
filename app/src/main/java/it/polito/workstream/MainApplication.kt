@@ -159,6 +159,9 @@ class MainApplication : Application(), ImageLoaderFactory {
             .addSnapshotListener { r, e ->
                 if (r != null) {
                     val users = r.toObjects(User::class.java)
+                    for(u in users){
+                        downloadPhoto(u.photo, u.photo)
+                    }
                     trySend(users)
                 } else {
                     trySend(emptyList())
@@ -457,6 +460,43 @@ class MainApplication : Application(), ImageLoaderFactory {
 
             }
     }
+    fun uploaUserdPhoto(user : User){
+        if(user.photo.isNotEmpty()){
+            //ogni volta che si esegue upload photo si carica un nuovo file
+            val imRef = db.collection("Images").document(user.photo)
+            val teamRef = db.collection("Teams").document(user.email)
+            user.photo = imRef.id
+
+
+
+
+            val dbRef = storage.reference.child("images/${imRef.id}")
+
+            val byteArray = context.openFileInput(user.photo).readBytes() //prima LocalImage
+
+            dbRef.putBytes(byteArray)
+                .addOnSuccessListener {
+                    Log.d("FireStorage", "file caricato")
+
+                    db.runTransaction {
+                        LocalPhotos.add(user.photo)
+                        LocalPhotos.add(imRef.id)
+                        val newImage = mapOf("path" to user.photo)
+                        it.set(imRef,newImage)
+                        it.update(teamRef, "photo", imRef.id)
+                    }
+                        .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
+                        .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+
+                }
+                .addOnFailureListener {
+                    Log.d("FireStorage", "errore ")
+                }
+
+        }
+    }
+
+
 
     fun setTeamProfilePicture(s: String, s1: String) {
         TODO("Not yet implemented")

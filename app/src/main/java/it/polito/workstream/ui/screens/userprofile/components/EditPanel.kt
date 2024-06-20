@@ -25,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +62,11 @@ fun EditPanel(
     save: () -> Unit = {},
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
+
+    val photoState = remember {mutableStateOf(vm.user.photo)}
+    photoState.value = vm.user.photo
+
+    val activeTeamId by vm.activeTeamId.collectAsState(initial = "no_team")
     var firstNameValue by remember { mutableStateOf(firstNameValue) }
 
     var lastNameValue by remember {  mutableStateOf(lastNameValue)  }
@@ -85,13 +91,18 @@ fun EditPanel(
                 verticalArrangement = Arrangement.Center
             ) {
                 ProfilePicture(
-                    profilePictureValue,
-                    setProfilePicture,
+                    basepath = activeTeamId+emailValue ,
+                    photo = photoState,
+                    profilePicture = profilePictureValue,
+                    edit = setProfilePicture,
                     isEditing = true,
-                    photoBitmapValue,
-                    setPhotoBitmap,
-                    "$firstNameValue $lastNameValue",
-                    setPhoto = {}
+                    photoBitmapValue = photoBitmapValue,
+                    setPhotoBitmap = setPhotoBitmap,
+                    name = "$firstNameValue $lastNameValue",
+                    setPhoto = {
+                        vm.user.photo = it
+                        vm.uploaUserdPhoto(vm.user)
+                    }
                 )
             }
 
@@ -137,13 +148,18 @@ fun EditPanel(
                 verticalAlignment = Alignment.Bottom
             ) {
                 ProfilePicture(
-                    profilePictureValue,
-                    setProfilePicture,
+                    basepath = activeTeamId+emailValue ,
+                    photo = photoState,
+                    profilePicture = profilePictureValue,
+                    edit = setProfilePicture,
                     isEditing = true,
-                    photoBitmapValue,
-                    setPhotoBitmap,
-                    "$firstNameValue $lastNameValue",
-                    setPhoto = {}
+                    photoBitmapValue = photoBitmapValue,
+                    setPhotoBitmap = setPhotoBitmap,
+                    name = "$firstNameValue $lastNameValue",
+                    setPhoto = {
+                        vm.user.photo = it
+                        vm.uploaUserdPhoto(vm.user)
+                    }
                 )
             }
             Column(

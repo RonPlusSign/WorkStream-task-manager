@@ -34,7 +34,8 @@ class UserViewModel(
     val getTasks: (String) -> Flow<List<Task>>,
     var firstNameValue: MutableState<String>,
     var lastNameValue: MutableState<String>,
-    var locationValue: MutableState<String?>
+    var locationValue: MutableState<String?>,
+    val uploaUserdPhoto: (User) -> Unit
 ) : ViewModel() {
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)

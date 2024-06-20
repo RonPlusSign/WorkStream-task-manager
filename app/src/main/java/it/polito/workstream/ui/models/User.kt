@@ -13,7 +13,8 @@ data class User(
     var BitmapValue: Bitmap? = null,
     var activeTeam: String? = null,
     var teams: MutableList<String> = mutableListOf(), // List of teams to which the user belongs
-    var chats: MutableMap<String, List<ChatMessage>> = mutableMapOf() // Map of chat messages
+    var chats: MutableMap<String, List<ChatMessage>> = mutableMapOf(), // Map of chat messages
+    var photo: String = "",
 ) {
 
     fun getFirstAndLastName(): String {
