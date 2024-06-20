@@ -89,7 +89,8 @@ fun TeamScreen(
     var showDeleteConfirmationDialog by remember { mutableStateOf(false) }
     var showLeaveConfirmationDialog by remember { mutableStateOf(false) }
     val userProfile = user.collectAsState(initial = null).value
-    val team = vm.team.collectAsState(initial = null).value ?: Team(name = "Loading...")
+    val activeTeamId by vm.activeTeamId.collectAsState(initial = "no_team")
+    val team = vm.fetchTeam(activeTeamId).collectAsState(initial = null).value ?: Team(name = "Loading...")
     val teamMembers =  vm.teamMembers.collectAsState(initial = emptyList()).value
     val teamTasks  = tasksVm.tasks.collectAsState(initial = emptyList()).value
 
@@ -97,7 +98,7 @@ fun TeamScreen(
     photoState.value = team.photo
 
     var nameValue by remember { mutableStateOf(team.name) }
-
+    nameValue = team.name
     val numberOfMembers = teamMembers.size  // Number of members
     Log.d("TeamScreen", "Number of members: $numberOfMembers")
     val tasksCompleted = teamTasks.filter { it.completed }.size    // Total number of tasks completed
@@ -161,7 +162,6 @@ fun TeamScreen(
                         } },
                         setPhotoBitmap = { scope.launch {
 
-
                             team.photo= "LocalImage"
                             vm.uploadPhoto(team)
                         } } ,
@@ -169,7 +169,7 @@ fun TeamScreen(
                             team.photo = it
                             vm.uploadPhoto(team)
                         }
-                    //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
+
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -204,7 +204,7 @@ fun TeamScreen(
                                         }
                                     }
                                 },
-                                confirmButton = { TextButton(onClick = { scope.launch { vm.save(nameValue) } }) { Text("Save") } },
+                                confirmButton = { TextButton(onClick = { vm.save(nameValue, team) } ) { Text("Save") } },//QUI
                                 dismissButton = { TextButton(onClick = vm::discard) { Text("Cancel") } }
                             )
                         }

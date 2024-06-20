@@ -11,7 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.withContext
 
 
@@ -23,11 +22,12 @@ class TeamViewModel(
     private val teamIdsetProfileBitmap: (teamId: String, b: Bitmap?) -> Unit,
     private val teamIdsetProfilePicture: (teamId: String, n: String) -> Unit,
     private val removeMemberFromTeam: (teamId: String, userId: String) -> Unit,
-    fetchTeam: (String) -> Flow<Team?>,
-    activeTeamId: MutableStateFlow<String>,
+    val fetchTeam: (String) -> Flow<Team?>,
+    val activeTeamId: MutableStateFlow<String>,
     fetchUsers: (String) -> Flow<List<User>>,
     val changeActiveTeamId: (String) -> Unit,
-    val uploadPhoto: (team :Team) -> Unit,
+    val uploadPhoto: (team: Team) -> Unit,
+    val updateTeamName: (newname: String, teamId: String) -> Unit,
 
     ) : ViewModel() {
     val team = fetchTeam(activeTeamId.value)
@@ -55,16 +55,14 @@ class TeamViewModel(
     }
 
     /* Check if all fields are valid, and if so, stop editing */
-    suspend fun save(name: String) {
+    fun save(name: String, team: Team) {
         val nameValue = name.trim()
         nameError = if (nameValue.isBlank()) "Team name cannot be blank" else ""
 
         if (nameError.isBlank()) { // if all fields are valid, stop editing
-            val t = team.lastOrNull()
-            if (t != null) {
-                t.name = nameValue
-                updateTeam(t)
-            }
+            val t = team
+            t.name = nameValue
+            updateTeamName(name, t.id)
             showEditDialog = false
         }
     }
