@@ -383,7 +383,7 @@ fun EditTaskScreen(
     // Date picker dialog
     if (taskVM.isDatePickerOpen) {
         DatePickerDialog(
-            colors = DatePickerDefaults.colors(containerColor = Color(0xFFF5F0FF)),
+            colors = DatePickerDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
             onDismissRequest = taskVM::toggleDatePickerOpen,
             confirmButton = {
                 TextButton(onClick = {

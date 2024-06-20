@@ -48,7 +48,6 @@ fun PresentationPanel(
     tasksCompleted: Int,
     tasksToComplete: Int,
     edit: () -> Unit,
-    changePassword: () -> Unit,
     logout: () -> Unit,
     photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
@@ -87,7 +86,7 @@ fun PresentationPanel(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                UserInfoWithButtons("$firstName $lastName", email, location, edit, changePassword, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
+                UserInfoWithButtons("$firstName $lastName", email, location, edit, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
             }
         }
     } else {
@@ -117,7 +116,7 @@ fun PresentationPanel(
                     .weight(2f)
                     .fillMaxSize()
             ) {
-                UserInfoWithButtons("$firstName $lastName", email, location, edit, changePassword, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
+                UserInfoWithButtons("$firstName $lastName", email, location, edit, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
             }
         }
     }
@@ -129,7 +128,6 @@ fun UserInfoWithButtons(
     email: String,
     location: String?,
     edit: () -> Unit,
-    changePassword: () -> Unit,
     logout: () -> Unit,
     numberOfTeams: Int,
     tasksCompleted: Int,
@@ -254,14 +252,6 @@ fun UserInfoWithButtons(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedButton(onClick = changePassword, modifier = Modifier.weight(1f)) {
-                        Text("Edit password")
-                        Icon(
-                            Icons.Default.Lock, contentDescription = "edit", modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(16.dp)
-                        )
-                    }
                     Button(onClick = edit, modifier = Modifier.weight(1f)) {
                         Text("Edit profile", color = MaterialTheme.colorScheme.onPrimary)
                         Icon(

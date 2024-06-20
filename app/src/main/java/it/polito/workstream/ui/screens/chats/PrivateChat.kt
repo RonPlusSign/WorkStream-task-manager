@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -42,8 +43,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.User
+import it.polito.workstream.ui.theme.Purple40
 import it.polito.workstream.ui.theme.Purple80
+import it.polito.workstream.ui.theme.PurpleGrey40
 import it.polito.workstream.ui.theme.PurpleGrey80
+import it.polito.workstream.ui.theme.isLight
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.map
@@ -81,7 +85,7 @@ fun Chat(
 
     Column {
         // The list of messages
-        LazyColumn (
+        LazyColumn(
             reverseLayout = true,
             modifier = Modifier
                 .fillMaxSize()
@@ -111,11 +115,15 @@ fun ChatMessageBox(
 ) {
     var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // Depending on the dark mode, the color of the message will be different
+    val otherMsgColor = if (MaterialTheme.colorScheme.isLight()) PurpleGrey80 else PurpleGrey40
+    val myMsgColor = if (MaterialTheme.colorScheme.isLight()) Purple80 else Purple40
+
     if (!message.seenBy.contains(vm.user.email))
         vm.setMessageAsSeen(destUserId, message.id)
 
-    Row (
-        horizontalArrangement =  if (isFromMe) Arrangement.End else Arrangement.Start,
+    Row(
+        horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start,
         modifier = Modifier
             .fillMaxWidth()
             //.align(if (mex.isFromMe) Alignment.End else Alignment.Start)
@@ -142,19 +150,16 @@ fun ChatMessageBox(
                     )
                 )
                 .widthIn(10.dp, 320.dp)
-                .background(if (isFromMe) Purple80 else PurpleGrey80)
-                .padding(16.dp)
+                .background(if (isFromMe) myMsgColor else otherMsgColor)
+                .padding(14.dp)
         ) {
             Column {
-                Text(text = message.text);
-                Row(
-                    modifier = Modifier
-                        .align(if (isFromMe) Alignment.Start else Alignment.End)
-                        .padding(top = 2.dp)
-                ) {
+                Text(text = message.text, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Row(modifier = Modifier.align(if (isFromMe) Alignment.Start else Alignment.End)) {
                     Text(
                         text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
 
@@ -162,7 +167,7 @@ fun ChatMessageBox(
         }
     }
 
-    messageToEdit?.let { EditMessageSheet( destUserId, it, vm) }
+    messageToEdit?.let { EditMessageSheet(destUserId, it, vm) }
 }
 
 @Composable
@@ -172,7 +177,7 @@ fun ChatInputBox(
 ) {
     var newMessage by remember { mutableStateOf("") }
 
-    Row (
+    Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
         modifier = Modifier
@@ -191,8 +196,6 @@ fun ChatInputBox(
                     modifier = Modifier.clickable {
                         vm.sendMessage(destUserId, ChatMessage("", newMessage, destUserId, Timestamp.now()));
                         newMessage = "";
-//                        sleep(5000);
-//                        sendMessage(destUser, ChatMessage("Risposta di prova", "Autore", false))
                     }
                 )
             }
@@ -218,7 +221,7 @@ fun EditMessageSheet(
         sheetState = sheetState,
         onDismissRequest = { vm.toggleShowEditDialog() },
     ) {
-        Row (
+        Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .padding(bottom = 32.dp)
