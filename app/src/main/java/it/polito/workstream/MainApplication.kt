@@ -474,11 +474,19 @@ class MainApplication : Application(), ImageLoaderFactory {
         _user.value.lastName = lastName
         _user.value.email = email
         _user.value.location = location
+        Log.d("UserProfile", "$_user")
 
         db.collection("users").document(email).set(_user.value)
             .addOnSuccessListener { Log.d("UserProfile", "User profile updated successfully") }
             .addOnFailureListener { e -> Log.e("UserProfile", "Error updating user profile", e) }
     }
+
+
+    /*USERVIEW mutable state*/
+    var firstNameValue = mutableStateOf( user.value.firstName)
+    var lastNameValue = mutableStateOf(user.value.lastName)
+    var locationValue = mutableStateOf(user.value.location)
+
 
 }
 
