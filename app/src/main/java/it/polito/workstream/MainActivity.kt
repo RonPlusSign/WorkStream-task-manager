@@ -1,6 +1,7 @@
 package it.polito.workstream
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,6 +24,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
@@ -57,6 +61,7 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val app = context.applicationContext as MainApplication
                 val scope = rememberCoroutineScope()
+                val token = stringResource(it.polito.workstream.R.string.web_client_id)
 
                 var user by remember { mutableStateOf<User?>(null) }
 
@@ -83,9 +88,10 @@ class MainActivity : ComponentActivity() {
 
                 if (user != null) {
                     ContentView {
+
                         // Pass logout callback
                         scope.launch {
-                            performLogout(context, app)
+                            performLogout(context, app, token)
                         }
                     }
                 } else {
@@ -137,8 +143,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun performLogout(context: android.content.Context, app: MainApplication) {
+    private fun performLogout(context: Context, app: MainApplication, token: String) {
         Firebase.auth.signOut()
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(token)
+            .requestEmail()
+            .build()
+        val googleSignInClient = GoogleSignIn.getClient(context, gso)
+        googleSignInClient.signOut()
+            .addOnSuccessListener { Log.d("Google", "Google sign out successful") }
+            .addOnFailureListener { Log.w("Google", "Google sign out failure") }
 
         app._user.value = User()
         //delay(1000)
