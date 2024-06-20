@@ -170,6 +170,8 @@ fun TopBarWrapper(
         unseenMessagesCount += userVm.countUnseenChatMessages(m.email).collectAsState(initial = 0).value
     }
     unseenMessagesCount += userVm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
+    if(activepage.contains("no_team")) //bruttissimo
+        return
 
     TopBar(
         title = title,
@@ -183,7 +185,7 @@ fun TopBarWrapper(
                 modifier = Modifier
             ) {
                 //  Show searchbar only if the active page is TeamTasks or MyTasks
-                if (activepage == Route.TeamTasks.title || activepage == Route.MyTasks.title) {
+                if (activepage == Route.TeamTasks.title || activepage == Route.MyTasks.title ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,

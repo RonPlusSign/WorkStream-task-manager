@@ -206,15 +206,6 @@ class MainApplication : Application(), ImageLoaderFactory {
     }
 
     fun leaveTeam(teamId: String, userId: String) {
-        // Remove the user from the team's members list
-        /*db.collection("Teams").document(teamId).update("members", FieldValue.arrayRemove(userId))
-            .addOnSuccessListener { Log.d("Firestore", "User removed from team") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error removing user from team", e) }
-
-        // Remove the team from the user's teams list
-        db.collection("users").document(userId).update("teams", FieldValue.arrayRemove(teamId))
-            .addOnSuccessListener { Log.d("Firestore", "Team removed from user") }
-            .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }*/
 
         val teamRef = db.collection("Teams").document(teamId)
         val userRef = db.collection("users").document(userId)
@@ -222,7 +213,11 @@ class MainApplication : Application(), ImageLoaderFactory {
             teamRef.update("members", FieldValue.arrayRemove(userId))
             userRef.update("teams", FieldValue.arrayRemove(teamId))
         }
-        .addOnSuccessListener { Log.d("Firestore", "Team removed from user") }
+        .addOnSuccessListener {
+            Log.d("Firestore", "Team removed from user")
+            val nextTeam = user.value.teams.firstOrNull { it != teamId }
+            activeTeamId.value = nextTeam ?: ""
+        }
         .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }
 
 
@@ -237,7 +232,11 @@ class MainApplication : Application(), ImageLoaderFactory {
                 it.update(u, "teams", FieldValue.arrayRemove(teamId))
             }
             it.delete(teamRef)
-        } .addOnSuccessListener { Log.d("Firestore", "Team $teamId deleted") }
+        } .addOnSuccessListener {
+            Log.d("Firestore", "Team $teamId deleted")
+            val nextTeam = user.value.teams.firstOrNull { it != teamId }
+            activeTeamId.value = nextTeam ?: ""
+        }
             .addOnFailureListener { e -> Log.w("Firestore", "Error deleting team $teamId", e) }
 
         //db.collection("Teams").document(teamId).delete()
@@ -290,6 +289,7 @@ class MainApplication : Application(), ImageLoaderFactory {
 
 
         if (newTeamId == "") return Result.failure(Exception("Error creating team"))
+
         return Result.success(newTeamId)
     }
 

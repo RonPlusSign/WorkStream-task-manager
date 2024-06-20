@@ -63,7 +63,7 @@ fun BottomNavbarWrapper(
 ) {
     val activePage = vm.activePageValue.collectAsState().value
 
-    if (activePage != Route.NewChat.title && activePage != Route.ChatScreen.title && !activePage.contains(Route.ChatScreen.title)) {
+    if (activePage != Route.NewChat.title && activePage != Route.ChatScreen.title && !activePage.contains(Route.ChatScreen.title) && !activePage.contains("no_team")) {
         BottomNavbar(active = vm.activePageValue.collectAsState().value, onRouteChange = navigateTo, teamId = teamId)
     }
 }

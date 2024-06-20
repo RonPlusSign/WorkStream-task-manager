@@ -415,9 +415,16 @@ fun ContentView(
                     }
 
                     composable(
-                        "no_team/${Route.TeamTasks.name}"
+                        "/no_team/${Route.TeamTasks.name}"
                     ){
-                        NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("profile?id=$it") })
+                        vm.setActivePage("no_team")
+                        NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") })
+                    }
+                    composable(
+                        "//${Route.TeamTasks.name}"
+                    ){
+                        vm.setActivePage("no_team")
+                        NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") })
                     }
                 }
             }
