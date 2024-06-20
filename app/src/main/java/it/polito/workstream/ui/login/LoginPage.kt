@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.login
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -32,6 +33,8 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.storage
 import it.polito.workstream.MainActivity
 import it.polito.workstream.MainApplication
 import it.polito.workstream.R
@@ -40,11 +43,15 @@ import it.polito.workstream.ui.theme.WorkStreamTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+
 class LoginActivity : ComponentActivity() {
+    private lateinit var storage: FirebaseStorage
     private val db = Firebase.firestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        storage =  com.google.firebase.Firebase.storage
+
 
         setContent {
             WorkStreamTheme {
@@ -119,6 +126,7 @@ class LoginActivity : ComponentActivity() {
                 if (user != null) {
                     // Setta l'utente nell'istanza di MainApplication
                     app._user.value = user
+                    downloadPhoto(user.photo, user.photo)
                     //app.activeTeamId.value= user.activeTeam ?: ""
                     navigateToMainActivity()
                 } else {
@@ -152,7 +160,8 @@ class LoginActivity : ComponentActivity() {
                     lastName = lastName,
                     email = firebaseUser.email ?: "",
                     location = "",
-                    profilePicture = firebaseUser.photoUrl.toString()
+                    profilePicture = firebaseUser.photoUrl.toString(),
+                    photo = ""
                 )
                 userRef.set(newUser).addOnSuccessListener {
                     val app = applicationContext as MainApplication
@@ -169,6 +178,23 @@ class LoginActivity : ComponentActivity() {
             Firebase.auth.signOut()
             // Optionally show an error message to the user
         }
+    }
+
+    private fun downloadPhoto(pathNameDB:String, pathNameLocal: String ){
+        if (pathNameDB.isEmpty() || pathNameLocal.isEmpty())
+            return
+        val context:Context = applicationContext as MainApplication
+
+        val dbRef = storage.reference.child("images").child(pathNameDB)
+        val file = try {
+            context.getFileStreamPath(pathNameLocal)
+        }catch (_: Exception) {
+            context.openFileOutput(pathNameLocal, Context.MODE_PRIVATE).write(1)
+            context.getFileStreamPath(pathNameLocal)
+        }
+        dbRef.getFile(file)
+            .addOnSuccessListener { Log.d("FireStorage", "file scaricato file: $file ") }
+            .addOnFailureListener { e -> Log.w("FireStorage", "errore $e file: $file")         }
     }
 }
 

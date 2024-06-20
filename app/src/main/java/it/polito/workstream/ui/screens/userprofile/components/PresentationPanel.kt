@@ -28,8 +28,12 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.MutableState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.shared.ProfilePicture
+import it.polito.workstream.ui.viewmodels.UserViewModel
+import it.polito.workstream.ui.viewmodels.ViewModelFactory
 
 
 @Composable
@@ -44,12 +48,14 @@ fun PresentationPanel(
     tasksCompleted: Int,
     tasksToComplete: Int,
     edit: () -> Unit,
-    changePassword: () -> Unit,
     logout: () -> Unit,
     photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
-    personalInfo: Boolean
+    personalInfo: Boolean,
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
+    val photoState = remember {mutableStateOf(vm.user.photo)}
+    photoState.value = vm.user.photo
     val configuration = LocalConfiguration.current
     if (configuration.screenWidthDp > configuration.screenHeightDp) {
         Row(modifier = Modifier.fillMaxSize()) {
@@ -60,7 +66,18 @@ fun PresentationPanel(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                ProfilePicture(profilePicture, setProfilePicture, isEditing = false, photoBitmapValue, setPhotoBitmap, "$firstName $lastName", setPhoto = {})
+                ProfilePicture(
+                    profilePicture=profilePicture,
+                    edit=setProfilePicture,
+                    isEditing = false,
+                    photoBitmapValue=photoBitmapValue,
+                    setPhotoBitmap=setPhotoBitmap,
+                    name="$firstName $lastName",
+                    photo = photoState,
+                    setPhoto = {
+                        vm.user.photo = it
+                        vm.uploaUserdPhoto(vm.user)
+                    })
             }
             Column(
                 modifier = Modifier
@@ -69,7 +86,7 @@ fun PresentationPanel(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                UserInfoWithButtons("$firstName $lastName", email, location, edit, changePassword, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
+                UserInfoWithButtons("$firstName $lastName", email, location, edit, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
             }
         }
     } else {
@@ -81,14 +98,25 @@ fun PresentationPanel(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.Bottom
             ) {
-                ProfilePicture(profilePicture, setProfilePicture, isEditing = false, photoBitmapValue, setPhotoBitmap, "$firstName $lastName", setPhoto = {})
+                ProfilePicture(
+                    profilePicture=profilePicture,
+                    edit=setProfilePicture,
+                    isEditing = false,
+                    photoBitmapValue=photoBitmapValue,
+                    setPhotoBitmap=setPhotoBitmap,
+                    name="$firstName $lastName",
+                    photo = photoState,
+                    setPhoto = {
+                        vm.user.photo = it
+                        vm.uploaUserdPhoto(vm.user)
+                    })
             }
             Row(
                 modifier = Modifier
                     .weight(2f)
                     .fillMaxSize()
             ) {
-                UserInfoWithButtons("$firstName $lastName", email, location, edit, changePassword, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
+                UserInfoWithButtons("$firstName $lastName", email, location, edit, logout, numberOfTeams, tasksCompleted, tasksToComplete, personalInfo)
             }
         }
     }
@@ -100,7 +128,6 @@ fun UserInfoWithButtons(
     email: String,
     location: String?,
     edit: () -> Unit,
-    changePassword: () -> Unit,
     logout: () -> Unit,
     numberOfTeams: Int,
     tasksCompleted: Int,
@@ -225,14 +252,6 @@ fun UserInfoWithButtons(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedButton(onClick = changePassword, modifier = Modifier.weight(1f)) {
-                        Text("Edit password")
-                        Icon(
-                            Icons.Default.Lock, contentDescription = "edit", modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(16.dp)
-                        )
-                    }
                     Button(onClick = edit, modifier = Modifier.weight(1f)) {
                         Text("Edit profile", color = MaterialTheme.colorScheme.onPrimary)
                         Icon(

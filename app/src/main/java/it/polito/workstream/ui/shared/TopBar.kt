@@ -157,6 +157,9 @@ fun TopBarWrapper(
     navigateTo: (String) -> Any
 ) {
     val activepage = vm.activePageValue.collectAsState().value
+    if(activepage.contains("no_team")) //bruttissimo
+        return
+
     val teamMembers = userVm.teamMembers.collectAsState(initial = listOf()).value
     // Serve per la gestione della activepage nella chat, e per togliere la bottombar
     val title =
@@ -170,8 +173,7 @@ fun TopBarWrapper(
         unseenMessagesCount += userVm.countUnseenChatMessages(m.email).collectAsState(initial = 0).value
     }
     unseenMessagesCount += userVm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
-    if(activepage.contains("no_team")) //bruttissimo
-        return
+
 
     TopBar(
         title = title,

@@ -3,8 +3,7 @@ package it.polito.workstream.ui.viewmodels
 import android.graphics.Bitmap
 import android.util.Log
 import android.util.Patterns
-import androidx.compose.runtime.State
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -14,18 +13,13 @@ import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ChatModel
 import it.polito.workstream.ui.models.Chat
 import it.polito.workstream.ui.models.ChatMessage
-import it.polito.workstream.ui.models.GroupChat
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 class UserViewModel(
     val user: User,
@@ -37,7 +31,11 @@ class UserViewModel(
     fetchActiveTeam: (String) -> Flow<Team?>,
     val activeTeamId: MutableStateFlow<String>,
     fetchUsers: (String) -> Flow<List<User>>,
-    val getTasks: (String) -> Flow<List<Task>>
+    val getTasks: (String) -> Flow<List<Task>>,
+    var firstNameValue: MutableState<String>,
+    var lastNameValue: MutableState<String>,
+    var locationValue: MutableState<String?>,
+    val uploaUserdPhoto: (User) -> Unit
 ) : ViewModel() {
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)
@@ -52,32 +50,35 @@ class UserViewModel(
         isEditing = true
 
         // Save current values before editing
-        firstNameBeforeEdit = firstNameValue
-        lastNameBeforeEdit = lastNameValue
+        firstNameBeforeEdit = firstNameValue.value
+        lastNameBeforeEdit = lastNameValue.value
         emailBeforeEdit = emailValue
-        locationBeforeEdit = locationValue
+        locationBeforeEdit = locationValue.value
     }
 
-    fun save() {
+    fun save(firstname:String,lastName: String, location: String) {
+        firstNameValue.value = firstname
+        lastNameValue.value = lastName
+        locationValue.value = location
         validate()
         if (firstNameError.isBlank() && lastNameError.isBlank() && emailError.isBlank()) {
-            updateUser(firstNameValue, lastNameValue, emailValue, locationValue ?: "")
+            updateUser(firstNameValue.value, lastNameValue.value, emailValue, locationValue.value ?: "")
         }
     }
 
     /* Check if all fields are valid, and if so, stop editing */
     fun validate() {
         // Trim all fields
-        firstNameValue = firstNameValue.trim()
-        lastNameValue = lastNameValue.trim()
+        firstNameValue.value = firstNameValue.value.trim()
+        lastNameValue.value = lastNameValue.value.trim()
         emailValue = emailValue.trim()
-        locationValue = locationValue?.trim()
+        locationValue.value = locationValue.value?.trim()
 
         // Check if all fields are valid
         checkFirstName()
         checkLastName()
         checkEmail()
-
+        Log.d("User", "$user")
         // if all fields are valid, stop editing
         if (firstNameError.isBlank() && lastNameError.isBlank() && emailError.isBlank()) {
             isEditing = false
@@ -85,43 +86,41 @@ class UserViewModel(
     }
 
     fun discard() {
-        firstNameValue = firstNameBeforeEdit
-        lastNameValue = lastNameBeforeEdit
+        firstNameValue.value = firstNameBeforeEdit
+        lastNameValue.value = lastNameBeforeEdit
         emailValue = emailBeforeEdit
-        locationValue = locationBeforeEdit
+        locationValue.value = locationBeforeEdit
         isEditing = false
     }
 
     /* First name */
-    var firstNameValue by mutableStateOf(user.firstName)
-        private set
+
     var firstNameError by mutableStateOf("")
         private set
 
     private var firstNameBeforeEdit by mutableStateOf("")
 
     fun setFirstName(n: String) {
-        firstNameValue = n
+        firstNameValue.value = n
     }
 
     private fun checkFirstName() {
-        firstNameError = if (firstNameValue.isBlank()) "First name cannot be blank" else ""
+        firstNameError = if (firstNameValue.value.isBlank()) "First name cannot be blank" else ""
     }
 
     /* Last name */
-    var lastNameValue by mutableStateOf(user.lastName)
-        private set
+
     var lastNameError by mutableStateOf("")
         private set
 
     private var lastNameBeforeEdit by mutableStateOf("")
 
     fun setLastName(n: String) {
-        lastNameValue = n
+        lastNameValue.value = n
     }
 
     private fun checkLastName() {
-        lastNameError = if (lastNameValue.isBlank()) "Last name cannot be blank" else ""
+        lastNameError = if (lastNameValue.value.isBlank()) "Last name cannot be blank" else ""
     }
 
     /* Email */
@@ -148,13 +147,12 @@ class UserViewModel(
     }
 
     /* Location, nullable */
-    var locationValue: String? by mutableStateOf(user.location)
-        private set
+
 
     private var locationBeforeEdit: String? by mutableStateOf(null)
 
     fun setLocation(n: String) {
-        locationValue = n
+        locationValue.value = n
     }
 
     /* Profile picture */
@@ -244,10 +242,10 @@ class UserViewModel(
         private set
 
     fun setUser(user: User) {
-        firstNameValue = user.firstName
-        lastNameValue = user.lastName
+        firstNameValue.value = user.firstName
+        lastNameValue.value = user.lastName
         emailValue = user.email
-        locationValue = user.location
+        locationValue.value = user.location
         profilePictureValue = user.profilePicture
         photoBitmapValue = user.BitmapValue
         numberOfTeams = user.teams.size

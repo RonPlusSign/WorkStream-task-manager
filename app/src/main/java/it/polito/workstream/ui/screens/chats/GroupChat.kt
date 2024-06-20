@@ -46,8 +46,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
 import it.polito.workstream.ui.models.ChatMessage
+import it.polito.workstream.ui.theme.Purple40
 import it.polito.workstream.ui.theme.Purple80
+import it.polito.workstream.ui.theme.PurpleGrey40
 import it.polito.workstream.ui.theme.PurpleGrey80
+import it.polito.workstream.ui.theme.isLight
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import java.text.SimpleDateFormat
@@ -105,6 +108,10 @@ fun GroupChatMessageBox(
     var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
     val messageAuthor = vm.teamMembers.collectAsState(initial = listOf()).value.find { it.email == message.authorId }
 
+    // Depending on the dark mode, the color of the message will be different
+    val otherMsgColor = if (MaterialTheme.colorScheme.isLight()) PurpleGrey80 else PurpleGrey40
+    val myMsgColor = if (MaterialTheme.colorScheme.isLight()) Purple80 else Purple40
+
     Row(
         horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start,
         modifier = Modifier
@@ -133,24 +140,23 @@ fun GroupChatMessageBox(
                     )
                 )
                 .widthIn(10.dp, 320.dp)
-                .background(if (isFromMe) Purple80 else PurpleGrey80)
-                .padding(16.dp)
+                .background(if (isFromMe) myMsgColor else otherMsgColor)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Column {
                 if (!isFromMe)
-                    Text(text = messageAuthor?.firstName + " " + messageAuthor?.lastName, fontSize = 12.sp, fontStyle = FontStyle.Italic)
-                Text(text = message.text)
+                    Text(text = messageAuthor?.firstName + " " + messageAuthor?.lastName, fontSize = 12.sp, fontStyle = FontStyle.Italic, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                Text(text = message.text, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 Row(
                     modifier = Modifier
                         .align(if (isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
-                    message.timestamp.let {
-                        Text(
-                            text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
-                            fontSize = 12.sp
-                        )
-                    }
+                    Text(
+                        text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
 
             }

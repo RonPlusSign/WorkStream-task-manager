@@ -19,31 +19,34 @@ fun UserScreen(user: User, personalInfo: Boolean, onLogout: () -> Unit) {
     val vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
     vm.setUser(user)
     val tasks = vm.getTasks(vm.activeTeamId.collectAsState().value).collectAsState(initial = listOf()).value.filter { it.assignee == user.email }
+    val firstname = vm.firstNameValue
+    val lastname = vm.lastNameValue
+    val location = vm.locationValue
+
 
     WorkStreamTheme {
         Column(modifier = Modifier.fillMaxSize()) {
             if (vm.isEditing) EditPanel(
-                vm.firstNameValue, vm.firstNameError, vm::setFirstName,
-                vm.lastNameValue, vm.lastNameError, vm::setLastName,
+                firstname.value, vm.firstNameError, vm::setFirstName,
+                lastname.value, vm.lastNameError, vm::setLastName,
                 vm.emailValue, vm.emailError, vm::setEmail,
-                vm.locationValue ?: "", vm::setLocation,
+                location.value ?: "", vm::setLocation,
                 vm.profilePictureValue, vm::setProfilePicture,
                 vm.photoBitmapValue, vm::setPhotoBitmap,
                 vm::validate,
-                vm::save,
-            )
+
+                )
             else PresentationPanel(
-                vm.firstNameValue,
-                vm.lastNameValue,
+                firstname.value,
+                lastname.value,
                 vm.emailValue,
-                vm.locationValue,
+                location.value,
                 vm.profilePictureValue,
                 vm::setProfilePicture,
                 vm.numberOfTeams,
                 tasks.filter { it.completed }.size,
                 tasks.filter { !it.completed }.size,
                 vm::edit,
-                { println("Changing user password") },
                 onLogout,
                 vm.photoBitmapValue,
                 vm::setPhotoBitmap,

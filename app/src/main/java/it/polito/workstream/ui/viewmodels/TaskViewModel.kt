@@ -23,7 +23,7 @@ class TaskViewModel(
     val onTaskUpdated: (updatedTask: Task) -> Unit,) : ViewModel() {
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
-    val statuses = listOf("To do", "In progress", "Paused", "On review", "Completed")
+    val statuses = listOf("To Do", "In progress", "Paused", "On review", "Completed")
 
     val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
 

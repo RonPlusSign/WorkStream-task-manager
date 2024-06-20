@@ -159,6 +159,9 @@ class MainApplication : Application(), ImageLoaderFactory {
             .addSnapshotListener { r, e ->
                 if (r != null) {
                     val users = r.toObjects(User::class.java)
+                    for(u in users){
+                        downloadPhoto(u.photo, u.photo)
+                    }
                     trySend(users)
                 } else {
                     trySend(emptyList())
@@ -191,6 +194,10 @@ class MainApplication : Application(), ImageLoaderFactory {
             .addOnFailureListener { e -> Log.w("Firestore", "Error updating team", e) }
         if(team.photo.isNotEmpty())
             uploadPhoto(team)
+    }
+
+    fun updateTeamName(newName: String, teamId: String) {
+        db.collection("Teams").document(teamId).update("name", newName)
     }
 
     var activePageValue = MutableStateFlow(Route.TeamTasks.name)
@@ -453,6 +460,43 @@ class MainApplication : Application(), ImageLoaderFactory {
 
             }
     }
+    fun uploaUserdPhoto(user : User){
+        if(user.photo.isNotEmpty()){
+            //ogni volta che si esegue upload photo si carica un nuovo file
+            val imRef = db.collection("Images").document(user.photo)
+            val teamRef = db.collection("Teams").document(user.email)
+            user.photo = imRef.id
+
+
+
+
+            val dbRef = storage.reference.child("images/${imRef.id}")
+
+            val byteArray = context.openFileInput(user.photo).readBytes() //prima LocalImage
+
+            dbRef.putBytes(byteArray)
+                .addOnSuccessListener {
+                    Log.d("FireStorage", "file caricato")
+
+                    db.runTransaction {
+                        LocalPhotos.add(user.photo)
+                        LocalPhotos.add(imRef.id)
+                        val newImage = mapOf("path" to user.photo)
+                        it.set(imRef,newImage)
+                        it.update(teamRef, "photo", imRef.id)
+                    }
+                        .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
+                        .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+
+                }
+                .addOnFailureListener {
+                    Log.d("FireStorage", "errore ")
+                }
+
+        }
+    }
+
+
 
     fun setTeamProfilePicture(s: String, s1: String) {
         TODO("Not yet implemented")
@@ -470,11 +514,19 @@ class MainApplication : Application(), ImageLoaderFactory {
         _user.value.lastName = lastName
         _user.value.email = email
         _user.value.location = location
+        Log.d("UserProfile", "$_user")
 
         db.collection("users").document(email).set(_user.value)
             .addOnSuccessListener { Log.d("UserProfile", "User profile updated successfully") }
             .addOnFailureListener { e -> Log.e("UserProfile", "Error updating user profile", e) }
     }
+
+
+    /*USERVIEW mutable state*/
+    var firstNameValue = mutableStateOf( user.value.firstName)
+    var lastNameValue = mutableStateOf(user.value.lastName)
+    var locationValue = mutableStateOf(user.value.location)
+
 
 }
 
@@ -486,7 +538,7 @@ class ChatModel(
 ) {
     // First get chats of team, second get my chats
     fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
-        val listener = db.collection("chats")
+        val listener = db.collection("chats")  //TODO: Attento ai fetch concatenati usa una transiction è più efficiente e semplice
             .whereEqualTo("teamId", teamId)
             .where(Filter.or(
                 Filter.equalTo("user1Id", currentUser.value.email),
@@ -546,7 +598,7 @@ class ChatModel(
             "timestamp" to message.timestamp
         )
 
-        db.collection("chats")
+        db.collection("chats")       //TODO: anche qui fetch concatenate da controllare
             .whereEqualTo("teamId", currentTeamId.value)
             .whereIn("user1Id", chatUsers)
             .whereIn("user2Id", chatUsers)
@@ -579,7 +631,7 @@ class ChatModel(
         //_chats.value[destUser]?.find { it.id == messageId }?.text = newText
     }
 
-    fun deleteMessage(destUserId: String, messageId: String) {
+    fun deleteMessage(destUserId: String, messageId: String) {   //TODO: anche qui fetch concatenate da controllare se quella sopra viene eseguita ma sotto no non viene eseguito il rollback
         val chatUsers = listOf(currentUser.value.email, destUserId)
 
         db.collection("chats")
@@ -608,7 +660,7 @@ class ChatModel(
             }
     }
 
-    fun setMessageAsSeen(destUserId: String, messageId: String) {
+    fun setMessageAsSeen(destUserId: String, messageId: String) { //TODO: anche qui fetch concatenate da controllare
         val chatUsers = listOf(currentUser.value.email, destUserId)
 
         db.collection("chats")
@@ -637,7 +689,7 @@ class ChatModel(
             }
     }
 
-    fun countUnseenChatMessages(destUserId: String): Flow<Int> = callbackFlow {
+    fun countUnseenChatMessages(destUserId: String): Flow<Int> = callbackFlow {//TODO: anche qui fetch concatenate da controllare
         var count = 0
         val chatUsers = listOf(currentUser.value.email, destUserId)
 
@@ -680,7 +732,7 @@ class ChatModel(
 //        }?.value?.add(ChatMessage(randomElement, userList[1], LocalDateTime.now(), mutableListOf(userList[1])))
     }
 
-    fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {
+    fun fetchGroupChat(teamId: String): Flow<GroupChat> = callbackFlow {//TODO: anche qui fetch concatenate da controllare
         val listener = db.collection("groupChats")
             .whereEqualTo("teamId", teamId)
             .addSnapshotListener { querySnapshot, exception ->
@@ -713,7 +765,7 @@ class ChatModel(
         awaitClose { listener.remove() }
     }
 
-    fun sendGroupMessage(newMessage: ChatMessage) {
+    fun sendGroupMessage(newMessage: ChatMessage) {//TODO: anche qui fetch concatenate da controllare
         val messageToAdd = hashMapOf(
             "authorId" to currentUser.value.email,
             "text" to newMessage.text,
@@ -755,7 +807,7 @@ class ChatModel(
         //_groupChat.value[messageId.toInt()].text = newText
     }
 
-    fun deleteGroupMessage(messageId: String) {
+    fun deleteGroupMessage(messageId: String) {//TODO: anche qui fetch concatenate da controllare
         db.collection("groupChats")
             .whereEqualTo("teamId", currentTeamId.value)
             .get()
@@ -780,7 +832,7 @@ class ChatModel(
             }
     }
 
-    fun setGroupMessageAsSeen(messageId: String) {
+    fun setGroupMessageAsSeen(messageId: String) {//TODO: anche qui fetch concatenate da controllare
         db.collection("groupChats")
             .whereEqualTo("teamId", currentTeamId.value)
             .get()
@@ -805,7 +857,7 @@ class ChatModel(
             }
     }
 
-    fun countUnseenGroupMessages(): Flow<Int> = callbackFlow {
+    fun countUnseenGroupMessages(): Flow<Int> = callbackFlow {//TODO: anche qui fetch concatenate da controllare
         var count = 0
         val listener = db.collection("groupChats")
             .whereEqualTo("teamId", currentTeamId.value)
@@ -834,7 +886,7 @@ class ChatModel(
                     Log.d("Chat", "Error fetching chat message: $exception")
                 }
             }
-        awaitClose { listener.remove() }
+        awaitClose { listener.remove() }// TODO : PERChE' qui awaitClose deve stare solo dentro callbackflow
         Log.d("chat", "Model found $count unseen group messages")
     }
 
