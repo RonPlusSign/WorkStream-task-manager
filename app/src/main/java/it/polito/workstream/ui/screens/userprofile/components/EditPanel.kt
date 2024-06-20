@@ -25,12 +25,20 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.shared.ProfilePicture
+import it.polito.workstream.ui.viewmodels.UserViewModel
+import it.polito.workstream.ui.viewmodels.ViewModelFactory
 
 @Composable
 fun EditPanel(
@@ -50,8 +58,16 @@ fun EditPanel(
     photoBitmapValue: Bitmap?,
     setPhotoBitmap: (Bitmap?) -> Unit,
     validate: () -> Unit,
-    save: () -> Unit,
+    save: () -> Unit = {},
+    vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
+    var firstNameValue by remember { mutableStateOf(firstNameValue) }
+
+    var lastNameValue by remember {  mutableStateOf(lastNameValue)  }
+
+    var emailValue by remember { mutableStateOf(emailValue) }
+
+    var locationValue by remember { mutableStateOf(locationValue)    }
 
     // Responsive layout: 1 column with 2 rows for vertical screens, 2 columns with 1 row for horizontal screens
     val configuration = LocalConfiguration.current
@@ -137,17 +153,17 @@ fun EditPanel(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 UserForm(
-                    firstNameValue, firstNameError, setFirstName,
-                    lastNameValue, lastNameError, setLastName,
-                    emailValue, emailError, setEmail,
-                    locationValue, setLocation
+                    firstNameValue, firstNameError, {firstNameValue = it; setFirstName(it)} ,
+                    lastNameValue, lastNameError, {lastNameValue = it; setLastName(it)},
+                    emailValue, emailError, {emailValue = it; setEmail(it)},
+                    locationValue, {locationValue = it; setLocation(it)}
                 )
                 Spacer(modifier = Modifier.weight(1f))
                 Button(
                     modifier = Modifier
                         .padding(16.dp)
                         .fillMaxWidth(),
-                    onClick = { save() }
+                    onClick = { vm.save(firstname =firstNameValue, lastName = lastNameValue, location = locationValue) }
                 ) {
                     Text("Save", color = MaterialTheme.colorScheme.onPrimary)
                     Icon(
@@ -168,6 +184,8 @@ fun UserForm(
     emailValue: String, emailError: String, setEmail: (String) -> Unit,
     locationValue: String, setLocation: (String) -> Unit
 ) {
+
+
     Column(
         modifier = Modifier.padding(horizontal = 32.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -208,7 +226,7 @@ fun UserForm(
         }
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
+        /*OutlinedTextField(
             value = emailValue,
             onValueChange = setEmail,
             label = { Text("Email") },
@@ -224,10 +242,12 @@ fun UserForm(
                 style = MaterialTheme.typography.bodyMedium
             )
         }
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))*/
 
         OutlinedTextField(
-            value = locationValue, onValueChange = setLocation, label = { Text("Location") },
+            value = locationValue,
+            onValueChange = setLocation,
+            label = { Text("Location") },
             leadingIcon = { Icon(Icons.Default.Place, contentDescription = "location") },
             modifier = Modifier.fillMaxWidth()
         )
