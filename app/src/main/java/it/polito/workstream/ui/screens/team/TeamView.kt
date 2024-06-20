@@ -148,6 +148,7 @@ fun TeamScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     ProfilePicture(
+                        basepath = team.id+userProfile?.email,
                         photo = photoState,
                         profilePicture = team.profilePicture,
                         photoBitmapValue = team.profileBitmap,
@@ -159,11 +160,16 @@ fun TeamScreen(
                             vm.uploadPhoto(team)
                         } },
                         setPhotoBitmap = { scope.launch {
-                            team.profileBitmap = it
+
 
                             team.photo= "LocalImage"
                             vm.uploadPhoto(team)
-                        } }   //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
+                        } } ,
+                        setPhoto = {
+                            team.photo = it
+                            vm.uploadPhoto(team)
+                        }
+                    //TODO: Da aggiustare il setPhotoBitmap e tutto il ProfilePicture
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {

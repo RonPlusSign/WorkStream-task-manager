@@ -67,7 +67,7 @@ fun ConfirmJoinTeamPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (team != null) {
-            ProfilePicture(profilePicture = team.profilePicture, photoBitmapValue = team.profileBitmap, setPhotoBitmap = {}, name = team.name, isEditing = false)
+            ProfilePicture(profilePicture = team.profilePicture, photoBitmapValue = team.profileBitmap, setPhotoBitmap = {}, name = team.name, isEditing = false, setPhoto = {})
             Spacer(modifier = Modifier.height(8.dp))
             Text(team.name, style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
 

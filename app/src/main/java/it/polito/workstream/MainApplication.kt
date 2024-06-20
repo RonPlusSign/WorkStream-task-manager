@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -63,6 +64,8 @@ class MainApplication : Application(), ImageLoaderFactory {
 
     val _user = MutableStateFlow(User())
     val user: StateFlow<User> = _user
+
+    val LocalPhotos = mutableStateListOf<String>()
 
     var activeTeamId = MutableStateFlow("")
      fun fetchActiveTeam(activeTeamId: String): Flow<Team?> =  callbackFlow {
@@ -397,7 +400,10 @@ class MainApplication : Application(), ImageLoaderFactory {
     }
 
     fun downloadPhoto(pathNameDB:String, pathNameLocal: String ){
-        if(pathNameDB.isEmpty() ||  context.getFileStreamPath(pathNameLocal).exists())
+        val fileList: Array<String> = context.fileList()
+
+        Log.d( "fileList", "fileList: ${fileList.joinToString(separator = ", ")}")
+        if(pathNameDB.isEmpty() ||  context.getFileStreamPath(pathNameLocal).exists() || LocalPhotos.contains(pathNameDB) )
             return
         Log.d("pathNameDB", "pathNameDB: $pathNameDB")
         val dbRef = storage.reference.child("images").child(pathNameDB)
@@ -415,7 +421,7 @@ class MainApplication : Application(), ImageLoaderFactory {
     fun uploadPhoto(team : Team){
             if(team.photo.isNotEmpty()){
                 //ogni volta che si esegue upload photo si carica un nuovo file
-                val imRef = db.collection("Images").document()
+                val imRef = db.collection("Images").document(team.photo)
                 val teamRef = db.collection("Teams").document(team.id)
                 team.photo = imRef.id
 
@@ -424,25 +430,27 @@ class MainApplication : Application(), ImageLoaderFactory {
 
                 val dbRef = storage.reference.child("images/${imRef.id}")
 
-                val byteArray = context.openFileInput("LocalImage").readBytes()
-                if (dbRef != null) {
-                    dbRef.putBytes(byteArray)
-                        .addOnSuccessListener {
-                            Log.d("FireStorage", "file caricato")
+                val byteArray = context.openFileInput(team.photo).readBytes() //prima LocalImage
 
-                            db.runTransaction {
-                                val newImage = mapOf("path" to imRef.id)
-                                it.set(imRef,newImage)
-                                it.update(teamRef, "photo", imRef.id)
-                            }
-                                .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
-                                .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+                dbRef.putBytes(byteArray)
+                    .addOnSuccessListener {
+                        Log.d("FireStorage", "file caricato")
 
+                        db.runTransaction {
+                            LocalPhotos.add(team.photo)
+                            LocalPhotos.add(imRef.id)
+                            val newImage = mapOf("path" to team.photo)
+                            it.set(imRef,newImage)
+                            it.update(teamRef, "photo", imRef.id)
                         }
-                        ?.addOnFailureListener {
-                            Log.d("FireStorage", "errore ")
-                        }
-                }
+                            .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
+                            .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+
+                    }
+                    .addOnFailureListener {
+                        Log.d("FireStorage", "errore ")
+                    }
+
             }
     }
 

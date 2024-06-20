@@ -59,6 +59,7 @@ import coil.request.ImageRequest
 import coil.util.DebugLogger
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
+import java.time.Instant
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,6 +73,8 @@ fun ProfilePicture(
     setPhotoBitmap: (Bitmap?) -> Unit,
     name: String,
     photo: MutableState<String> = mutableStateOf(""),
+    basepath:String = "",
+    setPhoto : (String) -> Unit
 ) {
 
     var showDialog by remember { mutableStateOf(false) }
@@ -81,16 +84,19 @@ fun ProfilePicture(
     val context = LocalContext.current
     val pickImage = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-
+            var nomefile = basepath+Instant.now().toString().replace(".","-")
+            nomefile = nomefile.replace(".","-")
+            nomefile = nomefile.replace(":","-")
             println(uri.toString())
             val a =  context.contentResolver.openInputStream(uri)?.use { it.readBytes()  }
-            context.openFileOutput("LocalImage", Context.MODE_PRIVATE).use{
+            context.openFileOutput(nomefile, Context.MODE_PRIVATE).use{
                 it.write(a)
             }
             Toast.makeText(context, "Image selected from gallery: $uri", Toast.LENGTH_SHORT).show()
 
-            photo.value = "LocalImage"
-            edit("")
+            photo.value = nomefile
+            setPhoto(nomefile)
+            //edit("")
         }
     }
 
@@ -98,15 +104,21 @@ fun ProfilePicture(
         // Handle the captured Bitmap
         if (result != null) {
 
+            var nomefile = basepath+Instant.now().toString()
+            nomefile = nomefile.replace(".","-")
+            nomefile = nomefile.replace(":","-")
+            nomefile = nomefile.replace("@","-")
+            Log.d("nomefile", nomefile)
 
             Toast.makeText(context, "Image captured from camera", Toast.LENGTH_SHORT).show()
             val stream = ByteArrayOutputStream()
             result.compress(Bitmap.CompressFormat.PNG,100, stream)
-            context.openFileOutput("LocalImage", Context.MODE_PRIVATE).use{
+            context.openFileOutput(nomefile, Context.MODE_PRIVATE).use{
                 it.write(stream.toByteArray())
             }
-            photo.value = "LocalImage"
-            edit("")
+            photo.value = nomefile
+            setPhoto(nomefile)
+            //edit("")
 
         }
     }

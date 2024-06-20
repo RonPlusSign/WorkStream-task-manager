@@ -74,7 +74,8 @@ fun EditPanel(
                     isEditing = true,
                     photoBitmapValue,
                     setPhotoBitmap,
-                    "$firstNameValue $lastNameValue"
+                    "$firstNameValue $lastNameValue",
+                    setPhoto = {}
                 )
             }
 
@@ -125,7 +126,8 @@ fun EditPanel(
                     isEditing = true,
                     photoBitmapValue,
                     setPhotoBitmap,
-                    "$firstNameValue $lastNameValue"
+                    "$firstNameValue $lastNameValue",
+                    setPhoto = {}
                 )
             }
             Column(
