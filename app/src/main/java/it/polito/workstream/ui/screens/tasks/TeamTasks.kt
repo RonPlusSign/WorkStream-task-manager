@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -84,8 +85,12 @@ fun TeamTasksScreen(
     val users by vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList())
     val taskList = vm.tasks.collectAsState(initial = emptyList()).value
     val sections by vm.sections.collectAsState(listOf())
-    var isDeletingSection by remember { mutableStateOf(false) }
+
+    val isDeletingSection: MutableMap<String, Boolean> = remember { mutableStateMapOf( *sections.map { it to false }.toTypedArray() ) }
+
+
     val sortOrder by currentSortOrder.collectAsState()
+    val sectionToCancel by remember { mutableStateOf("") }
     Column(modifier = Modifier.fillMaxSize()) {
         // To calculate the bottom padding
         val fabHeight by remember { mutableIntStateOf(0) }
@@ -160,15 +165,15 @@ fun TeamTasksScreen(
 
 
                                         // Button to delete a section
-                                        if (vm.getOfSection(section, sortOrder).isEmpty() && section != "General") {
-                                            IconButton(onClick = { isDeletingSection = true }) {
+                                        if (vm.getOfSectionByList(section, sortOrder, taskList ).isEmpty() && section != "General") {
+                                            IconButton(onClick = { isDeletingSection[section] = true }) {
                                                 Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Section")
                                             }
                                         }
 
                                         // If deleting a section, show a Dialog to confirm the deletion
-                                        if (isDeletingSection) {
-                                            Dialog(onDismissRequest = { isDeletingSection = false }) {
+                                        if (isDeletingSection[section] == true) {
+                                            Dialog(onDismissRequest = { isDeletingSection[section] = false }) {
                                                 Card(modifier = Modifier.height(220.dp), shape = RoundedCornerShape(16.dp)) {
                                                     Column(
                                                         modifier = Modifier
@@ -191,8 +196,10 @@ fun TeamTasksScreen(
 
                                                         // Buttons to cancel/confirm
                                                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                            OutlinedButton(onClick = { isDeletingSection = false }) { Text("Cancel") }
-                                                            Button(onClick = { deleteSection(section); isDeletingSection = false }) { Text("Delete") }
+                                                            OutlinedButton(onClick = { isDeletingSection[section] = false }) { Text("Cancel") }
+                                                            Button(onClick = {
+                                                                deleteSection(section);
+                                                                isDeletingSection[section] = false }) { Text("Delete") }
                                                         }
                                                     }
                                                 }

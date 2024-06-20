@@ -101,11 +101,7 @@ class TaskListViewModel(
 
     fun removeSection(section: String) {
         // Check if the section exists and if it is empty
-        val tasksList = activeTeam.value?.tasks ?: return
-        val sections = activeTeam.value?.sections ?: return
 
-        if (!sections.contains(section)) return // Section does not exist
-        if (tasksList.any { it.section == section }) return // If the section is not empty, do not remove it
 
         onDeleteSection(section)
         sectionExpanded.remove(section)
@@ -200,6 +196,7 @@ class TaskListViewModel(
 
     fun setNewSection(value: String) {
         newSectionValue = value
+
     }
 
     fun toggleAddSection() {
@@ -215,7 +212,6 @@ class TaskListViewModel(
 
         // The section name must be unique and not blank
         newSectionError = if (newSectionValue.isBlank()) "Section name cannot be blank"
-        else if (sections.contains(newSectionValue)) "Section name already exists"
         else ""
 
         if (newSectionError.isBlank()) {
