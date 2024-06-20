@@ -273,7 +273,7 @@ fun ContentView(
                         route = "/{teamId}/${Route.TeamTasks.name}",
                         arguments = listOf(navArgument("teamId") { type = NavType.StringType; nullable = false; defaultValue = "" })
                     ) {
-                        //TODO: questo manda tutto a puttane
+
                         vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)

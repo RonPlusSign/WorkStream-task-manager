@@ -55,14 +55,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.FilterParams
 import it.polito.workstream.Route
+import it.polito.workstream.ui.viewmodels.TaskListViewModel
+import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -155,7 +159,22 @@ fun TopAppBarSurface(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FilterTasksDialog(showFilterDialog: Boolean, closeDialog: () -> Unit, filterParams: FilterParams, sections: List<String>, assignee: List<String>, statusList: List<String>, recurrentList: List<String>) {
+fun FilterTasksDialog(
+    showFilterDialog: Boolean,
+    closeDialog: () -> Unit,
+    filterParams: FilterParams,
+    sections: List<String>,
+    assignee: List<String>,
+    statusList: List<String>,
+    recurrentList: List<String>,
+    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))){
+
+
+    val activeTeamId by vm.activeTeamId.collectAsState(initial = "")
+    val assignee = vm.fetchUsers(activeTeamId).collectAsState(initial = listOf()).value.map { it.email }
+    val sections by vm.fetchSections(activeTeamId).collectAsState(initial = listOf())
+
+
     if (!showFilterDialog) return
     val sheetState = rememberModalBottomSheetState()
     var sectionExpanded by remember { mutableStateOf(false) }

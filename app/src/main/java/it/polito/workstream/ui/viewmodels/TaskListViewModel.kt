@@ -36,11 +36,12 @@ class TaskListViewModel(
     val setSearchQuery: (newQuery: String) -> Unit,
     val activeTeamId: MutableStateFlow<String>,
     val getTasks: (String) -> Flow<List<Task>>,
-    fetchSections: (String) -> Flow<List<String>>,
+    val fetchSections: (String) -> Flow<List<String>>,
     fetchActiveTeam: (String) -> Flow<Team?>,
     val fetchUsers: (String) -> Flow<List<User>>,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
+
     val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     val teamMembers = activeTeamMembers.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
     val tasks = getTasks(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList()) //tasksFlow.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -70,6 +71,7 @@ class TaskListViewModel(
         return inputList.filter {
             (filterParams.section == "" || it.section.contains(filterParams.section, ignoreCase = true))
                     && (filterParams.assignee == "" || it.assignee == filterParams.assignee)
+                    && (filterParams.recurrent == "" ||(filterParams.recurrent.isNotEmpty() == it.recurrent ))
                     && (filterParams.status == "" || it.status == filterParams.status) && ((filterParams.completed && it.completed) || (!filterParams.completed && !it.completed))
         }
     }
@@ -78,7 +80,7 @@ class TaskListViewModel(
     var sectionExpanded : SnapshotStateMap<String, Boolean> = mutableStateMapOf()//mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
 
 
-    var statusList = mutableListOf("To do", "In progress", "Paused", "On review", "Completed")
+    var statusList = mutableListOf("To Do", "In progress", "Paused", "On review", "Completed")
 
     fun toggleSectionExpansion(section: String) {
         //if (activeTeam.value == null || !activeTeam.value!!.sections.contains(section)) return
@@ -181,7 +183,7 @@ class TaskListViewModel(
         else false
     }
 
-    val recurrentList = listOf("None", "Daily", "Weekly", "Monthly")
+    val recurrentList = listOf( "Daily", "Weekly", "Monthly")
 
     // SORT VARIABLES
     val allSortOrders = listOf("A-Z order", "Z-A order", "Due date", "Assignee", "Section")
