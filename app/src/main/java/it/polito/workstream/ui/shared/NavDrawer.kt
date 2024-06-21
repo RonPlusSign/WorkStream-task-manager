@@ -81,8 +81,6 @@ private fun DrawerContent(
     teams: List<Team> = emptyList(),
 
 ) {
-    //val teams = vm.getTeams().collectAsState(initial = emptyList()).value
-
     var active by rememberSaveable { mutableStateOf(false) }
 
     var searchQuery by remember { mutableStateOf("") }
