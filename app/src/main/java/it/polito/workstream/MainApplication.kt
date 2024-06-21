@@ -50,7 +50,7 @@ class MainApplication : Application(), ImageLoaderFactory {
         FirebaseApp.initializeApp(this)
         db = Firebase.firestore
         chatModel = ChatModel(_user, activeTeamId, db)
-        storage =  Firebase.storage
+        storage = Firebase.storage
         context = this.applicationContext
 
 
@@ -68,36 +68,32 @@ class MainApplication : Application(), ImageLoaderFactory {
     val LocalPhotos = mutableStateListOf<String>()
 
     var activeTeamId = MutableStateFlow("")
-     fun fetchActiveTeam(activeTeamId: String): Flow<Team?> =  callbackFlow {
-        //val listener = db.collection("Teams").whereEqualTo("id", activeTeamId.value).limit(1)
+    fun fetchActiveTeam(activeTeamId: String): Flow<Team?> = callbackFlow {
+        Log.d("Firestore", "Active team ID: ${activeTeamId}")
+        if (activeTeamId.isNotEmpty()) {
+            db.collection("Teams").document(activeTeamId)
+                .addSnapshotListener { value, error ->
+                    if (value != null) {
+                        val team = value.toObject(Team::class.java)
+                        if (team != null) {
+                            downloadPhoto(team.photo, team.photo)
+                        }
 
-            Log.d("Firestore1", "Active team ID: ${activeTeamId}")
-         if (activeTeamId.isNotEmpty()) {
-             db.collection("Teams").document(activeTeamId)
-                 .addSnapshotListener { value, error ->
-                     if (value != null) {
-                         val team = value.toObject(Team::class.java)
-                         if (team != null) {
-                             downloadPhoto(team.photo, team.photo)
-                         }
+                        Log.d("Firestore", "Active team ID: ${team}")
+                        trySend(team)
+                    } else {
+                        Log.d("ERRORE", "ERRORE GRAVE")
+                        trySend(null)
+                    }
+                }
+        }
 
-                         Log.d("Firestore", "Active team ID: ${team}")
-                         trySend(team)
-                     } else {
-                         Log.d("ERRORE", "ERRORE GRAVE")
-                         trySend(null)
-                     }
-                 }
-         }
-
-         awaitClose()
+        awaitClose()
     }
-
-    val refetchMe = MutableStateFlow("")
 
     fun fetchSections(activeTeamId: String): Flow<List<String>> = callbackFlow {
 
-        Log.d("Firestore1", "Active team ID: ${activeTeamId}")
+        Log.d("Firestore", "Active team ID: ${activeTeamId}")
         if (activeTeamId.isNotEmpty()) {
             db.collection("Teams").document(activeTeamId)
                 .addSnapshotListener { value, error ->
@@ -108,28 +104,30 @@ class MainApplication : Application(), ImageLoaderFactory {
                         }
                     } else {
                         Log.d("ERRORE", "ERRORE GRAVE $error")
-                        trySend(emptyList() )
+                        trySend(emptyList())
                     }
                 }
         }
 
         awaitClose { }
-
-
     }
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)
 
     fun getTeams(): Flow<List<Team>> = callbackFlow {
         val userId: String = user.value.email
-        Log.d("Firestore email", "User ID: $userId")
-        val listener = db.collection("Teams").whereArrayContains("members", userId ).addSnapshotListener { r, e ->
-
+        val listener = db.collection("Teams").whereArrayContains("members", userId).addSnapshotListener { r, e ->
             if (r != null) {
                 val teams = r.toObjects(Team::class.java)
                 teams.forEach {
                     downloadPhoto(it.photo, it.photo)
                 }
+
+                // Check if the user is still a member of the team, otherwise change active team
+                if (activeTeamId.value.isNotEmpty() && !teams.any { it.id == activeTeamId.value }) {
+                    activeTeamId.value = teams.firstOrNull()?.id ?: ""
+                }
+
                 trySend(teams)
             } else {
                 trySend(emptyList())
@@ -137,8 +135,6 @@ class MainApplication : Application(), ImageLoaderFactory {
         }
         awaitClose { listener.remove() }
     }
-
-    val userTeams = getTeams()  // Teams of the current user
 
     fun getTasks(teamId: String): Flow<List<Task>> = callbackFlow {
         val listener = db.collection("Tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
@@ -159,7 +155,7 @@ class MainApplication : Application(), ImageLoaderFactory {
             .addSnapshotListener { r, e ->
                 if (r != null) {
                     val users = r.toObjects(User::class.java)
-                    for(u in users){
+                    for (u in users) {
                         downloadPhoto(u.photo, u.photo)
                     }
                     trySend(users)
@@ -192,7 +188,7 @@ class MainApplication : Application(), ImageLoaderFactory {
         db.collection("Teams").document(activeTeamId.value).set(team.toDTO())
             .addOnSuccessListener { Log.d("Firestore", "Team successfully updated!") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error updating team", e) }
-        if(team.photo.isNotEmpty())
+        if (team.photo.isNotEmpty())
             uploadPhoto(team)
     }
 
@@ -226,27 +222,25 @@ class MainApplication : Application(), ImageLoaderFactory {
             teamRef.update("members", FieldValue.arrayRemove(userId))
             userRef.update("teams", FieldValue.arrayRemove(teamId))
         }
-        .addOnSuccessListener {
-            Log.d("Firestore", "Team removed from user")
-            if(userId == user.value.email){
-                val nextTeam = user.value.teams.firstOrNull { it != teamId }
-                activeTeamId.value = nextTeam ?: "no_team"
+            .addOnSuccessListener {
+                Log.d("Firestore", "Team removed from user")
+                if (user.value.email == userId) {   // I'm removing myself from the team
+                    val nextTeam = user.value.teams.firstOrNull { it != teamId }
+                    activeTeamId.value = nextTeam ?: "no_team"
+                }
             }
-
-        }
-        .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }
-
+            .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }
     }
 
     fun removeTeam(teamId: String, team: Team) {
         val usersRefs = team.members.map { db.collection("users").document(it) }
         val teamRef = db.collection("Teams").document(teamId)
-        db.runTransaction{
-            for(u in usersRefs){
+        db.runTransaction {
+            for (u in usersRefs) {
                 it.update(u, "teams", FieldValue.arrayRemove(teamId))
             }
             it.delete(teamRef)
-        } .addOnSuccessListener {
+        }.addOnSuccessListener {
             Log.d("Firestore", "Team $teamId deleted")
             val nextTeam = user.value.teams.firstOrNull { it != teamId }
             activeTeamId.value = nextTeam ?: ""
@@ -259,36 +253,34 @@ class MainApplication : Application(), ImageLoaderFactory {
 
     fun joinTeam(teamId: String, userId: String) {
         // Add the user to the team's members list
-        val teamReaf= db.collection("Teams").document(teamId)
+        val teamRef = db.collection("Teams").document(teamId)
         val userRef = db.collection("users").document(userId)
         db.runTransaction {
-            it.update(teamReaf, "members", FieldValue.arrayUnion(userId))
+            it.update(teamRef, "members", FieldValue.arrayUnion(userId))
             it.update(userRef, "teams", FieldValue.arrayUnion(teamId))
         }
-            .addOnSuccessListener { Log.d("Firestore", "Team $teamId joined")  }
+            .addOnSuccessListener { Log.d("Firestore", "Team $teamId joined") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error join team $teamId", e) }
-        activeTeamId.value=teamId
-
+//        activeTeamId.value = teamId
     }
-    fun fetchTeam(teamId: String) : Flow<Team> = callbackFlow {
-        val  l = db.collection("Teams").document(teamId).addSnapshotListener{
-            r,e ->
-            if (r!= null) {
+
+    fun fetchTeam(teamId: String): Flow<Team> = callbackFlow {
+        val l = db.collection("Teams").document(teamId).addSnapshotListener { r, e ->
+            if (r != null) {
                 r.toObject<Team>()?.let { trySend(it) }
             }
 
         }
-        awaitClose{l.remove()}
+        awaitClose { l.remove() }
     }
 
 
-
     fun createEmptyTeam(nameTeam: String): Result<String> {
-        val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email), photo= "")
+        val newTeam = Team(name = nameTeam, admin = user.value.email, members = mutableListOf(user.value.email), photo = "")
 
 
         // Create the team in Firestore
-        Log.d("Firestore", "newTeam ID: ${newTeam.id} email ${user.value.email }")
+        Log.d("Firestore", "newTeam ID: ${newTeam.id} email ${user.value.email}")
         val newTeamRef = db.collection("Teams").document()
         val newTeamId = newTeamRef.id
         newTeam.id = newTeamRef.id // se lo tocchi ti taglio le mani
@@ -297,8 +289,8 @@ class MainApplication : Application(), ImageLoaderFactory {
             it.set(newTeamRef, newTeam)
             it.update(userRef, "teams", FieldValue.arrayUnion(newTeamRef.id))
         }
-        .addOnSuccessListener { activeTeamId.value = newTeamId; Log.d("Firestore", "User added to team") }
-        .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
+            .addOnSuccessListener { activeTeamId.value = newTeamId; Log.d("Firestore", "User added to team") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error adding user to team", e) }
 
 
 
@@ -340,7 +332,7 @@ class MainApplication : Application(), ImageLoaderFactory {
             task.assignee?.let {
                 if (userRef != null) {
                     t.update(userRef, "tasks", FieldValue.arrayRemove(task.id))
-                    t.update(teamRef,"tasks", FieldValue.arrayRemove(task.id))
+                    t.update(teamRef, "tasks", FieldValue.arrayRemove(task.id))
                 }
             }
         }
@@ -385,7 +377,7 @@ class MainApplication : Application(), ImageLoaderFactory {
         db.runTransaction { tr ->
             tr.delete(taskRef)
             tr.update(userRef!!, "tasks", FieldValue.arrayRemove(t.id))
-            tr.update(teamRef,"tasks", FieldValue.arrayRemove(t.id))
+            tr.update(teamRef, "tasks", FieldValue.arrayRemove(t.id))
         }
             .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
@@ -413,68 +405,65 @@ class MainApplication : Application(), ImageLoaderFactory {
         //<<<<updateTeam>>>>()
     }
 
-    fun downloadPhoto(pathNameDB:String, pathNameLocal: String ){
+    fun downloadPhoto(pathNameDB: String, pathNameLocal: String) {
         val fileList: Array<String> = context.fileList()
 
-        Log.d( "fileList", "fileList: ${fileList.joinToString(separator = ", ")}")
-        if(pathNameDB.isEmpty() ||  context.getFileStreamPath(pathNameLocal).exists() || LocalPhotos.contains(pathNameDB) )
+        Log.d("fileList", "fileList: ${fileList.joinToString(separator = ", ")}")
+        if (pathNameDB.isEmpty() || context.getFileStreamPath(pathNameLocal).exists() || LocalPhotos.contains(pathNameDB))
             return
         Log.d("pathNameDB", "pathNameDB: $pathNameDB")
         val dbRef = storage.reference.child("images").child(pathNameDB)
         val file = try {
             context.getFileStreamPath(pathNameLocal)
-        }catch (_: Exception) {
+        } catch (_: Exception) {
             context.openFileOutput(pathNameLocal, Context.MODE_PRIVATE).write(1)
             context.getFileStreamPath(pathNameLocal)
         }
         dbRef.getFile(file)
             .addOnSuccessListener { Log.d("FireStorage", "file scaricato file: $file ") }
-            .addOnFailureListener { e -> Log.w("FireStorage", "errore $e file: $file")         }
+            .addOnFailureListener { e -> Log.w("FireStorage", "errore $e file: $file") }
     }
 
-    fun uploadPhoto(team : Team){
-            if(team.photo.isNotEmpty()){
-                //ogni volta che si esegue upload photo si carica un nuovo file
-                val imRef = db.collection("Images").document(team.photo)
-                val teamRef = db.collection("Teams").document(team.id)
-                team.photo = imRef.id
+    fun uploadPhoto(team: Team) {
+        if (team.photo.isNotEmpty()) {
+            //ogni volta che si esegue upload photo si carica un nuovo file
+            val imRef = db.collection("Images").document(team.photo)
+            val teamRef = db.collection("Teams").document(team.id)
+            team.photo = imRef.id
 
 
+            val dbRef = storage.reference.child("images/${imRef.id}")
 
+            val byteArray = context.openFileInput(team.photo).readBytes() //prima LocalImage
 
-                val dbRef = storage.reference.child("images/${imRef.id}")
+            dbRef.putBytes(byteArray)
+                .addOnSuccessListener {
+                    Log.d("FireStorage", "file caricato")
 
-                val byteArray = context.openFileInput(team.photo).readBytes() //prima LocalImage
-
-                dbRef.putBytes(byteArray)
-                    .addOnSuccessListener {
-                        Log.d("FireStorage", "file caricato")
-
-                        db.runTransaction {
-                            LocalPhotos.add(team.photo)
-                            LocalPhotos.add(imRef.id)
-                            val newImage = mapOf("path" to team.photo)
-                            it.set(imRef,newImage)
-                            it.update(teamRef, "photo", imRef.id)
-                        }
-                            .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
-                            .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
-
+                    db.runTransaction {
+                        LocalPhotos.add(team.photo)
+                        LocalPhotos.add(imRef.id)
+                        val newImage = mapOf("path" to team.photo)
+                        it.set(imRef, newImage)
+                        it.update(teamRef, "photo", imRef.id)
                     }
-                    .addOnFailureListener {
-                        Log.d("FireStorage", "errore ")
-                    }
+                        .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
+                        .addOnFailureListener { e -> Log.d("Firebase", "errore photo upload exceptio $e") }
 
-            }
+                }
+                .addOnFailureListener {
+                    Log.d("FireStorage", "errore ")
+                }
+
+        }
     }
-    fun uploaUserdPhoto(user : User){
-        if(user.photo.isNotEmpty()){
+
+    fun uploaUserdPhoto(user: User) {
+        if (user.photo.isNotEmpty()) {
             //ogni volta che si esegue upload photo si carica un nuovo file
             val imRef = db.collection("Images").document(user.photo)
             val teamRef = db.collection("Teams").document(user.email)
             user.photo = imRef.id
-
-
 
 
             val dbRef = storage.reference.child("images/${imRef.id}")
@@ -489,11 +478,11 @@ class MainApplication : Application(), ImageLoaderFactory {
                         LocalPhotos.add(user.photo)
                         LocalPhotos.add(imRef.id)
                         val newImage = mapOf("path" to user.photo)
-                        it.set(imRef,newImage)
+                        it.set(imRef, newImage)
                         it.update(teamRef, "photo", imRef.id)
                     }
                         .addOnSuccessListener { Log.d("Firebase", "photo upload ") }
-                        .addOnFailureListener {e-> Log.d("Firebase", "errore photo upload exceptio $e")         }
+                        .addOnFailureListener { e -> Log.d("Firebase", "errore photo upload exceptio $e") }
 
                 }
                 .addOnFailureListener {
@@ -502,7 +491,6 @@ class MainApplication : Application(), ImageLoaderFactory {
 
         }
     }
-
 
 
     fun setTeamProfilePicture(s: String, s1: String) {
@@ -530,7 +518,7 @@ class MainApplication : Application(), ImageLoaderFactory {
 
 
     /*USERVIEW mutable state*/
-    var firstNameValue = mutableStateOf( user.value.firstName)
+    var firstNameValue = mutableStateOf(user.value.firstName)
     var lastNameValue = mutableStateOf(user.value.lastName)
     var locationValue = mutableStateOf(user.value.location)
 
@@ -547,10 +535,12 @@ class ChatModel(
     fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = callbackFlow {
         val listener = db.collection("chats")  //TODO: Attento ai fetch concatenati usa una transiction è più efficiente e semplice
             .whereEqualTo("teamId", teamId)
-            .where(Filter.or(
-                Filter.equalTo("user1Id", currentUser.value.email),
-                Filter.equalTo("user2Id", currentUser.value.email)
-            ))
+            .where(
+                Filter.or(
+                    Filter.equalTo("user1Id", currentUser.value.email),
+                    Filter.equalTo("user2Id", currentUser.value.email)
+                )
+            )
             .addSnapshotListener { r, e ->
                 if (r != null) {
                     val chats = mutableListOf<Chat>()
@@ -611,7 +601,7 @@ class ChatModel(
             .whereIn("user2Id", chatUsers)
             .get()
             .addOnSuccessListener { doc ->
-                if (doc.isEmpty){
+                if (doc.isEmpty) {
                     Log.d("chat", "No collection messages inside chat!!!")
                 } else {
                     val chatDocId = doc.documents[0].id
@@ -647,7 +637,7 @@ class ChatModel(
             .whereIn("user2Id", chatUsers)
             .get()
             .addOnSuccessListener { doc ->
-                if (doc.isEmpty){
+                if (doc.isEmpty) {
                     Log.d("chat", "No collection messages inside chat!!!")
                 } else {
                     val chatDocId = doc.documents[0].id
@@ -658,10 +648,10 @@ class ChatModel(
                         .document(messageId)
                         .delete()
                         .addOnSuccessListener {
-                            Log.d("chat","Message deleted successfully!")
+                            Log.d("chat", "Message deleted successfully!")
                         }
                         .addOnFailureListener { e ->
-                            Log.d("chat","Error deleting message: $e")
+                            Log.d("chat", "Error deleting message: $e")
                         }
                 }
             }
@@ -676,7 +666,7 @@ class ChatModel(
             .whereIn("user2Id", chatUsers)
             .get()
             .addOnSuccessListener { doc ->
-                if (doc.isEmpty){
+                if (doc.isEmpty) {
                     Log.d("chat", "No collection messages inside chat!!!")
                 } else {
                     val chatDocId = doc.documents[0].id
@@ -687,10 +677,10 @@ class ChatModel(
                         .document(messageId)
                         .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
                         .addOnSuccessListener {
-                            Log.d("chat","Private message seen successfully!")
+                            Log.d("chat", "Private message seen successfully!")
                         }
                         .addOnFailureListener { e ->
-                            Log.d("chat","Error seeing private message: $e")
+                            Log.d("chat", "Error seeing private message: $e")
                         }
                 }
             }
@@ -819,7 +809,7 @@ class ChatModel(
             .whereEqualTo("teamId", currentTeamId.value)
             .get()
             .addOnSuccessListener { doc ->
-                if (doc.isEmpty){
+                if (doc.isEmpty) {
                     Log.d("chat", "No collection messages inside chat!!!")
                 } else {
                     val chatDocId = doc.documents[0].id
@@ -830,10 +820,10 @@ class ChatModel(
                         .document(messageId)
                         .delete()
                         .addOnSuccessListener {
-                            Log.d("chat","Group message deleted successfully!")
+                            Log.d("chat", "Group message deleted successfully!")
                         }
                         .addOnFailureListener { e ->
-                            Log.d("chat","Error deleting group message: $e")
+                            Log.d("chat", "Error deleting group message: $e")
                         }
                 }
             }
@@ -844,7 +834,7 @@ class ChatModel(
             .whereEqualTo("teamId", currentTeamId.value)
             .get()
             .addOnSuccessListener { doc ->
-                if (doc.isEmpty){
+                if (doc.isEmpty) {
                     Log.d("chat", "No collection messages inside chat!!!")
                 } else {
                     val chatDocId = doc.documents[0].id
@@ -855,10 +845,10 @@ class ChatModel(
                         .document(messageId)
                         .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
                         .addOnSuccessListener {
-                            Log.d("chat","Group message seen successfully!")
+                            Log.d("chat", "Group message seen successfully!")
                         }
                         .addOnFailureListener { e ->
-                            Log.d("chat","Error seeing group message: $e")
+                            Log.d("chat", "Error seeing group message: $e")
                         }
                 }
             }
@@ -888,7 +878,7 @@ class ChatModel(
                                     count++
 
                             trySend(count)
-                    }
+                        }
                 } else {
                     Log.d("Chat", "Error fetching chat message: $exception")
                 }
@@ -908,7 +898,6 @@ class ChatModel(
         return 0
     }
 }
-
 
 
 // FILTERS VARIABLES

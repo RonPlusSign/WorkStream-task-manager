@@ -57,7 +57,7 @@ fun PresentationPanel(
 ) {
     val teamMembers = vm.teamMembers.collectAsState(initial = emptyList()).value
     val user = teamMembers.find { it.email == email }
-    val photoState = remember {mutableStateOf(vm.user.photo)}
+    val photoState = remember { mutableStateOf(vm.user.photo) }
     if (user != null) {
         photoState.value = user.photo
     }
@@ -72,12 +72,12 @@ fun PresentationPanel(
                 verticalArrangement = Arrangement.Center
             ) {
                 ProfilePicture(
-                    profilePicture=profilePicture,
-                    edit=setProfilePicture,
+                    profilePicture = profilePicture,
+                    edit = setProfilePicture,
                     isEditing = false,
-                    photoBitmapValue=photoBitmapValue,
-                    setPhotoBitmap=setPhotoBitmap,
-                    name="$firstName $lastName",
+                    photoBitmapValue = photoBitmapValue,
+                    setPhotoBitmap = setPhotoBitmap,
+                    name = "$firstName $lastName",
                     photo = photoState,
                     setPhoto = {
                         vm.user.photo = it
@@ -104,12 +104,12 @@ fun PresentationPanel(
                 verticalAlignment = Alignment.Bottom
             ) {
                 ProfilePicture(
-                    profilePicture=profilePicture,
-                    edit=setProfilePicture,
+                    profilePicture = profilePicture,
+                    edit = setProfilePicture,
                     isEditing = false,
-                    photoBitmapValue=photoBitmapValue,
-                    setPhotoBitmap=setPhotoBitmap,
-                    name="$firstName $lastName",
+                    photoBitmapValue = photoBitmapValue,
+                    setPhotoBitmap = setPhotoBitmap,
+                    name = "$firstName $lastName",
                     photo = photoState,
                     setPhoto = {
                         vm.user.photo = it
@@ -160,24 +160,21 @@ fun UserInfoWithButtons(
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        OutlinedButton(
+                            onClick = { showLogoutDialog.value = false },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE53935))
+                        ) { Text("Cancel") }
                         Button(
                             onClick = {
                                 showLogoutDialog.value = false
                                 logout()
                             },
+                            modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White, containerColor = Color.Red)
-                        ) {
-                            Text("Confirm")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        OutlinedButton(
-                            onClick = { showLogoutDialog.value = false },
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE53935))
-                        ) {
-                            Text("Cancel")
-                        }
+                        ) { Text("Confirm") }
                     }
                 }
             },
@@ -196,10 +193,11 @@ fun UserInfoWithButtons(
             fullName,
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
 
-        Text(email, style = MaterialTheme.typography.headlineSmall)
+        Text(email, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(

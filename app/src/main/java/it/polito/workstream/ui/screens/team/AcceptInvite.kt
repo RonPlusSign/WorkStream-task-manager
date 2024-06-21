@@ -54,11 +54,11 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 @Composable
 fun ConfirmJoinTeamPage(
     teamId: String,
-    onConfirm: (Team) -> Unit,
+    onConfirm: () -> Unit,
     onCancel: () -> Unit,
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
 ) {
-    val team =  vm.fetchTeam(teamId).collectAsState(initial = null).value
+    val team = vm.fetchTeam(teamId).collectAsState(initial = null).value
     val members = vm.fetchUsers(teamId).collectAsState(initial = emptyList()).value
     val photoState = remember {mutableStateOf(team?.photo ?: "")}
     photoState.value = team?.photo ?: ""
@@ -147,10 +147,7 @@ fun ConfirmJoinTeamPage(
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Button(
-                        onClick = { onConfirm(team) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Button(onClick = { onConfirm() }, modifier = Modifier.fillMaxWidth()) {
                         Text("Join Team")
                         Icon(
                             Icons.Outlined.AddReaction, contentDescription = "Join team", modifier = Modifier
