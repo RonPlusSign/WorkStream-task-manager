@@ -39,7 +39,7 @@ class TaskViewModel(
         sectionValue = value.section
         isRecurrentValue = value.recurrent
         frequencyValue = value.frequency
-        statusValue = value.status
+        statusValue.value = value.status
         dueDateValue = value.dueDate
 
         expandedSection = false
@@ -118,11 +118,11 @@ class TaskViewModel(
         frequencyValue = value
     }
 
-    var statusValue by mutableStateOf(task.value.status)
+    var statusValue = mutableStateOf(task.value.status)
         private set
 
     fun setStatus(value: String) {
-        statusValue = value
+        statusValue.value = value
     }
 
     var expandedSection by mutableStateOf(false)
@@ -151,7 +151,7 @@ class TaskViewModel(
     }
 
     // ------- Functions to validate the values of the task.value -------
-    private var taskBeforeEditing = task.value.copy()
+    var taskBeforeEditing by mutableStateOf(task.value.copy())
 
     /**
      * Checks if the provided task parameters are valid.
@@ -180,11 +180,11 @@ class TaskViewModel(
         sectionValue = taskBeforeEditing.section
         isRecurrentValue = taskBeforeEditing.recurrent
         frequencyValue = taskBeforeEditing.frequency
-        statusValue = taskBeforeEditing.status
+        statusValue.value = taskBeforeEditing.status
     }
 
     fun save(): Task {
-        updateTaskHistory(taskBeforeEditing, task.value)
+
 
         task.value.dueDate = dueDateValue
         task.value.title = titleValue
@@ -193,15 +193,16 @@ class TaskViewModel(
         task.value.section = sectionValue
         task.value.recurrent = isRecurrentValue
         task.value.frequency = frequencyValue
-        task.value.status = statusValue
-        task.value.teamId = activeTeamId.value //PROBLEMA TODO activeTeam.value è sempre null
+        task.value.status = statusValue.value
+
+        updateTaskHistory(taskBeforeEditing, task.value)
 
         return task.value
     }
 
     private fun updateTaskHistory(taskBeforeEditing: Task, updatedTask: Task) {
 
-        if (taskBeforeEditing.title == "New Task") {
+        if (updatedTask.history.isEmpty()) {
             updatedTask.addHistoryEntry("Task created")
             return
         }
