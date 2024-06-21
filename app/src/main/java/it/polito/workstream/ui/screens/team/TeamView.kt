@@ -54,12 +54,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -411,15 +414,21 @@ fun MemberItem(
             )
             .padding(8.dp)
     ) {
-        member.BitmapValue?.let { bitmap ->
-            Image(
-                bitmap = bitmap.asImageBitmap(),
+        if(member.photo.isNotEmpty()){
+            AsyncImage(
+                model =
+                ImageRequest.Builder(LocalContext.current)
+                    .data(LocalContext.current.getFileStreamPath(member.photo).absolutePath)
+                    .crossfade(true)
+                    .build(), //minchia ci siamo
                 contentDescription = null,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(40.dp)
-                    .background(MaterialTheme.colorScheme.onSurface, shape = CircleShape)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
             )
-        } ?: Box(
+        } else{ Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
@@ -434,7 +443,7 @@ fun MemberItem(
                 textAlign = TextAlign.Center,
                 fontSize = 16.sp
             )
-        }
+        }}
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
