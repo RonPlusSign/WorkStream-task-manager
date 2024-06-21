@@ -417,7 +417,6 @@ fun ContentView(
                     ) { entry ->
                         val teamId = entry.arguments?.getString("teamId")!!
                         ConfirmJoinTeamPage(
-                            navController = navController,
                             teamId = teamId,
                             onConfirm = { team ->
                                 vm.joinTeam(teamId, user.email)

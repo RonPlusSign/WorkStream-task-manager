@@ -58,7 +58,6 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.play.services.auth)
-    implementation(libs.barcode.scanning.common)
     implementation(libs.play.services.code.scanner)
     implementation(libs.firebase.storage.ktx)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
@@ -86,6 +85,4 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.navigation.compose)
     implementation(kotlin("reflect"))
-
-
 }

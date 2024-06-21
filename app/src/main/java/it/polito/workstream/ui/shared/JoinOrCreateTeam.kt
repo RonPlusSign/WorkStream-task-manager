@@ -37,18 +37,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.common.moduleinstall.ModuleInstall
+import com.google.android.gms.common.moduleinstall.ModuleInstallRequest
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 @Composable
-fun JoinOrCreateTeam(joinTeam: (String) -> Unit, addNewTeam: (teamName: String) -> Result<String>, navigateToTeam: (String) -> Unit, logout: () -> Unit= {}, logoutButton: Boolean = false)  {
+fun JoinOrCreateTeam(joinTeam: (String) -> Unit, addNewTeam: (teamName: String) -> Result<String>, navigateToTeam: (String) -> Unit, logout: () -> Unit = {}, logoutButton: Boolean = false) {
 
     // New Team Dialog variables
     var showNewTeamDialog by remember { mutableStateOf(false) }
     var newTeamName by remember { mutableStateOf("") }
     var newTeamNameError by remember { mutableStateOf("") }
     val showLogoutDialog = remember { mutableStateOf(false) }
+    val scanner = GmsBarcodeScanning.getClient(LocalContext.current, GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build())
 
     fun saveNewTeam() {
         Log.d("newTeamName", "newTeamName: $newTeamName")
@@ -62,11 +65,27 @@ fun JoinOrCreateTeam(joinTeam: (String) -> Unit, addNewTeam: (teamName: String) 
         }
     }
 
+    /** Download the scanning module if it is not already present on the device */
+    fun downloadScannerModule(context: Context) {
+        val moduleInstallClient = ModuleInstall.getClient(context)
+        moduleInstallClient
+            .areModulesAvailable(scanner)
+            .addOnSuccessListener {
+                if (!it.areModulesAvailable()) { // Modules are not present on the device
+                    val moduleInstallRequest = ModuleInstallRequest.newBuilder().addApi(scanner).build()
+                    moduleInstallClient.installModules(moduleInstallRequest)
+                        .addOnSuccessListener { Log.d("QR", "Modules installed successfully") }
+                }
+            }
+            .addOnFailureListener { Log.e("QR", "Unable to install the scanning module") }
+    }
+
     fun scanInviteLinkQR(context: Context, onJoinTeam: (teamId: String) -> Unit, onCancel: () -> Unit) {
-        val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build()
-        val scanner = GmsBarcodeScanning.getClient(context, options)
+        downloadScannerModule(context)
         scanner.startScan()
             .addOnSuccessListener { barcode: Barcode -> // QR Scanned successfully: get the parameters from the barcode and join the team
+                Log.d("QR", "QR code scanned: ${barcode.rawValue}")
+
                 val qrResult = barcode.rawValue
                 if (!qrResult.isNullOrEmpty()) {
                     // The string should have the format "https://www.workstream.it/{teamId}"
@@ -81,11 +100,12 @@ fun JoinOrCreateTeam(joinTeam: (String) -> Unit, addNewTeam: (teamName: String) 
                 } else Toast.makeText(context, "Invalid QR code", Toast.LENGTH_SHORT).show()
             }
             .addOnCanceledListener { onCancel() }   // User canceled the operation
-            .addOnFailureListener { _ -> // Task failed with an exception
+            .addOnFailureListener { // Task failed with an exception
                 Toast.makeText(context, "Error scanning QR code", Toast.LENGTH_SHORT).show()
                 onCancel()
             }
     }
+
 
     if (showLogoutDialog.value) {
         AlertDialog(

@@ -48,15 +48,13 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 
 @Composable
 fun ConfirmJoinTeamPage(
-    navController: NavController,
     teamId: String,
     onConfirm: (Team) -> Unit,
     onCancel: () -> Unit,
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
 ) {
-    val teams = vm.teams.collectAsState(initial = emptyList())
-    val team =  vm.fetchTeam(teamId).collectAsState(initial = null).value  //teamId?.let { id -> teams.value.find { it.id == id } }
-    val members = vm.teamMembers.collectAsState(initial = emptyList()).value
+    val team =  vm.fetchTeam(teamId).collectAsState(initial = null).value
+    val members = vm.fetchUsers(teamId).collectAsState(initial = emptyList()).value
 
     Column(
         modifier = Modifier

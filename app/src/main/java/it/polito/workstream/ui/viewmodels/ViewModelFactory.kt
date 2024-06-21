@@ -71,11 +71,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->
                 TeamListViewModel(
-                    app.activeTeam,
-                    app.userTeams,
-                    app.teamTasks,
                     app.activeTeamMembers,
-                    app.activePageValue,
                     app::setActivePage,
                     app::changeActiveTeamId,
                     app::removeTeam,
