@@ -207,7 +207,7 @@ fun UserInfoWithButtons(
                     .padding(end = 2.dp)
                     .size(20.dp)
             )
-            Text(location ?: "Location not set", style = MaterialTheme.typography.bodyLarge)
+            Text(if (location.isNullOrBlank()) "Location not set" else location, style = MaterialTheme.typography.bodyLarge)
         }
 
         if (numberOfTeams > 0) {

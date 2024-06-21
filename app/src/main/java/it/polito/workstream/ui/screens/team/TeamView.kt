@@ -413,7 +413,7 @@ fun MemberItem(
             )
             .padding(8.dp)
     ) {
-        if(member.photo.isNotEmpty()){
+        if (member.photo.isNotEmpty()) {
             AsyncImage(
                 model =
                 ImageRequest.Builder(LocalContext.current)
@@ -427,22 +427,24 @@ fun MemberItem(
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             )
-        } else{ Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "${member.firstName} ${member.lastName}".trim().split(" ").map { it.first().uppercaseChar() }.joinToString("").take(2),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                fontSize = 16.sp
-            )
-        }}
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = member.getFirstAndLastName().trim().split(" ").map { it.first().uppercaseChar() }.joinToString("").take(2),
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    fontSize = 16.sp
+                )
+            }
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -464,14 +466,14 @@ fun MemberItem(
                 }
             }
             Text(text = member.email, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-            member.location?.let {
+            if (!member.location.isNullOrBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.LocationOn, contentDescription = "Location", modifier = Modifier
                             .padding(end = 4.dp)
                             .size(16.dp)
                     )
-                    Text(text = it, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text(text = member.location!!, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }

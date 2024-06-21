@@ -34,7 +34,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.Route
@@ -58,7 +60,7 @@ fun TopBar(
     @Composable
     fun title() {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            Text(title, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+            Text(title, fontSize = 27.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 
