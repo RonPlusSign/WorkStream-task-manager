@@ -551,7 +551,7 @@ class ChatModel(
                     for (document in r) {
                         val chat = document.toObject(Chat::class.java)
 
-                        Log.d("Chat", "${document.id} => ${document.data}")
+                        Log.d("Chat", "Fetching chat ${document.id} => ${document.data}")
                         document.reference.collection("messages").get().addOnSuccessListener {
                             val messages = it.toObjects(ChatMessage::class.java)
                             chat.messages = messages.toMutableList()
@@ -560,6 +560,40 @@ class ChatModel(
                             trySend(chats)
                         }
                     }
+
+                } else {
+                    Log.d("Chat", "Error getting private chats: ", e)
+                }
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+    fun fetchChat(teamId: String, destUserId: String): Flow<Chat> = callbackFlow {
+        Log.d("chat", "Fetching single chat of $destUserId")
+        val listener = db.collection("chats")  //TODO: Attento ai fetch concatenati usa una transiction è più efficiente e semplice
+            .whereEqualTo("teamId", teamId)
+            .where(Filter.or(
+                Filter.equalTo("user1Id", currentUser.value.email),
+                Filter.equalTo("user2Id", currentUser.value.email)
+            ))
+            .where(Filter.or(
+                Filter.equalTo("user1Id", destUserId),
+                Filter.equalTo("user2Id", destUserId)
+            ))
+            .addSnapshotListener { r, e ->
+                if (r != null && r.size() > 0) {
+                    val document = r.first()
+                    val chat = document.toObject(Chat::class.java)
+
+                    Log.d("Chat", "Fetching chat ${document.id} => ${document.data}")
+                    document.reference.collection("messages").get().addOnSuccessListener {
+                        val messages = it.toObjects(ChatMessage::class.java)
+                        chat.messages = messages.toMutableList()
+
+                        trySend(chat)
+                    }
+
 
                 } else {
                     Log.d("Chat", "Error getting private chats: ", e)

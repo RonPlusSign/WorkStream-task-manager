@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
+import com.theapache64.rebugger.Rebugger
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.Purple40
@@ -61,26 +62,28 @@ import java.util.Locale
 fun Chat(
     destUserId: String,
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
-//    messages: List<ChatMessage>?,
-//    sendMessage: (User, ChatMessage) -> Unit
 ) {
-//    val chat = vm.chats.map { it.find { it.user1Id == destUserId || it.user2Id == destUserId } }.collectAsState(
-//        initial = null
-//    )
+    //val activeTeamId = vm.activeTeamId.collectAsState().value
+    val chats = vm.chats.collectAsState(initial = null).value
+    val chat = chats?.find {
+        it.user1Id == destUserId || it.user2Id == destUserId
+    }
+    Log.d("chat", "Opened chat with length: ${chat?.messages?.size}")
 
-    val chat = vm.fetchChats(vm.activeTeam.collectAsState(initial = null).value?.id ?: "", destUserId).collectAsState(
-        initial = listOf()
-    ).value.find { it.user1Id == destUserId || it.user2Id == destUserId }
+    if (chat!=null && chat.messages.size > 0) {
+        for (mex in chat.messages){
+            if (!mex.seenBy.contains(vm.user.email))
+                vm.setMessageAsSeen(destUserId, mex.id)
+        }
+    }
 
-    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
-    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
-
-//    if (chat!=null && chat!!.messages.size > 0) {
-//        for (mex in chat!!.messages){
-//            if (!mex.seenBy.contains(vm.user.email))
-//                vm.setMessageAsSeen(destUserId, mex.id)
-//        }
-//    }
+    Rebugger(
+        trackMap = mapOf(
+            "chats" to chats,
+            "chat" to chat,
+            "vmchats" to vm.chats
+        ),
+    )
 
 
     Column {
@@ -93,7 +96,6 @@ fun Chat(
                 .weight(1f)
         ) {
             chat?.messages?.sortedBy { it.timestamp }?.reversed()?.forEach { mex ->
-                val sender = teamMembers.find { it.email == mex.authorId }
                 val isFromMe = mex.authorId == vm.user.email
                 item {
                     ChatMessageBox(mex, destUserId, vm, isFromMe);
@@ -119,8 +121,8 @@ fun ChatMessageBox(
     val otherMsgColor = if (MaterialTheme.colorScheme.isLight()) PurpleGrey80 else PurpleGrey40
     val myMsgColor = if (MaterialTheme.colorScheme.isLight()) Purple80 else Purple40
 
-    if (!message.seenBy.contains(vm.user.email))
-        vm.setMessageAsSeen(destUserId, message.id)
+//    if (!message.seenBy.contains(vm.user.email))
+//        vm.setMessageAsSeen(destUserId, message.id)
 
     Row(
         horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start,
@@ -176,6 +178,11 @@ fun ChatInputBox(
     destUserId: String
 ) {
     var newMessage by remember { mutableStateOf("") }
+
+    Rebugger(trackMap = hashMapOf(
+        "newMessage" to newMessage,
+        "vm" to vm
+    ))
 
     Row(
         verticalAlignment = Alignment.CenterVertically,

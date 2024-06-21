@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
+import com.theapache64.rebugger.Rebugger
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.theme.Purple40
 import it.polito.workstream.ui.theme.Purple80
@@ -63,11 +64,7 @@ import java.util.Locale
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
-    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
-
     val groupChat = vm.groupChat.collectAsState(initial = null).value
-    Log.d("chat", "messages in compose: " + groupChat?.messages?.size)
 
     if (groupChat!=null && groupChat.messages.size > 0) {
         for (mex in groupChat.messages){
@@ -75,6 +72,13 @@ fun GroupChat(
                 vm.setGroupMessageAsSeen(mex.id)
         }
     }
+
+    Rebugger(
+        trackMap = mapOf(
+            "chat" to groupChat,
+            "vm" to vm.groupChat
+        ),
+    )
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -171,7 +175,6 @@ fun GroupChatInputBox(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
     var newMessage by remember { mutableStateOf("") }
-    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
 
     Row(
         verticalAlignment = Alignment.CenterVertically,

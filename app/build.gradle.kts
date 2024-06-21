@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.googleGmsGoogleServices)
-
 }
 
 android {
@@ -53,6 +52,7 @@ android {
 
 dependencies {
 
+    implementation("io.github.theapache64:rebugger:1.0.0-rc03")
     implementation(libs.core)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)

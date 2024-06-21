@@ -170,9 +170,17 @@ class UserViewModel(
         profilePictureValue = n
     }
 
+//    var currentDestUserId by mutableStateOf("")
+//        private set
+//    fun setCurrDestUser(destUserId: String) {
+//        currentDestUserId = destUserId
+//    }
+
     // Chats
     val chats = fetchChats(activeTeamId.value, user.email)
     fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = chatModel.fetchChats(teamId, userId)
+    //val currentChat = fetchChat(currentDestUserId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    fun fetchChat(destUserId: String) = chatModel.fetchChat(activeTeamId.value, destUserId)
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
     fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
     fun editMessage(destUserId: String, messageId: String, newText: String) = chatModel.editMessage(destUserId, messageId, newText)

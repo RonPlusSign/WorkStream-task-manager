@@ -31,7 +31,7 @@ class TeamViewModel(
 
     ) : ViewModel() {
     val team = fetchTeam(activeTeamId.value)
-    val teamMembers =fetchUsers(activeTeamId.value)
+    val teamMembers = fetchUsers(activeTeamId.value)
 
     suspend fun setProfilePicture(n: String) {
         withContext(Dispatchers.IO) { team.firstOrNull()?.let { teamIdsetProfilePicture(it.id, n) } }

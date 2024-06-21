@@ -36,17 +36,10 @@ fun ChatList(
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
     val chats = vm.chats.collectAsState(initial = listOf()).value
-    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
     val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
     val groupChat = vm.groupChat.collectAsState(initial = null).value
 
     val lastMessageAuthor = teamMembers.find { it.email == groupChat?.messages?.lastOrNull()?.authorId }
-
-    if (chats != null){
-        for (c in chats)
-            Log.d("chat","Chat tra " + c.user1Id + " e " + c.user2Id + " con numero di messaggi " + c.messages.size)
-    }
-
 
     WorkStreamTheme {
         Scaffold (
@@ -88,7 +81,7 @@ fun ChatList(
                     item { HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)) }
                     // Private chats
                     item { Text(text = "Private chats", fontSize = 20.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 8.dp)) }
-                    chats.forEach { chat ->
+                    chats?.forEach { chat ->
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
                             val destUser = teamMembers.find {
