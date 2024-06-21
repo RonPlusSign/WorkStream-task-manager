@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -54,8 +55,12 @@ fun PresentationPanel(
     personalInfo: Boolean,
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
+    val teamMembers = vm.teamMembers.collectAsState(initial = emptyList()).value
+    val user = teamMembers.find { it.email == email }
     val photoState = remember {mutableStateOf(vm.user.photo)}
-    photoState.value = vm.user.photo
+    if (user != null) {
+        photoState.value = user.photo
+    }
     val configuration = LocalConfiguration.current
     if (configuration.screenWidthDp > configuration.screenHeightDp) {
         Row(modifier = Modifier.fillMaxSize()) {
