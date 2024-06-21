@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.util.DebugLogger
@@ -40,6 +41,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.update
+import java.io.File
 
 
 class MainApplication : Application(), ImageLoaderFactory {
@@ -69,6 +71,7 @@ class MainApplication : Application(), ImageLoaderFactory {
     val user: StateFlow<User> = _user
 
     val LocalPhotos = mutableStateListOf<String>()
+    val LocalDocuments = mutableStateListOf<String>()
 
     var activeTeamId = MutableStateFlow("")
     fun fetchActiveTeam(activeTeamId: String): Flow<Team?> = callbackFlow {
@@ -143,6 +146,9 @@ class MainApplication : Application(), ImageLoaderFactory {
         val listener = db.collection("Tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
             if (r != null) {
                 val tasks = r.toObjects(TaskDTO::class.java).map { it.toTask() }
+                for(t in tasks)
+                    for(a in t.attachments)
+                        downloadDocument(a)
 
                 trySend(tasks)
             }
@@ -476,7 +482,7 @@ class MainApplication : Application(), ImageLoaderFactory {
         val dbRef = file.lastPathSegment?.let { storage.reference.child("documents").child(it) }
         //val byteArray = context.openFileInput(documentPath).readBytes()
         //dbRef.putBytes(byteArray)
-
+        file.lastPathSegment?.let { LocalDocuments.add(it) }
         dbRef?.putFile(file)?.addOnSuccessListener {
             Log.d("FireStorage", "documento caricato")
             db.collection("Tasks").document(taskId).update("attachments", FieldValue.arrayUnion( file.lastPathSegment))
@@ -495,6 +501,15 @@ class MainApplication : Application(), ImageLoaderFactory {
             }
             .addOnFailureListener{ Log.w("Firestore", "documento errore") }
 
+    }
+    fun downloadDocument(documentPath:String ){
+        if(documentPath.isEmpty() || LocalDocuments.contains(documentPath))
+            return
+        val destinationFile = File(context.getExternalFilesDir(null), documentPath)
+        val dbRef = storage.reference.child("documents").child(documentPath)
+        dbRef.getFile(destinationFile)
+            .addOnSuccessListener { Log.d("FireStorage", "file scaricato") }
+            .addOnFailureListener { e -> Log.w("FireStorage", "errore $e") }
     }
 
     fun uploadPhoto(team: Team) {
