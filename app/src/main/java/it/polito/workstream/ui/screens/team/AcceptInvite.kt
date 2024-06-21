@@ -30,10 +30,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.shared.ProfilePicture
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
@@ -55,6 +60,9 @@ fun ConfirmJoinTeamPage(
 ) {
     val team = vm.fetchTeam(teamId).collectAsState(initial = null).value
     val members = vm.fetchUsers(teamId).collectAsState(initial = emptyList()).value
+    val photoState = remember {mutableStateOf(team?.photo ?: "")}
+    photoState.value = team?.photo ?: ""
+
 
     Column(
         modifier = Modifier
@@ -65,7 +73,7 @@ fun ConfirmJoinTeamPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (team != null) {
-            ProfilePicture(profilePicture = team.profilePicture, photoBitmapValue = team.profileBitmap, setPhotoBitmap = {}, name = team.name, isEditing = false, setPhoto = {})
+            ProfilePicture(profilePicture = team.profilePicture, photoBitmapValue = team.profileBitmap, setPhotoBitmap = {}, name = team.name, isEditing = false, setPhoto = {}, photo = photoState )
             Spacer(modifier = Modifier.height(8.dp))
             Text(team.name, style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
 
@@ -85,16 +93,21 @@ fun ConfirmJoinTeamPage(
                                 .padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             // Profile picture
-                            member.BitmapValue?.let { bitmap: Bitmap ->
-                                Image(
-                                    bitmap = bitmap.asImageBitmap(), contentDescription = null, modifier = Modifier
-                                        .size(30.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.onSurface,
-                                            shape = CircleShape
-                                        )
+                            if(member.photo.isNotEmpty()){
+                                AsyncImage(
+                                    model =
+                                    ImageRequest.Builder(LocalContext.current)
+                                        .data(LocalContext.current.getFileStreamPath(member.photo).absolutePath)
+                                        .crossfade(true)
+                                        .build(), //minchia ci siamo
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
                                 )
-                            } ?: Box(
+                            } else{ Box(
                                 modifier = Modifier
                                     .size(30.dp)
                                     .clip(CircleShape)
@@ -109,6 +122,7 @@ fun ConfirmJoinTeamPage(
                                     fontSize = 12.sp,
                                     lineHeight = 12.sp * 1.25f
                                 )
+                            }
                             }
                             // Member name
                             Text(text = "${member.firstName} ${member.lastName}")
