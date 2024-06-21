@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -83,12 +84,23 @@ fun GroupChat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            groupChat?.messages?.sortedBy { it.timestamp }?.reversed()?.forEach { mex ->
-                val isFromMe = mex.authorId == vm.user.email
-                item {
-                    GroupChatMessageBox(message = mex, vm, isFromMe)
+            if (groupChat != null && groupChat.messages.isNotEmpty())
+                groupChat.messages.sortedBy { it.timestamp }.reversed().forEach { mex ->
+                    val isFromMe = mex.authorId == vm.user.email
+                    item {
+                        GroupChatMessageBox(mex, vm, isFromMe);
+                    }
                 }
-            }
+            else
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(bottom = 256.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "No messages yet\nStart chatting now!", textAlign = TextAlign.Center, fontSize = 20.sp, fontStyle = FontStyle.Italic)
+                    }
+                }
         }
         // The input box to send a message
         GroupChatInputBox(vm)
@@ -152,6 +164,7 @@ fun GroupChatMessageBox(
                         .align(if (isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
+                    //val isToday = SimpleDateFormat("yyyyMMdd").format(message.timestamp)
                     Text(
                         text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
                         fontSize = 12.sp,

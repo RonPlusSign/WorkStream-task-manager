@@ -37,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -92,12 +94,23 @@ fun Chat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            chat?.messages?.sortedBy { it.timestamp }?.reversed()?.forEach { mex ->
-                val isFromMe = mex.authorId == vm.user.email
-                item {
-                    ChatMessageBox(mex, destUserId, vm, isFromMe);
+            if (chat != null && chat.messages.isNotEmpty())
+                chat.messages.sortedBy { it.timestamp }.reversed().forEach { mex ->
+                    val isFromMe = mex.authorId == vm.user.email
+                    item {
+                        ChatMessageBox(mex, destUserId, vm, isFromMe);
+                    }
                 }
-            }
+            else
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(bottom = 256.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "No messages yet\nStart chatting now!", textAlign = TextAlign.Center, fontSize = 20.sp, fontStyle = FontStyle.Italic)
+                    }
+                }
         }
         // The input box to send a message
         ChatInputBox(vm, destUserId)

@@ -84,7 +84,7 @@ fun ChatList(
                     item { HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)) }
                     // Private chats
                     item { Text(text = "Private chats", fontSize = 20.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 8.dp)) }
-                    chats.forEach { chat ->
+                    chats.sortedBy { it.messages.lastOrNull()?.timestamp }.filter { it.messages.size > 0 }.forEach { chat ->
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
                             val destUser = teamMembers.find {
@@ -101,7 +101,7 @@ fun ChatList(
                                     destUser = destUser,
                                     userName = destUser?.firstName + " " + destUser?.lastName,
                                     lastMessage = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.text?:"No message",
-                                    timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp?: Timestamp.now(),
+                                    timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp,
                                     isGroup = false,
                                     unseenMessages = vm.countUnseenChatMessages(destUserId).collectAsState(initial = 0).value
                                 )
