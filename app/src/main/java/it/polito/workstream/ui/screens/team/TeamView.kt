@@ -392,7 +392,7 @@ fun MemberItem(
         RemoveMemberConfirmationDialog(
             onDismiss = { removeMemberConfirmationDialog = false },
             onConfirm = {
-                removeMember(member.email, teamId)
+                removeMember( teamId, member.email)
                 removeMemberConfirmationDialog = false
                 navigateTo(Route.TeamScreen.name)
             },
