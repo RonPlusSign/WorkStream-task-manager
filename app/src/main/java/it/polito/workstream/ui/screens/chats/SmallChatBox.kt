@@ -58,7 +58,6 @@ fun SmallChatBox(
     isGroup: Boolean,
     unseenMessages: Int
 ) {
-    Log.d("chat", "Found $unseenMessages unseen messages...is it group: $isGroup")
     Card(
         modifier = Modifier.fillMaxWidth(),
         border = BorderStroke(0.5.dp, Color.Black),

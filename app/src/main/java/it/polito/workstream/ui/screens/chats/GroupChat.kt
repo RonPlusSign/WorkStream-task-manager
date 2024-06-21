@@ -234,16 +234,16 @@ fun EditGroupMessageSheet(
                 Text(text = "Delete message")
             }
             //Spacer(modifier = Modifier.weight(0.00001f))
-            Button(
-                enabled = false,
-                modifier = Modifier.padding(5.dp),
-                onClick = {
-                    // Todo
-                    vm.toggleShowEditDialog()
-                }
-            ) {
-                Text(text = "Edit message")
-            }
+//            Button(
+//                enabled = false,
+//                modifier = Modifier.padding(5.dp),
+//                onClick = {
+//                    // Todo
+//                    vm.toggleShowEditDialog()
+//                }
+//            ) {
+//                Text(text = "Edit message")
+//            }
         }
 
     }
