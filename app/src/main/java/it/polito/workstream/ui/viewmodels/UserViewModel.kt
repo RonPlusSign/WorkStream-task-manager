@@ -177,8 +177,8 @@ class UserViewModel(
 //    }
 
     // Chats
-    val chats = fetchChats(activeTeamId.value, user.email)
-    fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = chatModel.fetchChats(teamId, userId)
+    val chats = fetchChats()
+    fun fetchChats(): Flow<List<Chat>> = chatModel.fetchChats(activeTeamId.value, user.email)
     //val currentChat = fetchChat(currentDestUserId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
     fun fetchChat(destUserId: String) = chatModel.fetchChat(activeTeamId.value, destUserId)
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
@@ -208,8 +208,8 @@ class UserViewModel(
     }
 
     // Group chat
-    val groupChat = fetchGroupChat(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
-    fun fetchGroupChat(activeTeamId: String) = chatModel.fetchGroupChat(activeTeamId)
+    val groupChat = fetchGroupChat().stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    fun fetchGroupChat() = chatModel.fetchGroupChat(activeTeamId.value)
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
     fun editGroupMessage(messageId: String, newText: String) = chatModel.editGroupMessage(messageId, newText)
     fun deleteGroupMessage(messageId: String) = chatModel.deleteGroupMessage(messageId)

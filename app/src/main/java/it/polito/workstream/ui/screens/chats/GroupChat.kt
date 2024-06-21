@@ -64,14 +64,14 @@ import java.util.Locale
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val groupChat = vm.groupChat.collectAsState(initial = null).value
+    val groupChat = vm.fetchGroupChat().collectAsState(initial = null).value
 
-    if (groupChat!=null && groupChat.messages.size > 0) {
-        for (mex in groupChat.messages){
-            if (!mex.seenBy.contains(vm.user.email))
-                vm.setGroupMessageAsSeen(mex.id)
-        }
-    }
+//    if (groupChat!=null && groupChat.messages.size > 0) {
+//        for (mex in groupChat.messages){
+//            if (!mex.seenBy.contains(vm.user.email))
+//                vm.setGroupMessageAsSeen(mex.id)
+//        }
+//    }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -108,6 +108,9 @@ fun GroupChatMessageBox(
     // Depending on the dark mode, the color of the message will be different
     val otherMsgColor = if (MaterialTheme.colorScheme.isLight()) PurpleGrey80 else PurpleGrey40
     val myMsgColor = if (MaterialTheme.colorScheme.isLight()) Purple80 else Purple40
+
+    if (!message.seenBy.contains(vm.user.email))
+        vm.setGroupMessageAsSeen(message.id)
 
     Row(
         horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start,
