@@ -42,6 +42,8 @@ class TaskListViewModel(
     val fetchUsers: (String) -> Flow<List<User>>,
     val fetchComments: (String) -> Flow<List<Comment>>,
     val uploadComment: (Comment) -> Unit,
+    val uploadDocument: (documentPath: String, taskId: String) -> Unit,
+    val deleteDocument: (String, String) -> Unit,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
 

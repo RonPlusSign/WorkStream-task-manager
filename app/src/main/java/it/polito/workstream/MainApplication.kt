@@ -3,6 +3,7 @@ package it.polito.workstream
 import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -320,6 +321,8 @@ class MainApplication : Application(), ImageLoaderFactory {
         Log.d("Firestore", "Task updated: $updatedTask")
         updatedTask.teamId = activeTeamId.value
         //uploadComments(updatedTask.comments.filter { it.id.isEmpty() })
+        if(updatedTask.id.isEmpty())
+            return
 
         db.collection("Tasks").document(updatedTask.id).set(updatedTask.toDTO())
             .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
@@ -466,6 +469,32 @@ class MainApplication : Application(), ImageLoaderFactory {
         dbRef.getFile(file)
             .addOnSuccessListener { Log.d("FireStorage", "file scaricato file: $file ") }
             .addOnFailureListener { e -> Log.w("FireStorage", "errore $e file: $file") }
+    }
+
+    fun uploadDocument(documentPath:String, taskId: String){
+        val file =Uri.parse(documentPath)
+        val dbRef = file.lastPathSegment?.let { storage.reference.child("documents").child(it) }
+        //val byteArray = context.openFileInput(documentPath).readBytes()
+        //dbRef.putBytes(byteArray)
+
+        dbRef?.putFile(file)?.addOnSuccessListener {
+            Log.d("FireStorage", "documento caricato")
+            db.collection("Tasks").document(taskId).update("attachments", FieldValue.arrayUnion( file.lastPathSegment))
+                .addOnSuccessListener { Log.d("Firestore", "attachments updated") }
+                .addOnFailureListener{ Log.w("Firestore", "documento errore") }
+        }?.addOnFailureListener{Log.w("FireStorage", "documento errore $it")}
+    }
+
+    fun deleteDocument(documentPath:String, taskId: String){
+        val dbRef = storage.reference.child("documents").child(documentPath)
+        val refTask = db.collection("Tasks").document(taskId)
+        refTask.update("attachments", FieldValue.arrayRemove(documentPath))
+            .addOnSuccessListener {
+                Log.d("Firestore", "attachments updated")
+                dbRef.delete()
+            }
+            .addOnFailureListener{ Log.w("Firestore", "documento errore") }
+
     }
 
     fun uploadPhoto(team: Team) {

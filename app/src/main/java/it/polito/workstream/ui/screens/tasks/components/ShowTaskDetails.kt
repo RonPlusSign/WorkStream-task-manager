@@ -1,6 +1,8 @@
 package it.polito.workstream.ui.screens.tasks.components
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -46,6 +49,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import androidx.core.net.toFile
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
@@ -53,6 +59,8 @@ import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -73,6 +81,7 @@ fun ShowTaskDetails(_task: Task, actual_user: User, onComplete: (Task) -> Unit, 
     val takeDocument = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
 
         val contentResolver = context.contentResolver
+
         val projection = arrayOf(MediaStore.MediaColumns.DISPLAY_NAME)
         val cursor = uri?.let { contentResolver.query(it, projection, null, null, null) }
 
@@ -80,6 +89,36 @@ fun ShowTaskDetails(_task: Task, actual_user: User, onComplete: (Task) -> Unit, 
             val fileName = cursor.getString(cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME))
             Log.d("MyApp", "Nome file PDF: $fileName")
             task.attachments.add(fileName)
+
+
+//            val documentFile = DocumentFile.fromSingleUri(context, uri)
+//            if (documentFile != null && documentFile.exists()) {
+//                val fileName = documentFile.name ?: "file"// Usa un nome di default se il nome non è disponibile
+//                Log.d("MyApp", "Nome file: $fileName")
+//
+//
+//                // Copia il contenuto del file in un file locale
+//                contentResolver.openInputStream(uri)?.use { inputStream ->
+//                    context.openFileOutput(fileName, Context.MODE_PRIVATE).use { outputStream ->
+//                        inputStream.copyTo(outputStream)
+//                    }
+//                }
+//
+//                vm.uploadDocument(fileName, task.id)
+//            }
+            val destinationFile = File(context.getExternalFilesDir(null), fileName)
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                destinationFile.outputStream().use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+            val fileUri = FileProvider.getUriForFile(context, "it.polito.workstream.fileprovider", destinationFile)
+
+            vm.uploadDocument(fileUri.toString(), task.id)
+//            context.openFileOutput(fileName, Context.MODE_PRIVATE).use{
+//                it.write(uri.toFile().readBytes())
+//            }
+//            vm.uploadDocument(fileName)
         } else {
             Log.d("MyApp", "Impossibile recuperare il nome del file PDF dai metadati")
         }
@@ -170,10 +209,22 @@ fun ShowTaskDetails(_task: Task, actual_user: User, onComplete: (Task) -> Unit, 
                                     .padding(vertical = 10.dp)
                                     .weight(1f)
                             )
-                            IconButton(onClick = { /*TODO*/ }, modifier = Modifier.width(30.dp)) {
+                            IconButton(onClick = {
+                                val fileUri = FileProvider.getUriForFile(context, "it.polito.workstream.fileprovider", File(context.getExternalFilesDir(null), file))
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(fileUri, "application/pdf")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(intent)
+
+                            }, modifier = Modifier.width(30.dp)) {
                                 Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = "download file", tint = MaterialTheme.colorScheme.primary)
                             }
-                            IconButton(onClick = { deleteDocument(file) }, modifier = Modifier.width(30.dp)) {
+                            IconButton(onClick = {
+
+                                deleteDocument(file)
+                                vm.deleteDocument(file, task.id)
+                                                 }, modifier = Modifier.width(30.dp)) {
                                 Icon(imageVector = Icons.Outlined.Delete, contentDescription = "delete file", tint = MaterialTheme.colorScheme.error)
                             }
 
@@ -325,10 +376,20 @@ fun ShowTaskDetails(_task: Task, actual_user: User, onComplete: (Task) -> Unit, 
                                     .padding(vertical = 10.dp)
                                     .weight(1f)
                             )
-                            IconButton(onClick = { /*TODO*/ }, modifier = Modifier.width(30.dp)) {
-                                Icon(imageVector = Icons.Outlined.FileDownload, contentDescription = "download file", tint = MaterialTheme.colorScheme.primary)
+                            IconButton(onClick = {
+                                val fileUri = FileProvider.getUriForFile(context, "it.polito.workstream.fileprovider", File(context.getExternalFilesDir(null), file))
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(fileUri, "application/pdf")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(intent)
+                            }, modifier = Modifier.width(30.dp)) {
+                                Icon(imageVector = Icons.Outlined.FileOpen, contentDescription = "download file", tint = MaterialTheme.colorScheme.primary)
                             }
-                            IconButton(onClick = { deleteDocument(file) }, modifier = Modifier.width(30.dp)) {
+                            IconButton(onClick = {
+                                deleteDocument(file)
+                                vm.deleteDocument(file, task.id)
+                                                 }, modifier = Modifier.width(30.dp)) {
                                 Icon(imageVector = Icons.Outlined.Delete, contentDescription = "delete file", tint = MaterialTheme.colorScheme.error)
                             }
                         }
