@@ -15,6 +15,7 @@ import coil.util.DebugLogger
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,6 +25,7 @@ import it.polito.workstream.ui.models.Chat
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.storage
 import it.polito.workstream.ui.models.ChatMessage
+import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.GroupChat
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.TaskDTO
@@ -317,9 +319,51 @@ class MainApplication : Application(), ImageLoaderFactory {
     fun onTaskUpdated(updatedTask: Task) {
         Log.d("Firestore", "Task updated: $updatedTask")
         updatedTask.teamId = activeTeamId.value
+        //uploadComments(updatedTask.comments.filter { it.id.isEmpty() })
+
         db.collection("Tasks").document(updatedTask.id).set(updatedTask.toDTO())
             .addOnSuccessListener { Log.d("Firestore", "Transaction success!") }
             .addOnFailureListener { e -> Log.w("Firestore", "Transaction failure.", e) }
+    }
+
+    fun fetchComments(taskId: String): Flow<List<Comment>> = callbackFlow {
+        val listener = db.collection("comments").whereEqualTo("taskId", taskId).addSnapshotListener{
+            r,e ->
+            if(r != null){
+                val comments = r.toObjects(Comment::class.java)
+                trySend(comments)
+            }
+            else trySend(emptyList())
+            if (e != null) {
+                Log.w("Firestore", "Error fetching comments", e)
+            }
+        }
+        awaitClose { listener.remove() }
+
+    }
+     fun uploadComment(comment: Comment) {
+         val ref = db.collection("comments").document()
+         comment.id = ref.id
+         ref.set(comment)
+            .addOnSuccessListener { Log.d("Firestore", "Comments created ") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a comment", e) }
+
+    }
+    private fun uploadComments(comments: List<Comment>) {
+        val commentsRef = mutableListOf<DocumentReference>()
+        for (comment in comments) {
+            val ref = db.collection("comments").document()
+            commentsRef.add(ref)
+            comment.id = ref.id
+        }
+        db.runTransaction {
+            for ( i  in commentsRef.indices) {
+                it.set(commentsRef[i], comments[i] )
+            }
+        }
+            .addOnSuccessListener { documentReference -> Log.d("Firestore", "Comments created ") }
+            .addOnFailureListener { e -> Log.w("Firestore", "Error creating a comment", e) }
+
     }
 
     fun deleteTask(task: Task) {

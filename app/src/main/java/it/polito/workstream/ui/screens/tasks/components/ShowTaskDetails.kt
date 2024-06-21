@@ -60,13 +60,14 @@ import java.util.Locale
 
 @SuppressLint("Range")
 @Composable
-fun ShowTaskDetails(_task: Task, _assignee: User?, onComplete: (Task) -> Unit, vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
+fun ShowTaskDetails(_task: Task, actual_user: User, onComplete: (Task) -> Unit, vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
     // Responsive layout: 1 column with 2 rows for vertical screens, 2 columns with 1 row for horizontal screens
     val activeTeamId by vm.activeTeamId.collectAsState()
     val tasks by vm.getTasks(activeTeamId).collectAsState(initial = emptyList())
     val users by vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList())
 
     val task = tasks.find { it.id == _task.id } ?: Task()
+    val comments by vm.fetchComments(task.id).collectAsState(initial = emptyList())
     val assignee = users.find { it.email == task.assignee }
     val context = LocalContext.current
     val takeDocument = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
@@ -187,9 +188,9 @@ fun ShowTaskDetails(_task: Task, _assignee: User?, onComplete: (Task) -> Unit, v
                 }
 
                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                    for (c in task.comments) {
+                    for (c in comments) {
                         Card(
-                            modifier = if (c.author != "me") Modifier.padding(horizontal = 8.dp, vertical = 3.dp) else Modifier
+                            modifier = if (c.author != actual_user.getFirstAndLastName() ) Modifier.padding(horizontal = 8.dp, vertical = 3.dp) else Modifier
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                                 .align(Alignment.End)
                         ) {
@@ -218,7 +219,12 @@ fun ShowTaskDetails(_task: Task, _assignee: User?, onComplete: (Task) -> Unit, v
                         trailingIcon = {
                             IconButton(
                                 onClick = {
-                                    task.comments.add(Comment(text = message, author = "me"))
+                                    val c = Comment()
+                                    c.taskId = task.id
+                                    c.text = message
+                                    c.author = actual_user.getFirstAndLastName()
+                                    task.comments.add(c)
+                                    vm.uploadComment(c)
                                     setMessage("")
                                 },
                                 modifier = Modifier.align(Alignment.End)
@@ -336,9 +342,9 @@ fun ShowTaskDetails(_task: Task, _assignee: User?, onComplete: (Task) -> Unit, v
                 }
 
                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                    for (c in task.comments) {
+                    for (c in comments.sortedBy { it.timestamp }) {
                         Card(
-                            modifier = if (c.author != "me") Modifier.padding(horizontal = 8.dp, vertical = 3.dp) else Modifier
+                            modifier = if (c.author != actual_user.getFirstAndLastName() ) Modifier.padding(horizontal = 8.dp, vertical = 3.dp) else Modifier
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                                 .align(Alignment.End)
                         ) {
@@ -367,7 +373,12 @@ fun ShowTaskDetails(_task: Task, _assignee: User?, onComplete: (Task) -> Unit, v
                         trailingIcon = {
                             IconButton(
                                 onClick = {
-                                    task.comments.add(Comment(text = message, author = "me"))
+                                    val c = Comment()
+                                    c.taskId = task.id
+                                    c.text = message
+                                    c.author = actual_user.getFirstAndLastName()
+                                    task.comments.add(c)
+                                    vm.uploadComment(c)
                                     setMessage("")
                                 },
                                 modifier = Modifier.align(Alignment.End)

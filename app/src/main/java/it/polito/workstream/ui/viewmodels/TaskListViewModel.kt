@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 
 import androidx.lifecycle.viewModelScope
 import it.polito.workstream.FilterParams
+import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
@@ -39,6 +40,8 @@ class TaskListViewModel(
     val fetchSections: (String) -> Flow<List<String>>,
     fetchActiveTeam: (String) -> Flow<Team?>,
     val fetchUsers: (String) -> Flow<List<User>>,
+    val fetchComments: (String) -> Flow<List<Comment>>,
+    val uploadComment: (Comment) -> Unit,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
 
