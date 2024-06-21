@@ -211,7 +211,7 @@ fun FilterTasksDialog(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             OutlinedTextField(
-                                value = if (filterParams.assignee != "") filterParams.assignee else "--- No section filter ---",
+                                value = if (filterParams.assignee != "") filterParams.assignee else "--- No assignee filter ---",
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("Assignee") },
@@ -233,7 +233,7 @@ fun FilterTasksDialog(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "--- No asssignee filter ---",
+                                            "--- No assignee filter ---",
                                             fontStyle = FontStyle.Italic
                                         )
                                     },
