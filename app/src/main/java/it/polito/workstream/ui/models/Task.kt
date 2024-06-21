@@ -35,9 +35,7 @@ data class Task(
     var history: MutableMap<Timestamp, String> = mutableMapOf(), // list of status changes, can be represented as a list of pairs of "change description" and timestamp
     var teamId: String? = null
 ) {
-    init {
-        addHistoryEntry("Task created")
-    }
+
 
     /** Completes the task */
     fun complete() {

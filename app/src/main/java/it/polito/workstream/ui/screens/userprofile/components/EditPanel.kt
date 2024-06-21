@@ -62,9 +62,12 @@ fun EditPanel(
     save: () -> Unit = {},
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-
+    val teamMembers = vm.teamMembers.collectAsState(initial = emptyList()).value
+    val user = teamMembers.find { it.email == emailValue }
     val photoState = remember {mutableStateOf(vm.user.photo)}
-    photoState.value = vm.user.photo
+    if (user != null) {
+        photoState.value = user.photo
+    }
 
     val activeTeamId by vm.activeTeamId.collectAsState(initial = "no_team")
     var firstNameValue by remember { mutableStateOf(firstNameValue) }

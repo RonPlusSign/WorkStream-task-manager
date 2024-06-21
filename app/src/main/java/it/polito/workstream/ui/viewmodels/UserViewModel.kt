@@ -30,7 +30,7 @@ class UserViewModel(
     val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit,
     fetchActiveTeam: (String) -> Flow<Team?>,
     val activeTeamId: MutableStateFlow<String>,
-    fetchUsers: (String) -> Flow<List<User>>,
+    val fetchUsers: (String) -> Flow<List<User>>,
     val getTasks: (String) -> Flow<List<Task>>,
     var firstNameValue: MutableState<String>,
     var lastNameValue: MutableState<String>,

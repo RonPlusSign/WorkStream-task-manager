@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
                             user = retrievedUser
                             app._user.value = retrievedUser
                             Log.d("user", retrievedUser.toString())
-                            if (! retrievedUser.activeTeam.isNullOrEmpty() )
+                            if (!retrievedUser.activeTeam.isNullOrEmpty())
                                 app.activeTeamId.value = retrievedUser.activeTeam!!
 
                         }
@@ -116,10 +116,9 @@ class MainActivity : ComponentActivity() {
                 val location = document.getString("location")
                 var activeTeam = document.getString("activeTeam")
                 val teams = document.get("teams") as? MutableList<String> ?: mutableListOf()
-                if (activeTeam.isNullOrEmpty() && teams.isNotEmpty() ) {
+                if (activeTeam.isNullOrEmpty() && teams.isNotEmpty()) {
                     activeTeam = teams[0]
-                }
-                else if (activeTeam.isNullOrEmpty() && teams.isEmpty()) {
+                } else if (activeTeam.isNullOrEmpty() && teams.isEmpty()) {
                     activeTeam = "no_team"
                 }
 
@@ -331,7 +330,7 @@ fun ContentView(
                             leaveTeam = vm.leaveTeam,
                             context = LocalContext.current,
                             navigateTo = navigateTo,
-                            user= vm.user
+                            user = vm.user
                         )
                     }
 
@@ -339,7 +338,7 @@ fun ContentView(
                         vm.setActivePage(Route.NewTask.title)
                         if (taskVM.task.value.title != "New Task")
                             taskVM.setTask(Task(title = "New Task", section = sections[0]))
-                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM )//app
+                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM)//app
                     }
 
                     composable(
@@ -422,27 +421,24 @@ fun ContentView(
                     ) { entry ->
                         val teamId = entry.arguments?.getString("teamId")!!
                         ConfirmJoinTeamPage(
-                            navController = navController,
                             teamId = teamId,
-                            onConfirm = { team ->
+                            onConfirm = {
                                 vm.joinTeam(teamId, user.email)
-                                navController.navigate("/${team.id}/${Route.TeamTasks.name}")
+                                navController.navigate("/${teamId}/${Route.TeamTasks.name}")
                             },
-                            onCancel = {
-                                navController.popBackStack()
-                            },
+                            onCancel = { navController.popBackStack() },
                         )
                     }
 
                     composable(
                         "/no_team/${Route.TeamTasks.name}"
-                    ){
+                    ) {
                         vm.setActivePage("no_team")
                         NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") }, logout = onLogout)
                     }
                     composable(
                         "//${Route.TeamTasks.name}"
-                    ){
+                    ) {
                         vm.setActivePage("no_team")
                         NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") }, logout = onLogout)
                     }

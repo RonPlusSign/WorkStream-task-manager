@@ -54,12 +54,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -91,10 +94,10 @@ fun TeamScreen(
     val userProfile = user.collectAsState(initial = null).value
     val activeTeamId by vm.activeTeamId.collectAsState(initial = "no_team")
     val team = vm.fetchTeam(activeTeamId).collectAsState(initial = null).value ?: Team(name = "Loading...")
-    val teamMembers =  vm.teamMembers.collectAsState(initial = emptyList()).value
-    val teamTasks  = tasksVm.tasks.collectAsState(initial = emptyList()).value
+    val teamMembers = vm.teamMembers.collectAsState(initial = emptyList()).value
+    val teamTasks = tasksVm.tasks.collectAsState(initial = emptyList()).value
 
-    val photoState = remember {mutableStateOf(team.photo)}
+    val photoState = remember { mutableStateOf(team.photo) }
     photoState.value = team.photo
 
     var nameValue by remember { mutableStateOf(team.name) }
@@ -116,7 +119,7 @@ fun TeamScreen(
         DeleteTeamConfirmationDialog(
             onDismiss = { showDeleteConfirmationDialog = false },
             onConfirm = {
-                removeTeam(team.id,team )
+                removeTeam(team.id, team)
 
                 userProfile?.teams?.firstOrNull { it != team.id }
                     .let { vm.changeActiveTeamId(it ?: "no_team") }
@@ -149,22 +152,26 @@ fun TeamScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     ProfilePicture(
-                        basepath = team.id+userProfile?.email,
+                        basepath = team.id + userProfile?.email,
                         photo = photoState,
                         profilePicture = team.profilePicture,
                         photoBitmapValue = team.profileBitmap,
                         isEditing = (vm.currentUser.email == team.admin),
                         name = team.name,
-                        edit = { scope.launch {
+                        edit = {
+                            scope.launch {
 
-                            team.photo = "LocalImage"
-                            vm.uploadPhoto(team)
-                        } },
-                        setPhotoBitmap = { scope.launch {
+                                team.photo = "LocalImage"
+                                vm.uploadPhoto(team)
+                            }
+                        },
+                        setPhotoBitmap = {
+                            scope.launch {
 
-                            team.photo= "LocalImage"
-                            vm.uploadPhoto(team)
-                        } } ,
+                                team.photo = "LocalImage"
+                                vm.uploadPhoto(team)
+                            }
+                        },
                         setPhoto = {
                             team.photo = it
                             vm.uploadPhoto(team)
@@ -204,7 +211,7 @@ fun TeamScreen(
                                         }
                                     }
                                 },
-                                confirmButton = { TextButton(onClick = { vm.save(nameValue, team) } ) { Text("Save") } },//QUI
+                                confirmButton = { TextButton(onClick = { vm.save(nameValue, team) }) { Text("Save") } },//QUI
                                 dismissButton = { TextButton(onClick = vm::discard) { Text("Cancel") } }
                             )
                         }
@@ -289,7 +296,6 @@ fun TeamScreen(
                 MemberList(
                     members = vm.teamMembers.collectAsState(initial = emptyList()).value,
                     removeMember = leaveTeam,
-                    onTaskClick = onTaskClick,
                     currentUser = vm.currentUser,
                     adminId = team.admin,
                     teamId = team.id,
@@ -349,7 +355,6 @@ fun TeamScreen(
 fun MemberList(
     members: List<User>,
     removeMember: (teamId: String, userId: String) -> Unit,
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     currentUser: User,
     adminId: String,
     teamId: String,
@@ -360,7 +365,6 @@ fun MemberList(
             MemberItem(
                 member = member,
                 removeMember = removeMember,
-                onTaskClick = onTaskClick,
                 currentUser = currentUser,
                 isAdmin = member.email == adminId,
                 adminId = adminId,
@@ -375,8 +379,7 @@ fun MemberList(
 @Composable
 fun MemberItem(
     member: User,
-    removeMember: (String, String) -> Unit,
-    onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
+    removeMember: (teamId: String, userId: String) -> Unit,
     currentUser: User,
     isAdmin: Boolean,
     adminId: String?,
@@ -389,7 +392,7 @@ fun MemberItem(
         RemoveMemberConfirmationDialog(
             onDismiss = { removeMemberConfirmationDialog = false },
             onConfirm = {
-                removeMember(member.email, teamId)
+                removeMember(teamId, member.email)
                 removeMemberConfirmationDialog = false
                 navigateTo(Route.TeamScreen.name)
             },
@@ -402,7 +405,6 @@ fun MemberItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                //onTaskClick(6, member.email, null, null)
                 navigateTo("${Route.UserView.name}/${member.email}")
             }
             .background(
@@ -411,15 +413,21 @@ fun MemberItem(
             )
             .padding(8.dp)
     ) {
-        member.BitmapValue?.let { bitmap ->
-            Image(
-                bitmap = bitmap.asImageBitmap(),
+        if(member.photo.isNotEmpty()){
+            AsyncImage(
+                model =
+                ImageRequest.Builder(LocalContext.current)
+                    .data(LocalContext.current.getFileStreamPath(member.photo).absolutePath)
+                    .crossfade(true)
+                    .build(), //minchia ci siamo
                 contentDescription = null,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(40.dp)
-                    .background(MaterialTheme.colorScheme.onSurface, shape = CircleShape)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
             )
-        } ?: Box(
+        } else{ Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
@@ -434,7 +442,7 @@ fun MemberItem(
                 textAlign = TextAlign.Center,
                 fontSize = 16.sp
             )
-        }
+        }}
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -523,9 +531,7 @@ fun getQrCodeBitmap(content: String): Bitmap {
 }
 
 @Composable
-fun InviteMemberDialog(
-    onDismiss: () -> Unit, qrCodeBitmap: Bitmap, link: String, context: Context
-) {
+fun InviteMemberDialog(onDismiss: () -> Unit, qrCodeBitmap: Bitmap, link: String, context: Context) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = "Invite Member") },
@@ -540,17 +546,22 @@ fun InviteMemberDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = link,
-                        color = Color.Blue,
-                        fontSize = 18.sp,
-                        modifier = Modifier
-                            .padding(end = 4.dp)
-                            .clickable { context.shareLink(link) }
-                    )
-                    Icon(Icons.Default.Share, contentDescription = "Share link", modifier = Modifier
-                        .size(24.dp)
-                        .clickable { context.shareLink(link) })
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = link,
+                            color = Color.Blue,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .clickable { context.shareLink(link) }
+                        )
+                    }
+                    Column(modifier = Modifier.weight(0.1f)) {
+                        Icon(Icons.Default.Share, contentDescription = "Share link", modifier = Modifier
+                            .size(24.dp)
+                            .clickable { context.shareLink(link) })
+                    }
                 }
 
             }

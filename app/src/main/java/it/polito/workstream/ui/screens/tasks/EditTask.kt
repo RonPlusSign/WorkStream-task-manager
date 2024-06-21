@@ -82,6 +82,12 @@ fun EditTaskScreen(
 
     val assignee: User? = teamVM.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == taskVM.assigneeValue }
     val sections by taskListVM.sections.collectAsState(listOf())
+    val activeTeamId by taskListVM.activeTeamId.collectAsState()
+    val tasks by taskListVM.getTasks(activeTeamId).collectAsState(initial = emptyList())
+    val task = tasks.firstOrNull { it.id == taskVM.task.value.id } ?: taskVM.task.value
+
+
+    taskVM.taskBeforeEditing = task.copy()
 
     @Composable
     fun EditTaskInfo() {
@@ -174,7 +180,7 @@ fun EditTaskScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         OutlinedTextField(
-                            value = taskVM.statusValue ?: "",
+                            value = taskVM.statusValue.value ?: "",
                             onValueChange = {},
                             label = { Text("Status") },
                             modifier = Modifier
