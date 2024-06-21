@@ -414,6 +414,7 @@ fun ContentView(
                         "profile?id={teamId}",
                         deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}" }),
                     ) { entry ->
+
                         val teamId = entry.arguments?.getString("teamId")!!
                         ConfirmJoinTeamPage(
                             teamId = teamId,

@@ -324,6 +324,7 @@ class MainApplication : Application(), ImageLoaderFactory {
 
     //update task
     fun onTaskUpdated(updatedTask: Task) {
+
         Log.d("Firestore", "Task updated: $updatedTask")
         updatedTask.teamId = activeTeamId.value
         //uploadComments(updatedTask.comments.filter { it.id.isEmpty() })
@@ -376,6 +377,8 @@ class MainApplication : Application(), ImageLoaderFactory {
     }
 
     fun deleteTask(task: Task) {
+        if (task.id.isEmpty())
+            return
         // Remove the task from the user's tasks list
         val taskRef = db.collection("Tasks").document(task.id)
         val userRef = task.assignee?.let { db.collection("users").document(it) }
