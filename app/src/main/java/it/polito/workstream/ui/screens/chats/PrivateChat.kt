@@ -64,10 +64,7 @@ fun Chat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
     //val activeTeamId = vm.activeTeamId.collectAsState().value
-    val chats = vm.chats.collectAsState(initial = null).value
-    val chat = chats?.find {
-        it.user1Id == destUserId || it.user2Id == destUserId
-    }
+    val chat = vm.fetchChat(destUserId).collectAsState(initial = null).value
     Log.d("chat", "Opened chat with length: ${chat?.messages?.size}")
 
     if (chat!=null && chat.messages.size > 0) {
@@ -79,7 +76,7 @@ fun Chat(
 
     Rebugger(
         trackMap = mapOf(
-            "chats" to chats,
+            "destUserId" to destUserId,
             "chat" to chat,
             "vmchats" to vm.chats
         ),

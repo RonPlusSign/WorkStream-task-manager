@@ -52,6 +52,7 @@ android {
 
 dependencies {
 
+    implementation("androidx.compose.runtime:runtime-tracing:1.0.0-beta01")
     implementation("io.github.theapache64:rebugger:1.0.0-rc03")
     implementation(libs.core)
     implementation(libs.firebase.firestore)

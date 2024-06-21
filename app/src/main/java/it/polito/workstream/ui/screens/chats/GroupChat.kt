@@ -73,13 +73,6 @@ fun GroupChat(
         }
     }
 
-    Rebugger(
-        trackMap = mapOf(
-            "chat" to groupChat,
-            "vm" to vm.groupChat
-        ),
-    )
-
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
