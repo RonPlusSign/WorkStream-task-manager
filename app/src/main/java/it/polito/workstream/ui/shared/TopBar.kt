@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.Route
+import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -51,13 +52,25 @@ fun TopBar(
     navigateTo: (String) -> Any,
     content: @Composable () -> Unit = {},
     unseenMessagesCount: Int,
-    activePage: String
+    activePage: String,
+    destUser: User?
 ) {
     val scope = rememberCoroutineScope()
+    Log.d("topbar", "TOOOOPPPPBAAAAR: ${destUser?.email}")
 
     @Composable
     fun title() {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    if (activePage.contains(Route.ChatScreen.title) && destUser != null) {
+                        Log.d("chat", "Navigate to ${Route.UserView.title + "/${destUser.email}"}")
+                        navigateTo("${Route.UserView.name}/${destUser.email}")
+                    }
+                }
+        ) {
             Text(title, fontSize = 27.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -152,7 +165,7 @@ fun TopBar(
 @Composable
 fun TopBarWrapper(
     vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    userVm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    userVM: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     drawerState: DrawerState? = null,
     navigateTo: (String) -> Any
 ) {
@@ -160,7 +173,10 @@ fun TopBarWrapper(
     if(activepage.contains("no_team")) //bruttissimo
         return
 
-    val teamMembers = userVm.teamMembers.collectAsState(initial = listOf()).value
+    val activeTeamId = userVM.activeTeamId.collectAsState().value
+    val teamMembers = userVM.fetchUsers(activeTeamId).collectAsState(initial = listOf()).value
+    val destUser = teamMembers.find{ it.email == userVM.currentDestUserId }
+
     // Serve per la gestione della activepage nella chat, e per togliere la bottombar
     val title =
         if (activepage.contains(Route.ChatScreen.title + "/"))
@@ -170,9 +186,9 @@ fun TopBarWrapper(
 
     var unseenMessagesCount = 0;
     for (m in teamMembers){
-        unseenMessagesCount += userVm.countUnseenChatMessages(m.email).collectAsState(initial = 0).value
+        unseenMessagesCount += userVM.countUnseenChatMessages(m.email).collectAsState(initial = 0).value
     }
-    unseenMessagesCount += userVm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
+    unseenMessagesCount += userVM.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
 
 
     TopBar(
@@ -181,6 +197,7 @@ fun TopBarWrapper(
         navigateTo,
         unseenMessagesCount = unseenMessagesCount,
         activePage = activepage,
+        destUser = destUser,
         content = {
             TopAppBarSurface(
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),

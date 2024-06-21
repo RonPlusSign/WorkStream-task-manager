@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
 import it.polito.workstream.ui.models.Team
+import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -71,6 +72,7 @@ fun ChatList(
                                 .clickable { onChatClick(8, null, null, -1, null) }
                         ) {
                             SmallChatBox(
+                                destUser = null,
                                 userName = "Team chat",
                                 lastMessage = (lastMessageAuthor?.firstName?:"") + " : " + groupChat?.messages?.lastOrNull()?.text,
                                 timestamp = groupChat?.messages?.lastOrNull()?.timestamp,
@@ -96,6 +98,7 @@ fun ChatList(
                                     }
                             ) {
                                 SmallChatBox(
+                                    destUser = destUser,
                                     userName = destUser?.firstName + " " + destUser?.lastName,
                                     lastMessage = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.text?:"No message",
                                     timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp?: Timestamp.now(),

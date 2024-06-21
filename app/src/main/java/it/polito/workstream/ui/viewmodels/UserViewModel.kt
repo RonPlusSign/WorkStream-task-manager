@@ -35,7 +35,7 @@ class UserViewModel(
     var firstNameValue: MutableState<String>,
     var lastNameValue: MutableState<String>,
     var locationValue: MutableState<String?>,
-    val uploaUserdPhoto: (User) -> Unit
+    val uploaUserdPhoto: (User) -> Unit,
 ) : ViewModel() {
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)
@@ -170,11 +170,11 @@ class UserViewModel(
         profilePictureValue = n
     }
 
-//    var currentDestUserId by mutableStateOf("")
-//        private set
-//    fun setCurrDestUser(destUserId: String) {
-//        currentDestUserId = destUserId
-//    }
+    var currentDestUserId by mutableStateOf("")
+        private set
+    fun setCurrDestUser(destUserId: String) {
+        currentDestUserId = destUserId
+    }
 
     // Chats
     val chats = fetchChats()

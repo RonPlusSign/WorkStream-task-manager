@@ -42,7 +42,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 app.firstNameValue,
                 app.lastNameValue,
                 app.locationValue,
-                app::uploaUserdPhoto
+                app::uploaUserdPhoto,
             ) as T
 
             modelClass.isAssignableFrom(TaskListViewModel::class.java) ->

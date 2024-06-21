@@ -306,6 +306,8 @@ fun ContentView(
                         Log.d("chat", "We're on team $activeTeamId")
                         Log.d("chat", teamMembers.toString())
 
+                        userVM.setCurrDestUser(destUser?.email?:"")
+
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
                             Chat(destUser.email)
