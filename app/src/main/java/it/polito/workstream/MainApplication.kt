@@ -210,6 +210,12 @@ class MainApplication : Application(), ImageLoaderFactory {
 
     fun leaveTeam(teamId: String, userId: String) {
 
+        if(teamId.isEmpty() || userId.isEmpty()){
+            Log.w( "Firestore", "team: $teamId or user:$userId is empty error")
+            return
+        }
+
+
         val teamRef = db.collection("Teams").document(teamId)
         val userRef = db.collection("users").document(userId)
         db.runTransaction {
@@ -220,7 +226,7 @@ class MainApplication : Application(), ImageLoaderFactory {
                 Log.d("Firestore", "Team removed from user")
                 if (user.value.email == userId) {   // I'm removing myself from the team
                     val nextTeam = user.value.teams.firstOrNull { it != teamId }
-                    activeTeamId.value = nextTeam ?: ""
+                    activeTeamId.value = nextTeam ?: "no_team"
                 }
             }
             .addOnFailureListener { e -> Log.w("Firestore", "Error removing team from user", e) }
