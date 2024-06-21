@@ -358,8 +358,8 @@ fun ContentView(
                         }*/
                         tasksList.value.find { it.id == taskId }?.let {
                             vm.setActivePage(it.title)
-                            val assignee = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { u -> u.email == it.assignee }
-                            ShowTaskDetails(it, assignee, onComplete = { task ->
+
+                            ShowTaskDetails(it, user, onComplete = { task ->
                                 task.complete()
                                 taskVM.onTaskUpdated(task)
                                 onItemSelect(1, null, null, null, null)
@@ -419,6 +419,7 @@ fun ContentView(
                         "profile?id={teamId}",
                         deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}" }),
                     ) { entry ->
+
                         val teamId = entry.arguments?.getString("teamId")!!
                         ConfirmJoinTeamPage(
                             teamId = teamId,

@@ -67,6 +67,10 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::fetchSections,
                     app::fetchActiveTeam,
                     app::fetchUsers,
+                    app::fetchComments,
+                    app::uploadComment,
+                    app::uploadDocument,
+                    app::deleteDocument
                 ) as T
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->

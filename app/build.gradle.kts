@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.play.services.code.scanner)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.androidx.documentfile)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
