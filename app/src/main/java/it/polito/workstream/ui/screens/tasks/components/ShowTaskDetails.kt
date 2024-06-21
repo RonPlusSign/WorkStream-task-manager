@@ -188,7 +188,7 @@ fun ShowTaskDetails(_task: Task, actual_user: User, onComplete: (Task) -> Unit, 
                 }
 
                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                    for (c in comments) {
+                    for (c in comments.sortedBy { it.timestamp }) {
                         Card(
                             modifier = if (c.author != actual_user.getFirstAndLastName() ) Modifier.padding(horizontal = 8.dp, vertical = 3.dp) else Modifier
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
