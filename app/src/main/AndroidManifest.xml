@@ -50,6 +50,7 @@
                 <data
                     android:host="www.workstream.it"
                     android:scheme="https"
+                    android:pathPattern="/.*"
                     />
             </intent-filter>
             <intent-filter>
@@ -61,6 +62,7 @@
                 <data
                     android:host="www.workstream.it"
                     android:scheme="http"
+                    android:pathPattern="/.*"
                      />
             </intent-filter>
         </activity>

@@ -266,7 +266,10 @@ fun ContentView(
                     .fillMaxSize()
                     .padding(padding), color = MaterialTheme.colorScheme.background
             ) {
-                NavHost(navController = navController, startDestination = "/${activeTeamId.ifBlank { "no_team" }}/${Route.TeamTasks.name}") {
+                NavHost(navController = navController, startDestination = "/home") {
+                    composable(route = "/home"){
+                        navigateTo("/${activeTeamId.ifBlank { "no_team" }}/${Route.TeamTasks.name}")
+                    }
 
                     composable(
                         route = "/{teamId}/${Route.TeamTasks.name}",
@@ -275,6 +278,9 @@ fun ContentView(
 
                         vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
+                        if (it.arguments?.getString("teamId") == "no_team"|| it.arguments?.getString("teamId") == null || it.arguments?.getString("teamId") == ""){
+                            navigateTo("/no_team/${Route.TeamTasks.name}")
+                        }
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
                     }
 
@@ -411,11 +417,40 @@ fun ContentView(
                     }
 
                     composable(
-                        "profile?id={teamId}",
-                        deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}" }),
+                        "deeplink",
+                        deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}"; action = Intent.ACTION_VIEW }),
+                        arguments = listOf(
+                            navArgument("teamId") {
+                                type = NavType.StringType
+                                nullable = false
+                                defaultValue = ""
+                            }
+                        )
                     ) { entry ->
-
-                        val teamId = entry.arguments?.getString("teamId")!!
+                        Log.d("confirm_join_team", "YOO")
+                        val teamId = entry.arguments?.getString("teamId") ?: ""
+                        ConfirmJoinTeamPage(
+                            teamId = teamId,
+                            onConfirm = {
+                                vm.joinTeam(teamId, user.email)
+                                navController.navigate("/${teamId}/${Route.TeamTasks.name}")
+                            },
+                            onCancel = { navController.popBackStack() },
+                        )
+                    }
+                    composable(
+                        "profile?id={teamId}",
+                        deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}"; action = Intent.ACTION_VIEW }),
+                        arguments = listOf(
+                            navArgument("teamId") {
+                                type = NavType.StringType
+                                nullable = false
+                                defaultValue = ""
+                            }
+                        )
+                    ) { entry ->
+                        Log.d("confirm_join_team", "YOO")
+                        val teamId = entry.arguments?.getString("teamId") ?: ""
                         ConfirmJoinTeamPage(
                             teamId = teamId,
                             onConfirm = {
