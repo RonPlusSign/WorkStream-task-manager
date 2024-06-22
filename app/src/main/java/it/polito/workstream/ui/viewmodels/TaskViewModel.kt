@@ -184,8 +184,6 @@ class TaskViewModel(
     }
 
     fun save(): Task {
-
-
         task.value.dueDate = dueDateValue
         task.value.title = titleValue
         task.value.description = descriptionValue
@@ -196,7 +194,6 @@ class TaskViewModel(
         task.value.status = statusValue.value
 
         updateTaskHistory(taskBeforeEditing, task.value)
-
         return task.value
     }
 

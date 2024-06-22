@@ -124,7 +124,6 @@ fun TeamTasksScreen(
                     contentPadding = PaddingValues(bottom = heightInDp + 55.dp)
                 ) {
                     for (section in sections ) {
-                        Log.d("Section" , section )
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),

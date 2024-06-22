@@ -41,6 +41,7 @@ data class Task(
     /** Completes the task */
     fun complete() {
         completed = true
+        status = "Completed"
     }
 
     fun addHistoryEntry(entry: String) {
@@ -82,8 +83,5 @@ class Comment {
     var author: String = ""
     var timestamp: Date = Date()
     var taskId: String = ""
-
-
-
 }
 

@@ -1,6 +1,5 @@
 package it.polito.workstream.ui.shared
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,13 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.Route
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,14 +90,13 @@ fun TopBar(
                 contentDescription = "Localized description"
             )
         }
-
     }
 
     @Composable
     fun actions() {
         Box {
             if (activePage.contains(Route.ChatScreen.title))
-                IconButton(onClick = {  }) {
+                IconButton(onClick = { }) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Localized description"
@@ -119,9 +117,7 @@ fun TopBar(
                         .size(22.dp)
                         .clip(CircleShape)
                         .background(Color.Red)
-                ) {
-                    Text(text = unseenMessagesCount.toString(), fontSize = 20.sp, color = Color.White)
-                }
+                ) { Text(text = unseenMessagesCount.toString(), fontSize = 20.sp, color = Color.White) }
         }
     }
 
@@ -136,14 +132,14 @@ fun TopBar(
                 }
             },
             colors = colors,
-            navigationIcon = { if (title == Route.TeamTasks.title || title == Route.TeamMembers.title || title == Route.MyTasks.title) navIcon() else navIconBack() },
+            navigationIcon = { if (activePage == Route.TeamTasks.title || activePage == Route.TeamMembers.title || activePage == Route.MyTasks.title) navIcon() else navIconBack() },
             actions = { actions() }
         )
     } else {   // Vertical (portrait)
         TopAppBar( // Two rows
             title = { title() },
             colors = colors,
-            navigationIcon = { if (title == Route.TeamTasks.title || title == Route.TeamMembers.title || title == Route.MyTasks.title) navIcon() else navIconBack() },
+            navigationIcon = { if (activePage == Route.TeamTasks.title || activePage == Route.TeamMembers.title || activePage == Route.MyTasks.title) navIcon() else navIconBack() },
             actions = { actions() }
         )
         content()
@@ -158,20 +154,23 @@ fun TopBarWrapper(
     drawerState: DrawerState? = null,
     navigateTo: (String) -> Any
 ) {
-    val activepage = vm.activePageValue.collectAsState().value
-    if(activepage.contains("no_team")) //bruttissimo
+    val activePage = vm.activePageValue.collectAsState().value
+    if (activePage.contains("no_team"))
         return
 
     val teamMembers = userVm.teamMembers.collectAsState(initial = listOf()).value
+
+    val activeTeam = vm.fetchActiveTeam(vm.activeTeamId.collectAsState().value).collectAsState(initial = null).value
+
     // Serve per la gestione della activepage nella chat, e per togliere la bottombar
     val title =
-        if (activepage.contains(Route.ChatScreen.title + "/"))
-            activepage.removePrefix(Route.ChatScreen.title + "/")
-        else if (activepage == Route.ChatScreen.title) "Chats"
-        else activepage
+        if (activePage.contains(Route.ChatScreen.title + "/")) activePage.removePrefix(Route.ChatScreen.title + "/")
+        else if (activePage == Route.ChatScreen.title) "Chats"
+        else if (activePage.contains(Route.TeamTasks.title)) activeTeam?.name ?: Route.TeamTasks.title
+        else activePage
 
-    var unseenMessagesCount = 0;
-    for (m in teamMembers){
+    var unseenMessagesCount = 0
+    for (m in teamMembers) {
         unseenMessagesCount += userVm.countUnseenChatMessages(m.email).collectAsState(initial = 0).value
     }
     unseenMessagesCount += userVm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
@@ -182,14 +181,14 @@ fun TopBarWrapper(
         drawerState = drawerState,
         navigateTo,
         unseenMessagesCount = unseenMessagesCount,
-        activePage = activepage,
+        activePage = activePage,
         content = {
             TopAppBarSurface(
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
                 modifier = Modifier
             ) {
                 //  Show searchbar only if the active page is TeamTasks or MyTasks
-                if (activepage == Route.TeamTasks.title || activepage == Route.MyTasks.title ) {
+                if (activePage == Route.TeamTasks.title || activePage == Route.MyTasks.title) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -216,5 +215,5 @@ fun TopBarWrapper(
                     }
                 }
             }
-    })
+        })
 }
