@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import it.polito.workstream.ui.screens.tasks.components.toDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,16 +19,18 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class TaskViewModel(
-    val activeTeamFlow: Flow<Team?>,
-    val  activeTeamId: MutableStateFlow<String>,
-    val onTaskUpdated: (updatedTask: Task) -> Unit,) : ViewModel() {
+    activeTeamFlow: Flow<Team?>,
+    val activeUser: User,
+    val activeTeamId: MutableStateFlow<String>,
+    val onTaskUpdated: (updatedTask: Task) -> Unit,
+) : ViewModel() {
     // List of possible values for the frequency of a recurrent task
     val frequencies = listOf("None", "Daily", "Weekly", "Monthly")
     val statuses = listOf("To Do", "In progress", "Paused", "On review", "Completed")
 
     val activeTeam = activeTeamFlow.stateIn(scope = viewModelScope, started = SharingStarted.Lazily, initialValue = null)
 
-    var task = mutableStateOf( Task(title = "New Task", section = activeTeam.value?.sections?.get(0) ?: "General"))
+    var task = mutableStateOf(Task(title = "New Task", section = activeTeam.value?.sections?.get(0) ?: "General"))
         private set
 
     fun setTask(value: Task) {
@@ -64,9 +67,11 @@ class TaskViewModel(
     }
 
     private fun checkDueDate() {
-        dueDateError = if (dueDateValue != null && dueDateValue!!.before(Timestamp(System.currentTimeMillis())))
-            "Due date cannot be in the past"
-        else ""
+        val isPast = dueDateValue?.let {
+            SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(it) < SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(Timestamp(System.currentTimeMillis()))
+        } ?: false
+
+        dueDateError = if (dueDateValue != null && isPast) "Due date cannot be in the past" else ""
     }
 
     var titleValue by mutableStateOf(task.value.title)
@@ -197,43 +202,39 @@ class TaskViewModel(
         return task.value
     }
 
-    private fun updateTaskHistory(taskBeforeEditing: Task, updatedTask: Task) {
-
+    fun updateTaskHistory(taskBeforeEditing: Task, updatedTask: Task) {
         if (updatedTask.history.isEmpty()) {
             updatedTask.addHistoryEntry("Task created")
             return
         }
 
+        val author = activeUser.getFirstAndLastName()
+
         // Get the differences in order to update the history. Every change in the task should be recorded (e.g. "Title changed from 'oldTitle' to 'newTitle'")
         if (taskBeforeEditing.title != updatedTask.title)
-            updatedTask.addHistoryEntry("Title changed from '${taskBeforeEditing.title}' to '${updatedTask.title}'")
+            updatedTask.addHistoryEntry(author + ": changed title from '${taskBeforeEditing.title}' to '${updatedTask.title}'")
+        if (taskBeforeEditing.description != updatedTask.description)
+            updatedTask.addHistoryEntry("$author changed the description")
+        if (taskBeforeEditing.completed != updatedTask.completed)
+            updatedTask.addHistoryEntry("$author marked the task as completed")
         if (taskBeforeEditing.assignee != updatedTask.assignee)
-            updatedTask.addHistoryEntry("Assignee changed from '${taskBeforeEditing.assignee ?: "anyone"}' to '${updatedTask.assignee ?: "anyone"}'")
+            updatedTask.addHistoryEntry("$author changed assignee from '${taskBeforeEditing.assignee ?: "anyone"}' to '${updatedTask.assignee ?: "anyone"}'")
         if (taskBeforeEditing.section != updatedTask.section)
-            updatedTask.addHistoryEntry("Section changed from '${taskBeforeEditing.section}' to '${updatedTask.section}'")
+            updatedTask.addHistoryEntry("$author changed the section from '${taskBeforeEditing.section}' to '${updatedTask.section}'")
         if (taskBeforeEditing.dueDate != updatedTask.dueDate)
-            updatedTask.addHistoryEntry("Due date changed from '${taskBeforeEditing.dueDate ?: "no deadline"}' to '${updatedTask.dueDate ?: "no deadline"}'")
+            updatedTask.addHistoryEntry("$author changed the due date from '${taskBeforeEditing.dueDate.toDate() ?: "no deadline"}' to '${updatedTask.dueDate.toDate() ?: "no deadline"}'")
         if (taskBeforeEditing.status != updatedTask.status)
-            updatedTask.addHistoryEntry("Status changed from '${taskBeforeEditing.status ?: "to do"}' to '${updatedTask.status ?: "to do"}'")
+            updatedTask.addHistoryEntry("$author changed the status from '${taskBeforeEditing.status ?: "to do"}' to '${updatedTask.status ?: "to do"}'")
         if (taskBeforeEditing.frequency != updatedTask.frequency)
-            updatedTask.addHistoryEntry("Frequency changed from '${taskBeforeEditing.frequency ?: "no frequency"}' to '${updatedTask.frequency ?: "no frequency"}'")
+            updatedTask.addHistoryEntry("$author changed the frequency from '${taskBeforeEditing.frequency ?: "no frequency"}' to '${updatedTask.frequency ?: "no frequency"}'")
         if (taskBeforeEditing.attachments.count() > updatedTask.attachments.count())
-            updatedTask.addHistoryEntry("Attachment removed")
+            updatedTask.addHistoryEntry("$author removed an attachment")
         else if (taskBeforeEditing.attachments.count() < updatedTask.attachments.count())
-            updatedTask.addHistoryEntry("Attachment added")
+            updatedTask.addHistoryEntry("$author added an attachment")
         if (taskBeforeEditing.comments.count() > updatedTask.comments.count())
-            updatedTask.addHistoryEntry("Comment removed")
+            updatedTask.addHistoryEntry("$author removed a comment")
         else if (taskBeforeEditing.comments.count() < updatedTask.comments.count())
-            updatedTask.addHistoryEntry("Comment added")
-
-        Log.i("TASK_HISTORY", "Updated task history: ${updatedTask.history.toList()}") // If you remove this, the history will not be updated
-    }
-
-    /** Returns true if the task is expired (i.e. true date is in the past), false otherwise */
-    fun isExpired(): Boolean {
-        return dueDateValue?.let {
-            SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(it) < SimpleDateFormat("dd/MM/yyyy", Locale.ITALIAN).format(Timestamp(System.currentTimeMillis()))
-        } ?: false
+            updatedTask.addHistoryEntry("$author added a comment")
     }
 
     fun setAssignee(m: User) {

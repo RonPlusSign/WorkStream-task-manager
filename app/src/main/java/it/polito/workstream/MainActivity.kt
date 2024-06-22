@@ -267,7 +267,7 @@ fun ContentView(
                     .padding(padding), color = MaterialTheme.colorScheme.background
             ) {
                 NavHost(navController = navController, startDestination = "/home") {
-                    composable(route = "/home"){
+                    composable(route = "/home") {
                         navigateTo("/${activeTeamId.ifBlank { "no_team" }}/${Route.TeamTasks.name}")
                     }
 
@@ -278,7 +278,7 @@ fun ContentView(
 
                         vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
-                        if (it.arguments?.getString("teamId") == "no_team"|| it.arguments?.getString("teamId") == null || it.arguments?.getString("teamId") == ""){
+                        if (it.arguments?.getString("teamId") == "no_team" || it.arguments?.getString("teamId") == null || it.arguments?.getString("teamId") == "") {
                             navigateTo("/no_team/${Route.TeamTasks.name}")
                         }
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
@@ -353,15 +353,13 @@ fun ContentView(
                         )
                     ) { entry ->
                         val taskId = entry.arguments?.getString("index")
-
-                        /*vm.tasksList.find { it.id.toInt() == index }?.let {
-                            vm.setActivePage(it.title)
-                        }*/
                         tasksList.value.find { it.id == taskId }?.let {
                             vm.setActivePage(it.title)
 
                             ShowTaskDetails(it, user, onComplete = { task ->
+                                val beforeUpdate = task.copy()
                                 task.complete()
+                                taskVM.updateTaskHistory(beforeUpdate, task)
                                 taskVM.onTaskUpdated(task)
                                 onItemSelect(1, null, null, null, null)
                             })

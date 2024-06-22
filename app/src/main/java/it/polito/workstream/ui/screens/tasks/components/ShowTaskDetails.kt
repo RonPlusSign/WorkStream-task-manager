@@ -1,7 +1,6 @@
 package it.polito.workstream.ui.screens.tasks.components
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.provider.MediaStore
 import android.util.Log
@@ -50,8 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.core.net.toFile
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
@@ -59,7 +56,6 @@ import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
@@ -482,4 +478,12 @@ fun Timestamp?.toDate(): String? {
     val date = Date(this.time)
     val sdf = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
     return sdf.format(date)
+}
+
+fun Timestamp?.isExpired(): Boolean {
+    if (this == null)
+        return false
+    val date = Date(this.time)
+    val sdf = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
+    return sdf.format(date) < sdf.format(Timestamp(System.currentTimeMillis()))
 }
