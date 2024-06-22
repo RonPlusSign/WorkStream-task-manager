@@ -173,8 +173,7 @@ fun TopBarWrapper(
         return
 
     val activeTeamId = userVM.activeTeamId.collectAsState().value
-    // PROBLEMA
-    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(initial = null).value
     val teamMembers = userVM.fetchUsers(activeTeamId).collectAsState(initial = listOf()).value
     val destUser = teamMembers.find{ it.email == userVM.currentDestUserId }
 
