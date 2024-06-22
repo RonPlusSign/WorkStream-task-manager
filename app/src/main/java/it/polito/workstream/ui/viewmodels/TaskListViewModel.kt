@@ -53,23 +53,22 @@ class TaskListViewModel(
     val sections = fetchSections(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), emptyList())
 
 
-    fun getOfUser(userId: String, tasksList: List<Task>): List<Task> {
-
-        var tempTaskList = when (currentSortOrder.value) {
+    fun getOfUser(userId: String, tasksList: List<Task>, sortOrder: String): List<Task> {
+        var tempTaskList = when (sortOrder) {
             "Due date" -> tasksList.sortedBy { it.dueDate }
             "A-Z order" -> tasksList.sortedBy { it.title }
             "Z-A order" -> tasksList.sortedBy { it.title }.reversed()
             "Assignee" -> tasksList.sortedBy {
-                val assignee = teamMembers.value?.find { userId == it.email }
+                val assignee = teamMembers.value.find { it.email == userId }
                 assignee?.getFirstAndLastName()
             }
-
             "Section" -> tasksList.sortedBy { it.section }
             else -> tasksList
         }
         tempTaskList = customFilter(tempTaskList)
         return tempTaskList.filter { it.assignee == userId && it.title.contains(searchQuery.value, ignoreCase = true) }
     }
+
 
 
     private fun customFilter(inputList: List<Task>): List<Task> {

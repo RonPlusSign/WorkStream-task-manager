@@ -28,13 +28,17 @@ import it.polito.workstream.ui.viewmodels.ViewModelFactory
 
 @Composable
 fun PersonalTasksScreen(
-    getOfUser: (String, List<Task>) -> List<Task>,
+    getOfUser: (String, List<Task>, String) -> List<Task>,
     onTaskClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
     activeUser: String,
     _tasksList: State<List<Task>>,
+    currentSortOrder: State<String>,
     vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
     val tasksList = vm.tasks.collectAsState(initial = emptyList()).value
+    val sortOrder = currentSortOrder.value
+    val sortedTasks = getOfUser(activeUser, tasksList, sortOrder)
+
     WorkStreamTheme {
         Scaffold(
             floatingActionButton = {
@@ -60,7 +64,7 @@ fun PersonalTasksScreen(
                         .padding(16.dp),
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
-                    items(getOfUser(activeUser, tasksList)) { task ->
+                    items(sortedTasks) { task ->
                         Column(
                             modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) }
                         ) {
@@ -93,5 +97,6 @@ fun PersonalTasksScreenWrapper(
     activeUser: String
 ) {
     val tasksList = vm.tasks.collectAsState(initial = emptyList())
-    PersonalTasksScreen(getOfUser = vm::getOfUser, onItemSelect, activeUser, tasksList)
+    val currentSortOrder = vm.currentSortOrder.collectAsState()
+    PersonalTasksScreen(getOfUser = vm::getOfUser, onItemSelect, activeUser, tasksList, currentSortOrder)
 }
