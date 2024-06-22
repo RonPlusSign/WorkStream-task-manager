@@ -1,13 +1,9 @@
 package it.polito.workstream.ui.screens.tasks
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -45,7 +41,7 @@ fun PersonalTasksScreen(
                 ExtendedFloatingActionButton(
                     text = { Text("Add new task") },
                     icon = { Icon(Icons.Default.Add, contentDescription = "Add Task") },
-                    { onTaskClick(3, null, null, null, null) },
+                    onClick = { onTaskClick(3, null, null, null, null) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -62,17 +58,22 @@ fun PersonalTasksScreen(
                         .fillMaxSize()
                         .padding(padding)
                         .padding(16.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
-                    getOfUser(activeUser, tasksList).forEach { task ->
-                        item {
-                            Column(
-                                modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) }
-                            ) {
-                                SmallTaskBox(title = task.title, section = task.section, assignee = null, dueDate = task.dueDate, task = task, onEditClick = {
+                    items(getOfUser(activeUser, tasksList)) { task ->
+                        Column(
+                            modifier = Modifier.clickable { onTaskClick(1, task.id, task.title, null, null) }
+                        ) {
+                            SmallTaskBox(
+                                title = task.title,
+                                section = task.section,
+                                assignee = null,
+                                dueDate = task.dueDate,
+                                task = task,
+                                onEditClick = {
                                     onTaskClick(4, task.id, task.title, null, null)
-                                })
-                            }
-
+                                }
+                            )
                         }
                     }
                 }
