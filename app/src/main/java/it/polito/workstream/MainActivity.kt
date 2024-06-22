@@ -449,7 +449,7 @@ fun ContentView(
                             }
                         )
                     ) { entry ->
-                        Log.d("confirm_join_team", "YOO")
+
                         val teamId = entry.arguments?.getString("teamId") ?: ""
                         ConfirmJoinTeamPage(
                             teamId = teamId,

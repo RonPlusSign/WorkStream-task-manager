@@ -1,7 +1,7 @@
 package it.polito.workstream.ui.screens.team
 
-import android.graphics.Bitmap
-import androidx.compose.foundation.Image
+
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +62,7 @@ fun ConfirmJoinTeamPage(
     val members = vm.fetchUsers(teamId).collectAsState(initial = emptyList()).value
     val photoState = remember {mutableStateOf(team?.photo ?: "")}
     photoState.value = team?.photo ?: ""
+    val user by vm.user.collectAsState()
 
 
     Column(
@@ -72,6 +73,7 @@ fun ConfirmJoinTeamPage(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         if (team != null) {
             ProfilePicture(profilePicture = team.profilePicture, photoBitmapValue = team.profileBitmap, setPhotoBitmap = {}, name = team.name, isEditing = false, setPhoto = {}, photo = photoState )
             Spacer(modifier = Modifier.height(8.dp))
@@ -130,8 +132,11 @@ fun ConfirmJoinTeamPage(
                     }
                 }
             }
+            if (team.members.contains(user.email))
+                Text(text = "You are already a member of this team", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.error)
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.fillMaxWidth()) {
+
                 Column(modifier = Modifier.weight(1f)) {
                     OutlinedButton(
                         onClick = { onCancel() },
@@ -147,7 +152,8 @@ fun ConfirmJoinTeamPage(
                     }
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Button(onClick = { onConfirm() }, modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { onConfirm() }, modifier = Modifier.fillMaxWidth(),
+                        enabled = !team.members.contains(user.email)) {
                         Text("Join Team")
                         Icon(
                             Icons.Outlined.AddReaction, contentDescription = "Join team", modifier = Modifier
