@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import android.util.Patterns
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,9 @@ import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 
 class UserViewModel(
@@ -179,8 +183,9 @@ class UserViewModel(
     // Chats
     val chats = fetchChats()
     fun fetchChats(): Flow<List<Chat>> = chatModel.fetchChats(activeTeamId.value, user.email)
-    //val currentChat = fetchChat(currentDestUserId).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
     fun fetchChat(destUserId: String) = chatModel.fetchChat(activeTeamId.value, destUserId)
+
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
     fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
     fun editMessage(destUserId: String, messageId: String, newText: String) = chatModel.editMessage(destUserId, messageId, newText)

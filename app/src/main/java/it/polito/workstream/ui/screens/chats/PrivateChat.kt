@@ -45,7 +45,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
 import com.theapache64.rebugger.Rebugger
 import it.polito.workstream.ui.models.ChatMessage
-import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.Purple40
 import it.polito.workstream.ui.theme.Purple80
 import it.polito.workstream.ui.theme.PurpleGrey40
@@ -53,12 +52,8 @@ import it.polito.workstream.ui.theme.PurpleGrey80
 import it.polito.workstream.ui.theme.isLight
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import kotlinx.coroutines.flow.map
-import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun Chat(
@@ -67,7 +62,9 @@ fun Chat(
 ) {
     //val activeTeamId = vm.activeTeamId.collectAsState().value
     val chat = vm.fetchChat(destUserId).collectAsState(initial = null).value
+
     Log.d("chat", "Opened chat with length: ${chat?.messages?.size}")
+
 
     if (chat!=null && chat.messages.size > 0) {
         for (mex in chat.messages){
@@ -75,6 +72,7 @@ fun Chat(
                 vm.setMessageAsSeen(destUserId, mex.id)
         }
     }
+
 
     Rebugger(
         trackMap = mapOf(
@@ -104,7 +102,9 @@ fun Chat(
             else
                 item {
                     Row(
-                        modifier = Modifier.fillMaxSize().padding(bottom = 256.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 256.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
