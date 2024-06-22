@@ -12,11 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 class TeamListViewModel(
-    val _activeTeam: Flow<Team?>,
-    val teams: Flow<List<Team>>,
-    val teamTasks: Flow<List<Task>>,
     val teamMembers: Flow<List<User>>,
-    val activePageValue: MutableStateFlow<String>,
     val setActivePage: (page: String) -> Unit,
     val changeActiveTeamId: (teamId: String) -> Unit,
     val removeTeam: (teamId: String, team: Team) -> Unit,
@@ -32,6 +28,6 @@ class TeamListViewModel(
     val fetchTeam: (String) -> Flow<Team>,
 
 
-    ) : ViewModel(){
+    ) : ViewModel() {
     val activeTeam = fetchActiveTeam(activeTeamId.value).stateIn(viewModelScope, SharingStarted.Lazily, null)
-    }
+}

@@ -85,11 +85,7 @@ fun SmallTaskBox(
                     }
                     Spacer(Modifier.weight(1f))
                     if (dueDate != null) {
-                        Text(
-                            dueDate.toDate().toString(), color =
-                            if (dueDate.before(Timestamp(System.currentTimeMillis()))) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(dueDate.toDate().toString(), color = if (dueDate.isExpired()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }

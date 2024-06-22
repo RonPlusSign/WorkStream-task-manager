@@ -2,6 +2,7 @@ package it.polito.workstream.ui.screens.chats
 
 import android.util.Log
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
 import it.polito.workstream.ui.models.Team
+import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -35,18 +37,11 @@ fun ChatList(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
-    val chats = vm.chats.collectAsState(initial = listOf()).value
-    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
+    val chats = vm.fetchChats().collectAsState(initial = listOf()).value
     val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
-    val groupChat = vm.groupChat.collectAsState(initial = null).value
+    val groupChat = vm.fetchGroupChat().collectAsState(initial = null).value
 
     val lastMessageAuthor = teamMembers.find { it.email == groupChat?.messages?.lastOrNull()?.authorId }
-
-    if (chats != null){
-        for (c in chats)
-            Log.d("chat","Chat tra " + c.user1Id + " e " + c.user2Id + " con numero di messaggi " + c.messages.size)
-    }
-
 
     WorkStreamTheme {
         Scaffold (
@@ -77,6 +72,7 @@ fun ChatList(
                                 .clickable { onChatClick(8, null, null, -1, null) }
                         ) {
                             SmallChatBox(
+                                destUser = null,
                                 userName = "Team chat",
                                 lastMessage = (lastMessageAuthor?.firstName?:"") + " : " + groupChat?.messages?.lastOrNull()?.text,
                                 timestamp = groupChat?.messages?.lastOrNull()?.timestamp,
@@ -88,7 +84,7 @@ fun ChatList(
                     item { HorizontalDivider(modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)) }
                     // Private chats
                     item { Text(text = "Private chats", fontSize = 20.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 8.dp)) }
-                    chats.forEach { chat ->
+                    chats.sortedBy { it.messages.lastOrNull()?.timestamp }.filter { it.messages.size > 0 }.forEach { chat ->
                         item {
                             val destUserId = if (chat.user1Id == vm.user.email) chat.user2Id else chat.user1Id
                             val destUser = teamMembers.find {
@@ -102,9 +98,10 @@ fun ChatList(
                                     }
                             ) {
                                 SmallChatBox(
+                                    destUser = destUser,
                                     userName = destUser?.firstName + " " + destUser?.lastName,
                                     lastMessage = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.text?:"No message",
-                                    timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp?: Timestamp.now(),
+                                    timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp,
                                     isGroup = false,
                                     unseenMessages = vm.countUnseenChatMessages(destUserId).collectAsState(initial = 0).value
                                 )

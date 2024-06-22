@@ -1,5 +1,6 @@
 [versions]
 agp = "8.5.0"
+barcodeScanning = "17.2.0"
 core = "3.4.0"
 desugar_jdk_libs = "2.0.3"
 kotlin = "1.9.0"
@@ -24,10 +25,12 @@ barcodeScanningCommon = "17.0.0"
 playServicesCodeScanner = "16.1.0"
 lifecycleLivedataKtx = "2.8.2"
 firebaseStorageKtx = "21.0.0"
+documentfile = "1.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.13.0" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+barcode-scanning = { module = "com.google.mlkit:barcode-scanning", version.ref = "barcodeScanning" }
 core = { module = "com.google.zxing:core", version.ref = "core" }
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 firebase-storage = { module = "com.google.firebase:firebase-storage" }
@@ -57,6 +60,7 @@ barcode-scanning-common = { group = "com.google.mlkit", name = "barcode-scanning
 play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "playServicesCodeScanner" }
 androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "lifecycleLivedataKtx" }
 firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
+androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

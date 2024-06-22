@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,6 +46,7 @@ import it.polito.workstream.ui.shared.*
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
+import it.polito.workstream.ui.viewmodels.TeamViewModel
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.launch
@@ -79,7 +81,7 @@ class MainActivity : ComponentActivity() {
                             user = retrievedUser
                             app._user.value = retrievedUser
                             Log.d("user", retrievedUser.toString())
-                            if (! retrievedUser.activeTeam.isNullOrEmpty() )
+                            if (!retrievedUser.activeTeam.isNullOrEmpty())
                                 app.activeTeamId.value = retrievedUser.activeTeam!!
 
                         }
@@ -114,10 +116,9 @@ class MainActivity : ComponentActivity() {
                 val location = document.getString("location")
                 var activeTeam = document.getString("activeTeam")
                 val teams = document.get("teams") as? MutableList<String> ?: mutableListOf()
-                if (activeTeam.isNullOrEmpty() && teams.isNotEmpty() ) {
+                if (activeTeam.isNullOrEmpty() && teams.isNotEmpty()) {
                     activeTeam = teams[0]
-                }
-                else if (activeTeam.isNullOrEmpty() && teams.isEmpty()) {
+                } else if (activeTeam.isNullOrEmpty() && teams.isEmpty()) {
                     activeTeam = "no_team"
                 }
 
@@ -178,6 +179,7 @@ fun LoadingScreen() {
 @Composable
 fun ContentView(
     vm: TeamListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
+    teamVM: TeamViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     userVM: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onLogout: () -> Unit
@@ -185,7 +187,7 @@ fun ContentView(
 
     val activeTeamId = vm.activeTeamId.collectAsState().value //activeTeam.id //vm.activeTeam.collectAsState().value.id
     val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(null).value ?: Team(id = "no_team", name = "", admin = "")
-    val teamMembers = userVM.teamMembers.collectAsState(initial = listOf()).value
+    val teamMembers = vm.fetchUsers(activeTeamId).collectAsState(initial = listOf()).value
     val tasksList = vm.getTasks(activeTeamId).collectAsState(initial = listOf())//vm.teamTasks.collectAsState(initial = emptyList())
     val sections = activeTeam.sections
     val user by vm.user.collectAsState()
@@ -255,8 +257,6 @@ fun ContentView(
         if (s != Route.Back.name) navController.navigate(s) else navController.popBackStack()
     }
 
-
-
     NavDrawer(navigateTo = navigateTo, drawerState = drawerState, activeUser = app.user) {
         Scaffold(
             topBar = { Column { TopBarWrapper(drawerState = drawerState, navigateTo = navigateTo) } },
@@ -267,7 +267,10 @@ fun ContentView(
                     .fillMaxSize()
                     .padding(padding), color = MaterialTheme.colorScheme.background
             ) {
-                NavHost(navController = navController, startDestination = "/${activeTeamId.ifBlank { "no_team" }}/${Route.TeamTasks.name}") {
+                NavHost(navController = navController, startDestination = "/home") {
+                    composable(route = "/home") {
+                        navigateTo("/${activeTeamId.ifBlank { "no_team" }}/${Route.TeamTasks.name}")
+                    }
 
                     composable(
                         route = "/{teamId}/${Route.TeamTasks.name}",
@@ -276,6 +279,9 @@ fun ContentView(
 
                         vm.changeActiveTeamId(it.arguments?.getString("teamId") ?: "")
                         vm.setActivePage(Route.TeamTasks.title)
+                        if (it.arguments?.getString("teamId") == "no_team" || it.arguments?.getString("teamId") == null || it.arguments?.getString("teamId") == "") {
+                            navigateTo("/no_team/${Route.TeamTasks.name}")
+                        }
                         TeamTaskScreenWrapper(onItemSelect = onItemSelect)
                     }
 
@@ -302,6 +308,12 @@ fun ContentView(
                         val userId = entry.arguments?.getString("index")
                         val destUser = userId?.let { teamMembers.find { it.email == userId } }
 
+                        Log.d("chat", "Trying to access chat with $userId")
+                        Log.d("chat", "We're on team $activeTeamId")
+                        Log.d("chat", teamMembers.toString())
+
+                        userVM.setCurrDestUser(destUser?.email?:"")
+
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
                             Chat(destUser.email)
@@ -326,7 +338,7 @@ fun ContentView(
                             leaveTeam = vm.leaveTeam,
                             context = LocalContext.current,
                             navigateTo = navigateTo,
-                            user= vm.user
+                            user = vm.user
                         )
                     }
 
@@ -334,7 +346,7 @@ fun ContentView(
                         vm.setActivePage(Route.NewTask.title)
                         if (taskVM.task.value.title != "New Task")
                             taskVM.setTask(Task(title = "New Task", section = sections[0]))
-                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM )//app
+                        NewTaskScreen(changeRoute = onItemSelect, vm = taskVM)//app
                     }
 
                     composable(
@@ -348,15 +360,13 @@ fun ContentView(
                         )
                     ) { entry ->
                         val taskId = entry.arguments?.getString("index")
-
-                        /*vm.tasksList.find { it.id.toInt() == index }?.let {
-                            vm.setActivePage(it.title)
-                        }*/
                         tasksList.value.find { it.id == taskId }?.let {
                             vm.setActivePage(it.title)
-                            val assignee = app.activeTeamMembers.collectAsState(initial = emptyList()).value.find { u -> u.email == it.assignee }
-                            ShowTaskDetails(it, assignee, onComplete = { task ->
+
+                            ShowTaskDetails(it, user, onComplete = { task ->
+                                val beforeUpdate = task.copy()
                                 task.complete()
+                                taskVM.updateTaskHistory(beforeUpdate, task)
                                 taskVM.onTaskUpdated(task)
                                 onItemSelect(1, null, null, null, null)
                             })
@@ -412,32 +422,59 @@ fun ContentView(
                     }
 
                     composable(
-                        "profile?id={teamId}",
-                        deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}" }),
+                        "deeplink",
+                        deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}"; action = Intent.ACTION_VIEW }),
+                        arguments = listOf(
+                            navArgument("teamId") {
+                                type = NavType.StringType
+                                nullable = false
+                                defaultValue = ""
+                            }
+                        )
                     ) { entry ->
-                        val teamId = entry.arguments?.getString("teamId")!!
+                        Log.d("confirm_join_team", "YOO")
+                        val teamId = entry.arguments?.getString("teamId") ?: ""
                         ConfirmJoinTeamPage(
-                            navController = navController,
                             teamId = teamId,
-                            onConfirm = { team ->
+                            onConfirm = {
                                 vm.joinTeam(teamId, user.email)
-                                navController.navigate("/${team.id}/${Route.TeamTasks.name}")
+                                navController.navigate("/${teamId}/${Route.TeamTasks.name}")
                             },
-                            onCancel = {
-                                navController.popBackStack()
+                            onCancel = { navController.popBackStack() },
+                        )
+                    }
+                    composable(
+                        "profile?id={teamId}",
+                        deepLinks = listOf(navDeepLink { uriPattern = "https://www.workstream.it/{teamId}"; action = Intent.ACTION_VIEW }),
+                        arguments = listOf(
+                            navArgument("teamId") {
+                                type = NavType.StringType
+                                nullable = false
+                                defaultValue = ""
+                            }
+                        )
+                    ) { entry ->
+
+                        val teamId = entry.arguments?.getString("teamId") ?: ""
+                        ConfirmJoinTeamPage(
+                            teamId = teamId,
+                            onConfirm = {
+                                vm.joinTeam(teamId, user.email)
+                                navController.navigate("/${teamId}/${Route.TeamTasks.name}")
                             },
+                            onCancel = { navController.popBackStack() },
                         )
                     }
 
                     composable(
                         "/no_team/${Route.TeamTasks.name}"
-                    ){
+                    ) {
                         vm.setActivePage("no_team")
                         NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") }, logout = onLogout)
                     }
                     composable(
                         "//${Route.TeamTasks.name}"
-                    ){
+                    ) {
                         vm.setActivePage("no_team")
                         NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") }, logout = onLogout)
                     }

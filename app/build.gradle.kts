@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.googleGmsGoogleServices)
-
 }
 
 android {
@@ -53,14 +52,16 @@ android {
 
 dependencies {
 
+    implementation("androidx.compose.runtime:runtime-tracing:1.0.0-beta01")
+    implementation("io.github.theapache64:rebugger:1.0.0-rc03")
     implementation(libs.core)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.play.services.auth)
-    implementation(libs.barcode.scanning.common)
     implementation(libs.play.services.code.scanner)
     implementation(libs.firebase.storage.ktx)
+    implementation(libs.androidx.documentfile)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -86,6 +87,4 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.navigation.compose)
     implementation(kotlin("reflect"))
-
-
 }

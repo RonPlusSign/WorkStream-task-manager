@@ -79,9 +79,7 @@ fun TeamTasksScreen(
     val activeteam = vm.activeTeam.collectAsState()
     val activeTeamId by vm.activeTeamId.collectAsState()
     Log.d("TeamTasksScreen", "${ activeteam.value}")
-    //var sectionExpanded = mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
     vm.initSectionExpanded(mutableMapOf(*activeteam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf()))
-    //val sectionExpanded = vm.sectionExpanded
     val users by vm.fetchUsers(activeTeamId).collectAsState(initial = emptyList())
     val taskList = vm.tasks.collectAsState(initial = emptyList()).value
     val sections by vm.sections.collectAsState(listOf())
@@ -126,7 +124,6 @@ fun TeamTasksScreen(
                     contentPadding = PaddingValues(bottom = heightInDp + 55.dp)
                 ) {
                     for (section in sections ) {
-                        Log.d("Section" , section )
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),

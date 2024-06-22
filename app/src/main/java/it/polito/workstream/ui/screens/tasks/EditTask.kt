@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.User
+import it.polito.workstream.ui.screens.tasks.components.isExpired
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
@@ -82,6 +83,12 @@ fun EditTaskScreen(
 
     val assignee: User? = teamVM.teamMembers.collectAsState(initial = emptyList()).value.find { it.email == taskVM.assigneeValue }
     val sections by taskListVM.sections.collectAsState(listOf())
+    val activeTeamId by taskListVM.activeTeamId.collectAsState()
+    val tasks by taskListVM.getTasks(activeTeamId).collectAsState(initial = emptyList())
+    val task = tasks.firstOrNull { it.id == taskVM.task.value.id } ?: taskVM.task.value
+
+
+    taskVM.taskBeforeEditing = task.copy()
 
     @Composable
     fun EditTaskInfo() {
@@ -144,7 +151,7 @@ fun EditTaskScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = false,
                     colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = if (taskVM.isExpired()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        disabledTextColor = if (taskVM.dueDateValue.isExpired()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                         disabledBorderColor = MaterialTheme.colorScheme.onSurface,
                         disabledLabelColor = MaterialTheme.colorScheme.onSurface,
                         disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface,
@@ -174,7 +181,7 @@ fun EditTaskScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         OutlinedTextField(
-                            value = taskVM.statusValue ?: "",
+                            value = taskVM.statusValue.value ?: "",
                             onValueChange = {},
                             label = { Text("Status") },
                             modifier = Modifier

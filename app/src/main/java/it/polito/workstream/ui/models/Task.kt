@@ -1,6 +1,7 @@
 package it.polito.workstream.ui.models
 
 import java.sql.Timestamp
+import java.util.Date
 
 
 /**
@@ -35,13 +36,12 @@ data class Task(
     var history: MutableMap<Timestamp, String> = mutableMapOf(), // list of status changes, can be represented as a list of pairs of "change description" and timestamp
     var teamId: String? = null
 ) {
-    init {
-        addHistoryEntry("Task created")
-    }
+
 
     /** Completes the task */
     fun complete() {
         completed = true
+        status = "Completed"
     }
 
     fun addHistoryEntry(entry: String) {
@@ -77,18 +77,11 @@ data class Task(
     )
 }
 
-data class Comment(
-    val id: Long = getNewId(),
-    val text: String,
-    val author: String,
-    val timestamp: Timestamp = Timestamp(System.currentTimeMillis())
-) {
-    // Secondary constructor, which allows to create a comment without specifying the id
-    constructor(text: String, author: String) : this(getNewId(), text, author)
-
-    companion object {  // To generate unique identifiers for comments
-        private var idCounter: Long = 0
-        private fun getNewId() = idCounter++
-    }
+class Comment {
+    var id: String = ""
+    var text: String = ""
+    var author: String = ""
+    var timestamp: Date = Date()
+    var taskId: String = ""
 }
 

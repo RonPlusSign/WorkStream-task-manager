@@ -42,7 +42,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                 app.firstNameValue,
                 app.lastNameValue,
                 app.locationValue,
-                app::uploaUserdPhoto
+                app::uploaUserdPhoto,
             ) as T
 
             modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
@@ -67,15 +67,15 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::fetchSections,
                     app::fetchActiveTeam,
                     app::fetchUsers,
+                    app::fetchComments,
+                    app::uploadComment,
+                    app::uploadDocument,
+                    app::deleteDocument
                 ) as T
 
             modelClass.isAssignableFrom(TeamListViewModel::class.java) ->
                 TeamListViewModel(
-                    app.activeTeam,
-                    app.userTeams,
-                    app.teamTasks,
                     app.activeTeamMembers,
-                    app.activePageValue,
                     app::setActivePage,
                     app::changeActiveTeamId,
                     app::removeTeam,
@@ -91,7 +91,7 @@ class ViewModelFactory(context: Context) : ViewModelProvider.Factory {
                     app::fetchTeam
                 ) as T
 
-            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam,app.activeTeamId,app::onTaskUpdated) as T
+            modelClass.isAssignableFrom(TaskViewModel::class.java) -> TaskViewModel(app.activeTeam, app.user.value, app.activeTeamId, app::onTaskUpdated) as T
 
             else -> throw IllegalArgumentException("ViewModel class not found")
         }

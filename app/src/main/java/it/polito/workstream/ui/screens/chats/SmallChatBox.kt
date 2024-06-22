@@ -24,17 +24,24 @@ import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.google.firebase.Timestamp
+import it.polito.workstream.ui.models.User
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -44,13 +51,13 @@ import java.util.Locale
 
 @Composable
 fun SmallChatBox(
+    destUser: User?,
     userName: String,
     lastMessage: String,
     timestamp: Timestamp?,
     isGroup: Boolean,
     unseenMessages: Int
 ) {
-    Log.d("chat", "Found $unseenMessages unseen messages...is it group: $isGroup")
     Card(
         modifier = Modifier.fillMaxWidth(),
         border = BorderStroke(0.5.dp, Color.Black),
@@ -64,12 +71,44 @@ fun SmallChatBox(
                 .height(55.dp)
         ) {
             Column (
-                modifier = Modifier.padding(start = 5.dp, end = 5.dp)
+                modifier = Modifier.padding(start = 5.dp, end = 5.dp).align(Alignment.CenterVertically)
             ) {
-                if (!isGroup)
-                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", modifier = Modifier.size(40.dp))
-                else
+                if (isGroup)
                     Icon(Icons.Default.Groups, contentDescription = "Group Chat", modifier = Modifier.size(40.dp))
+                    //Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", modifier = Modifier.size(40.dp))
+                else {
+                    if (destUser != null && destUser.photo.isNotEmpty())
+                        AsyncImage(
+                            model =
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(LocalContext.current.getFileStreamPath(destUser.photo).absolutePath)
+                                .crossfade(true)
+                                .build(), //minchia ci siamo
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    else
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${destUser?.firstName} ${destUser?.lastName}".trim().split(" ").map { it.first().uppercaseChar() }.joinToString("").take(2),
+                                style = MaterialTheme.typography.headlineLarge,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                fontSize = 16.sp
+                            )
+                        }
+                }
             }
 
             Column (

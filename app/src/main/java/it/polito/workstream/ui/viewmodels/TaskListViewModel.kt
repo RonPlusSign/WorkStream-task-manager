@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 
 import androidx.lifecycle.viewModelScope
 import it.polito.workstream.FilterParams
+import it.polito.workstream.ui.models.Comment
 import it.polito.workstream.ui.models.Task
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
@@ -37,8 +38,12 @@ class TaskListViewModel(
     val activeTeamId: MutableStateFlow<String>,
     val getTasks: (String) -> Flow<List<Task>>,
     val fetchSections: (String) -> Flow<List<String>>,
-    fetchActiveTeam: (String) -> Flow<Team?>,
+    val fetchActiveTeam: (String) -> Flow<Team?>,
     val fetchUsers: (String) -> Flow<List<User>>,
+    val fetchComments: (String) -> Flow<List<Comment>>,
+    val uploadComment: (Comment) -> Unit,
+    val uploadDocument: (documentPath: String, taskId: String) -> Unit,
+    val deleteDocument: (String, String) -> Unit,
 ) : ViewModel() {
     val filterParams = filterParamsState.value
 
@@ -71,13 +76,13 @@ class TaskListViewModel(
         return inputList.filter {
             (filterParams.section == "" || it.section.contains(filterParams.section, ignoreCase = true))
                     && (filterParams.assignee == "" || it.assignee == filterParams.assignee)
-                    && (filterParams.recurrent == "" ||(filterParams.recurrent.isNotEmpty() == it.recurrent ))
+                    && (filterParams.recurrent == "" || (filterParams.recurrent.isNotEmpty() == it.recurrent))
                     && (filterParams.status == "" || it.status == filterParams.status) && ((filterParams.completed && it.completed) || (!filterParams.completed && !it.completed))
         }
     }
 
 
-    var sectionExpanded : SnapshotStateMap<String, Boolean> = mutableStateMapOf()//mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
+    var sectionExpanded: SnapshotStateMap<String, Boolean> = mutableStateMapOf()//mutableStateMapOf(*activeTeam.value?.sections?.map { it to true }?.toTypedArray() ?: arrayOf())
 
 
     var statusList = mutableListOf("To Do", "In progress", "Paused", "On review", "Completed")
@@ -102,14 +107,12 @@ class TaskListViewModel(
     }
 
     fun removeSection(section: String) {
-        // Check if the section exists and if it is empty
-
-
         onDeleteSection(section)
         sectionExpanded.remove(section)
     }
-    fun initSectionExpanded(m:Map<String,Boolean>){
-        for(k in m.entries){
+
+    fun initSectionExpanded(m: Map<String, Boolean>) {
+        for (k in m.entries) {
             sectionExpanded[k.key] = k.value
         }
     }
@@ -133,6 +136,7 @@ class TaskListViewModel(
         tempTaskList = customFilter(tempTaskList)
         return tempTaskList.filter { it.section == section && it.title.contains(searchQuery.value, ignoreCase = true) }
     }
+
     fun getOfSectionByList(section: String, sortOrder: String, tasksList: List<Task>): List<Task> {
 
 
@@ -183,7 +187,7 @@ class TaskListViewModel(
         else false
     }
 
-    val recurrentList = listOf( "Daily", "Weekly", "Monthly")
+    val recurrentList = listOf("Daily", "Weekly", "Monthly")
 
     // SORT VARIABLES
     val allSortOrders = listOf("A-Z order", "Z-A order", "Due date", "Assignee", "Section")
