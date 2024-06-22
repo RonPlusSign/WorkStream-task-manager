@@ -1,17 +1,13 @@
 package it.polito.workstream.ui.screens.chats
 
-import android.util.Log
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,28 +50,21 @@ import it.polito.workstream.ui.theme.PurpleGrey80
 import it.polito.workstream.ui.theme.isLight
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
-import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun GroupChat(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
-    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
-    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
+    val groupChat = vm.fetchGroupChat().collectAsState(initial = null).value
 
-    val groupChat = vm.groupChat.collectAsState(initial = null).value
-    Log.d("chat", "messages in compose: " + groupChat?.messages?.size)
-
-    if (groupChat!=null && groupChat.messages.size > 0) {
-        for (mex in groupChat.messages){
-            if (!mex.seenBy.contains(vm.user.email))
-                vm.setGroupMessageAsSeen(mex.id)
-        }
-    }
+//    if (groupChat!=null && groupChat.messages.size > 0) {
+//        for (mex in groupChat.messages){
+//            if (!mex.seenBy.contains(vm.user.email))
+//                vm.setGroupMessageAsSeen(mex.id)
+//        }
+//    }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -86,12 +76,23 @@ fun GroupChat(
                 .padding(5.dp)
                 .weight(1f)
         ) {
-            groupChat?.messages?.sortedBy { it.timestamp }?.reversed()?.forEach { mex ->
-                val isFromMe = mex.authorId == vm.user.email
-                item {
-                    GroupChatMessageBox(message = mex, vm, isFromMe)
+            if (groupChat != null && groupChat.messages.isNotEmpty())
+                groupChat.messages.sortedBy { it.timestamp }.reversed().forEach { mex ->
+                    val isFromMe = mex.authorId == vm.user.email
+                    item {
+                        GroupChatMessageBox(mex, vm, isFromMe);
+                    }
                 }
-            }
+            else
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxSize().padding(bottom = 256.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "No messages yet\nStart chatting now!", textAlign = TextAlign.Center, fontSize = 20.sp, fontStyle = FontStyle.Italic)
+                    }
+                }
         }
         // The input box to send a message
         GroupChatInputBox(vm)
@@ -111,6 +112,9 @@ fun GroupChatMessageBox(
     // Depending on the dark mode, the color of the message will be different
     val otherMsgColor = if (MaterialTheme.colorScheme.isLight()) PurpleGrey80 else PurpleGrey40
     val myMsgColor = if (MaterialTheme.colorScheme.isLight()) Purple80 else Purple40
+
+    if (!message.seenBy.contains(vm.user.email))
+        vm.setGroupMessageAsSeen(message.id)
 
     Row(
         horizontalArrangement = if (isFromMe) Arrangement.End else Arrangement.Start,
@@ -152,6 +156,7 @@ fun GroupChatMessageBox(
                         .align(if (isFromMe) Alignment.Start else Alignment.End)
                         .padding(top = 2.dp)
                 ) {
+                    //val isToday = SimpleDateFormat("yyyyMMdd").format(message.timestamp)
                     Text(
                         text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
                         fontSize = 12.sp,
@@ -171,7 +176,6 @@ fun GroupChatInputBox(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 ) {
     var newMessage by remember { mutableStateOf("") }
-    val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -235,16 +239,16 @@ fun EditGroupMessageSheet(
                 Text(text = "Delete message")
             }
             //Spacer(modifier = Modifier.weight(0.00001f))
-            Button(
-                enabled = false,
-                modifier = Modifier.padding(5.dp),
-                onClick = {
-                    // Todo
-                    vm.toggleShowEditDialog()
-                }
-            ) {
-                Text(text = "Edit message")
-            }
+//            Button(
+//                enabled = false,
+//                modifier = Modifier.padding(5.dp),
+//                onClick = {
+//                    // Todo
+//                    vm.toggleShowEditDialog()
+//                }
+//            ) {
+//                Text(text = "Edit message")
+//            }
         }
 
     }

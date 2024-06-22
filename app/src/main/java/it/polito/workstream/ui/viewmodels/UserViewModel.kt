@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.util.Log
 import android.util.Patterns
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,9 @@ import it.polito.workstream.ui.models.User
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.stateIn
 
 class UserViewModel(
@@ -35,7 +39,7 @@ class UserViewModel(
     var firstNameValue: MutableState<String>,
     var lastNameValue: MutableState<String>,
     var locationValue: MutableState<String?>,
-    val uploaUserdPhoto: (User) -> Unit
+    val uploaUserdPhoto: (User) -> Unit,
 ) : ViewModel() {
 
     val activeTeam = fetchActiveTeam(activeTeamId.value)
@@ -170,9 +174,18 @@ class UserViewModel(
         profilePictureValue = n
     }
 
+    var currentDestUserId by mutableStateOf("")
+        private set
+    fun setCurrDestUser(destUserId: String) {
+        currentDestUserId = destUserId
+    }
+
     // Chats
-    val chats = fetchChats(activeTeamId.value, user.email)
-    fun fetchChats(teamId: String, userId: String): Flow<List<Chat>> = chatModel.fetchChats(teamId, userId)
+    val chats = fetchChats()
+    fun fetchChats(): Flow<List<Chat>> = chatModel.fetchChats(activeTeamId.value, user.email)
+
+    fun fetchChat(destUserId: String) = chatModel.fetchChat(activeTeamId.value, destUserId)
+
     fun newChat(destUserId: String) = chatModel.newChat(destUserId)
     fun sendMessage(destUserId: String, message: ChatMessage) = chatModel.sendMessage(destUserId, message)
     fun editMessage(destUserId: String, messageId: String, newText: String) = chatModel.editMessage(destUserId, messageId, newText)
@@ -200,8 +213,8 @@ class UserViewModel(
     }
 
     // Group chat
-    val groupChat = fetchGroupChat(activeTeamId.value).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
-    fun fetchGroupChat(activeTeamId: String) = chatModel.fetchGroupChat(activeTeamId)
+    val groupChat = fetchGroupChat().stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    fun fetchGroupChat() = chatModel.fetchGroupChat(activeTeamId.value)
     fun sendGroupMessage(message: ChatMessage) = chatModel.sendGroupMessage(message)
     fun editGroupMessage(messageId: String, newText: String) = chatModel.editGroupMessage(messageId, newText)
     fun deleteGroupMessage(messageId: String) = chatModel.deleteGroupMessage(messageId)

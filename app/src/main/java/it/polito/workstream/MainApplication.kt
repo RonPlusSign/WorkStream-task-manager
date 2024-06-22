@@ -639,7 +639,7 @@ class ChatModel(
                     for (document in r) {
                         val chat = document.toObject(Chat::class.java)
 
-                        Log.d("Chat", "${document.id} => ${document.data}")
+                        Log.d("Chat", "Fetching chat ${document.id} => ${document.data}")
                         document.reference.collection("messages").get().addOnSuccessListener {
                             val messages = it.toObjects(ChatMessage::class.java)
                             chat.messages = messages.toMutableList()
@@ -648,6 +648,40 @@ class ChatModel(
                             trySend(chats)
                         }
                     }
+
+                } else {
+                    Log.d("Chat", "Error getting private chats: ", e)
+                }
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+    fun fetchChat(teamId: String, destUserId: String): Flow<Chat> = callbackFlow {
+        Log.d("chat", "Fetching single chat of $destUserId")
+        val listener = db.collection("chats")  //TODO: Attento ai fetch concatenati usa una transiction è più efficiente e semplice
+            .whereEqualTo("teamId", teamId)
+            .where(Filter.or(
+                Filter.equalTo("user1Id", currentUser.value.email),
+                Filter.equalTo("user2Id", currentUser.value.email)
+            ))
+            .where(Filter.or(
+                Filter.equalTo("user1Id", destUserId),
+                Filter.equalTo("user2Id", destUserId)
+            ))
+            .addSnapshotListener { r, e ->
+                if (r != null && r.size() > 0) {
+                    val document = r.first()
+                    val chat = document.toObject(Chat::class.java)
+
+                    Log.d("Chat", "Fetching chat ${document.id} => ${document.data}")
+                    document.reference.collection("messages").get().addOnSuccessListener {
+                        val messages = it.toObjects(ChatMessage::class.java)
+                        chat.messages = messages.toMutableList()
+
+                        trySend(chat)
+                    }
+
 
                 } else {
                     Log.d("Chat", "Error getting private chats: ", e)
@@ -855,8 +889,10 @@ class ChatModel(
 
     fun sendGroupMessage(newMessage: ChatMessage) {//TODO: anche qui fetch concatenate da controllare
         val messageToAdd = hashMapOf(
+            "id" to "",
             "authorId" to currentUser.value.email,
             "text" to newMessage.text,
+            "seenBy" to mutableListOf<String>(),
             "timestamp" to Timestamp.now()
         )
 
@@ -921,6 +957,7 @@ class ChatModel(
     }
 
     fun setGroupMessageAsSeen(messageId: String) {//TODO: anche qui fetch concatenate da controllare
+        Log.d("chat", "Provo a visualizzare il group message $messageId")
         db.collection("groupChats")
             .whereEqualTo("teamId", currentTeamId.value)
             .get()
@@ -933,13 +970,26 @@ class ChatModel(
                     db.collection("groupChats")
                         .document(chatDocId)
                         .collection("messages")
-                        .document(messageId)
-                        .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
+                        .whereEqualTo("id", messageId)
+                        .get()
                         .addOnSuccessListener {
-                            Log.d("chat", "Group message seen successfully!")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.d("chat", "Error seeing group message: $e")
+                            if (!it.isEmpty) {
+                                db.collection("groupChats")
+                                    .document(chatDocId)
+                                    .collection("messages")
+                                    .document(messageId)
+                                    .update("seenBy", FieldValue.arrayUnion(currentUser.value.email))
+                                    .addOnSuccessListener {
+                                        Log.d("chat", "Group message seen successfully!")
+                                    }
+                                    .addOnFailureListener { e ->
+                                        Log.d("chat", "Error seeing group message: $e")
+                                    }
+                            } else {
+                                Log.d("chat", "Error looking for message to see $it")
+                            }
+                        }.addOnFailureListener {
+                            Log.d("chat", "Error looking for message to see $it")
                         }
                 }
             }
