@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.shared
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -172,6 +173,8 @@ fun TopBarWrapper(
         return
 
     val activeTeamId = userVM.activeTeamId.collectAsState().value
+    // PROBLEMA
+    val activeTeam = vm.activeTeam.collectAsState(initial = null).value
     val teamMembers = userVM.fetchUsers(activeTeamId).collectAsState(initial = listOf()).value
     val destUser = teamMembers.find{ it.email == userVM.currentDestUserId }
 
