@@ -61,6 +61,7 @@ import coil.request.ImageRequest
 import it.polito.workstream.Route
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
+import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TeamListViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +83,7 @@ private fun DrawerContent(
 
 ) {
     var active by rememberSaveable { mutableStateOf(false) }
+    val vmTL: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
 
     var searchQuery by remember { mutableStateOf("") }
     fun setSearchQuery(newQuery: String) {
@@ -134,7 +136,9 @@ private fun DrawerContent(
                     .padding(6.dp)
                     .fillMaxWidth()
                     .height(80.dp)
-                    .clickable { onMenuClick(it.route) }
+                    .clickable { onMenuClick(it.route)
+                                vmTL.filterParams.clear()
+                    }
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)) {
                     if ( team.photo.isEmpty() || ! LocalContext.current.getFileStreamPath(team.photo).exists()) {
