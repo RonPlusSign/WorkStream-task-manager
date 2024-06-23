@@ -95,7 +95,6 @@ fun JoinOrCreateTeam(joinTeam: (String) -> Unit, addNewTeam: (teamName: String) 
                     } else {
                         val teamId = qrResult.split("/").last()
                         onJoinTeam(teamId)
-                        navigateToTeam(teamId)
                     }
                 } else Toast.makeText(context, "Invalid QR code", Toast.LENGTH_SHORT).show()
             }

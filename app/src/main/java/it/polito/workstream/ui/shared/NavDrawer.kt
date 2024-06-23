@@ -203,7 +203,7 @@ private fun DrawerContent(
 
             navigateToTeam = {
                 scope.launch { drawerState.close() }
-                navigateTo("profile?id=$it")
+                navigateTo("/$it/${Route.TeamTasks.name}")
             }
         )
 
