@@ -126,14 +126,26 @@ fun EditTaskScreen(
                         .fillMaxWidth()
                         .menuAnchor(),
                     readOnly = true,
-                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = "choose status") }
+                    trailingIcon = {
+                        Row {
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "choose status")
+                            if (assignee != null)
+                                Icon(Icons.Outlined.Cancel, contentDescription = "clear", modifier = Modifier
+                                    .padding(end = 14.dp)
+                                    .size(20.dp)
+                                    .clickable {
+                                        taskVM.setAssignee(null)
+                                        taskVM.toggleUserExpanded() // stop propagation of the click event
+                                    })
+                        }
+                    }
                 )
                 ExposedDropdownMenu( // Dropdown menu for User selection
                     expanded = taskVM.expandedUser,
                     onDismissRequest = taskVM::toggleUserExpanded,
                     modifier = Modifier.wrapContentSize(Alignment.Center)
                 ) {
-                    teamVM.teamMembers.collectAsState(initial = emptyList()).value.forEach() { m ->
+                    teamVM.teamMembers.collectAsState(initial = emptyList()).value.forEach { m ->
                         DropdownMenuItem(text = { Text(text = m.firstName + " " + m.lastName) }, onClick = { taskVM.setAssignee(m); taskVM.toggleUserExpanded() })
                     }
                 }

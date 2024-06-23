@@ -237,7 +237,7 @@ class TaskViewModel(
             updatedTask.addHistoryEntry("$author added a comment")
     }
 
-    fun setAssignee(m: User) {
-        assigneeValue = m.email
+    fun setAssignee(m: User?) {
+        assigneeValue = m?.email ?: ""
     }
 }
