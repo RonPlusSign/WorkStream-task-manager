@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.Timestamp
-import com.theapache64.rebugger.Rebugger
 import it.polito.workstream.ui.models.ChatMessage
 import it.polito.workstream.ui.theme.Purple40
 import it.polito.workstream.ui.theme.Purple80
@@ -65,23 +64,12 @@ fun Chat(
 
     Log.d("chat", "Opened chat with length: ${chat?.messages?.size}")
 
-
     if (chat!=null && chat.messages.size > 0) {
         for (mex in chat.messages){
             if (!mex.seenBy.contains(vm.user.email))
                 vm.setMessageAsSeen(destUserId, mex.id)
         }
     }
-
-
-    Rebugger(
-        trackMap = mapOf(
-            "destUserId" to destUserId,
-            "chat" to chat,
-            "vmchats" to vm.chats
-        ),
-    )
-
 
     Column {
         // The list of messages
@@ -189,11 +177,6 @@ fun ChatInputBox(
 ) {
     var newMessage by remember { mutableStateOf("") }
 
-    Rebugger(trackMap = hashMapOf(
-        "newMessage" to newMessage,
-        "vm" to vm
-    ))
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
@@ -247,7 +230,7 @@ fun EditMessageSheet(
             Button(
                 modifier = Modifier.padding(5.dp),
                 onClick = {
-                    vm.deleteMessage(destUserId, messageToEdit);
+                    vm.deleteMessage(destUserId, messageToEdit)
                     vm.toggleShowEditDialog()
                 }
             ) {

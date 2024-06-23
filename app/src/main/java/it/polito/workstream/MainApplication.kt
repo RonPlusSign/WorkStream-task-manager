@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.update
 import java.io.File
 
@@ -656,7 +657,7 @@ class ChatModel(
             }
 
         awaitClose { listener.remove() }
-    }
+    }.debounce(400)
 
     fun fetchChat(teamId: String, destUserId: String): Flow<Chat> = callbackFlow {
         Log.d("chat", "Fetching single chat of $destUserId")
@@ -694,7 +695,7 @@ class ChatModel(
             }
 
         awaitClose { listener.remove() }
-    }
+    }.debounce(400)
 
     fun newChat(destUserId: String) {
         val chatData = hashMapOf(
@@ -890,7 +891,7 @@ class ChatModel(
                 }
             }
         awaitClose { listener.remove() }
-    }
+    }.debounce(400)
 
     fun sendGroupMessage(newMessage: ChatMessage) {//TODO: anche qui fetch concatenate da controllare
         val messageToAdd = hashMapOf(

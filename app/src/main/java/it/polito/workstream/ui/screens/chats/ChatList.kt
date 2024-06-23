@@ -1,8 +1,6 @@
 package it.polito.workstream.ui.screens.chats
 
-import android.util.Log
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -18,16 +16,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.Timestamp
-import it.polito.workstream.ui.models.Team
-import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.theme.WorkStreamTheme
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -37,33 +31,33 @@ fun ChatList(
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
-    val chats = vm.fetchChats().collectAsState(initial = listOf()).value
+    val chats = vm.chats.collectAsState(initial = listOf()).value
     val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
     val groupChat = vm.fetchGroupChat().collectAsState(initial = null).value
 
     val lastMessageAuthor = teamMembers.find { it.email == groupChat?.messages?.lastOrNull()?.authorId }
 
     WorkStreamTheme {
-        Scaffold (
+        Scaffold(
             floatingActionButton = {
-               ExtendedFloatingActionButton(
-                   onClick = { onChatClick(9, null, null, null, null) },
-                   text = { Text("New chat") },
-                   icon = { Icon(Icons.Default.Add, contentDescription = "Add Task") },
-                   containerColor = MaterialTheme.colorScheme.primary,
-                   modifier = Modifier
-                       .padding(start = 16.dp, end = 16.dp)
-                       .height(40.dp)
-               )
+                ExtendedFloatingActionButton(
+                    onClick = { onChatClick(9, null, null, null, null) },
+                    text = { Text("New chat") },
+                    icon = { Icon(Icons.Default.Add, contentDescription = "Add Task") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(start = 16.dp, end = 16.dp)
+                        .height(40.dp)
+                )
             },
             content = { padding ->
-                LazyColumn (
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp)
                         .padding(padding)
                 ) {
-                    // Gorup chat
+                    // Group chat
                     item {
                         Text(text = "Team chat", fontSize = 20.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(bottom = 8.dp))
                         Column(
@@ -74,7 +68,7 @@ fun ChatList(
                             SmallChatBox(
                                 destUser = null,
                                 userName = "Team chat",
-                                lastMessage = (lastMessageAuthor?.firstName?:"") + " : " + groupChat?.messages?.lastOrNull()?.text,
+                                lastMessage = if (groupChat?.messages?.lastOrNull() != null) (lastMessageAuthor?.firstName ?: "") + " : " + groupChat.messages.lastOrNull()?.text else "No messages yet",
                                 timestamp = groupChat?.messages?.lastOrNull()?.timestamp,
                                 isGroup = true,
                                 unseenMessages = vm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
@@ -100,7 +94,7 @@ fun ChatList(
                                 SmallChatBox(
                                     destUser = destUser,
                                     userName = destUser?.firstName + " " + destUser?.lastName,
-                                    lastMessage = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.text?:"No message",
+                                    lastMessage = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.text ?: "No message",
                                     timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp,
                                     isGroup = false,
                                     unseenMessages = vm.countUnseenChatMessages(destUserId).collectAsState(initial = 0).value
