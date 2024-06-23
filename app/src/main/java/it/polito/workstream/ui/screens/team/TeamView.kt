@@ -3,7 +3,6 @@ package it.polito.workstream.ui.screens.team
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,8 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -60,6 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -70,6 +72,7 @@ import it.polito.workstream.Route
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.shared.ProfilePicture
+import it.polito.workstream.ui.theme.isLight
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.TeamViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
@@ -103,10 +106,10 @@ fun TeamScreen(
     var nameValue by remember { mutableStateOf(team.name) }
     nameValue = team.name
     val numberOfMembers = teamMembers.size  // Number of members
-    Log.d("TeamScreen", "Number of members: $numberOfMembers")
     val tasksCompleted = teamTasks.filter { it.completed }.size    // Total number of tasks completed
     val tasksToComplete = teamTasks.size - tasksCompleted // Number of tasks to complete
     val top3Users = (teamMembers.sortedByDescending { teamTasks.filter { task -> task.assignee == it.email && task.completed }.size }.take(3))
+    val isHorizontal = LocalContext.current.resources.configuration.screenWidthDp > LocalContext.current.resources.configuration.screenHeightDp
 
     val link = "https://www.workstream.it/${team.id}"
     val scope = rememberCoroutineScope()
@@ -140,6 +143,45 @@ fun TeamScreen(
                 navigateTo(Route.TeamScreen.name)
             }
         )
+    }
+
+    if (isHorizontal) {
+        // Floating buttons
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(1f)
+                .padding(16.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.End
+        ) {
+            if (vm.currentUser.email == team.admin) {
+                OutlinedButton(onClick = { showDeleteConfirmationDialog = true }, colors = ButtonDefaults.outlinedButtonColors().copy(contentColor = MaterialTheme.colorScheme.error, containerColor = MaterialTheme.colorScheme.background)) {
+                    Text("Delete Team")
+                    Icon(
+                        Icons.Default.DeleteOutline, contentDescription = "Delete Team", modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(20.dp)
+                    )
+                }
+            } else {
+                OutlinedButton(onClick = { showLeaveConfirmationDialog = true }, colors = ButtonDefaults.outlinedButtonColors().copy(contentColor = MaterialTheme.colorScheme.error, containerColor = MaterialTheme.colorScheme.background)) {
+                    Text("Leave team")
+                    Icon(
+                        Icons.Default.DeleteOutline, contentDescription = "Leave Team", modifier = Modifier
+                            .padding(horizontal = 4.dp)
+                            .size(20.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Button(onClick = { showDialog = true }) {
+                Text("Invite Member")
+                Icon(
+                    Icons.Default.PersonAdd, contentDescription = "Save changes", modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(20.dp)
+                )
+            }
+        }
     }
 
     Column(
@@ -305,11 +347,11 @@ fun TeamScreen(
             }
         }
 
-        Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+        if (!isHorizontal) {
             if (vm.currentUser.email == team.admin) {
                 OutlinedButton(
                     onClick = { showDeleteConfirmationDialog = true },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors()
                         .copy(contentColor = MaterialTheme.colorScheme.error),
                 ) {
@@ -325,9 +367,7 @@ fun TeamScreen(
             } else {
                 OutlinedButton(
                     onClick = { showLeaveConfirmationDialog = true },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors().copy(contentColor = MaterialTheme.colorScheme.error),
                 ) {
                     Text("Leave team")
@@ -338,14 +378,14 @@ fun TeamScreen(
                     )
                 }
             }
-        }
-        Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Invite Member")
-            Icon(
-                Icons.Default.PersonAdd, contentDescription = "Save changes", modifier = Modifier
-                    .padding(start = 8.dp)
-                    .size(20.dp)
-            )
+            Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("Invite Member")
+                Icon(
+                    Icons.Default.PersonAdd, contentDescription = "Save changes", modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(20.dp)
+                )
+            }
         }
     }
 }
@@ -538,7 +578,7 @@ fun InviteMemberDialog(onDismiss: () -> Unit, qrCodeBitmap: Bitmap, link: String
         onDismissRequest = onDismiss,
         title = { Text(text = "Invite Member") },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Image(
                     bitmap = qrCodeBitmap.asImageBitmap(),
                     contentDescription = "QR Code",
@@ -551,7 +591,7 @@ fun InviteMemberDialog(onDismiss: () -> Unit, qrCodeBitmap: Bitmap, link: String
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = link,
-                            color = Color.Blue,
+                            color = if(MaterialTheme.colorScheme.isLight()) Color.Blue else Color(0xFF2196F3), // Light blue
                             fontSize = 18.sp,
                             textAlign = TextAlign.Center,
                             modifier = Modifier
@@ -565,7 +605,6 @@ fun InviteMemberDialog(onDismiss: () -> Unit, qrCodeBitmap: Bitmap, link: String
                             .clickable { context.shareLink(link) })
                     }
                 }
-
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
