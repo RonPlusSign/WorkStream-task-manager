@@ -146,8 +146,8 @@ class MainApplication : Application(), ImageLoaderFactory {
         val listener = db.collection("Tasks").whereEqualTo("teamId", teamId).addSnapshotListener { r, e ->
             if (r != null) {
                 val tasks = r.toObjects(TaskDTO::class.java).map { it.toTask() }
-                for(t in tasks)
-                    for(a in t.attachments)
+                for (t in tasks)
+                    for (a in t.attachments)
                         downloadDocument(a)
 
                 trySend(tasks)
@@ -219,8 +219,8 @@ class MainApplication : Application(), ImageLoaderFactory {
 
     fun leaveTeam(teamId: String, userId: String) {
 
-        if(teamId.isEmpty() || userId.isEmpty()){
-            Log.w( "Firestore", "team: $teamId or user:$userId is empty error")
+        if (teamId.isEmpty() || userId.isEmpty()) {
+            Log.w("Firestore", "team: $teamId or user:$userId is empty error")
             return
         }
 
@@ -328,7 +328,7 @@ class MainApplication : Application(), ImageLoaderFactory {
         Log.d("Firestore", "Task updated: $updatedTask")
         updatedTask.teamId = activeTeamId.value
         //uploadComments(updatedTask.comments.filter { it.id.isEmpty() })
-        if(updatedTask.id.isEmpty())
+        if (updatedTask.id.isEmpty())
             return
 
         db.collection("Tasks").document(updatedTask.id).set(updatedTask.toDTO())
@@ -337,13 +337,11 @@ class MainApplication : Application(), ImageLoaderFactory {
     }
 
     fun fetchComments(taskId: String): Flow<List<Comment>> = callbackFlow {
-        val listener = db.collection("comments").whereEqualTo("taskId", taskId).addSnapshotListener{
-            r,e ->
-            if(r != null){
+        val listener = db.collection("comments").whereEqualTo("taskId", taskId).addSnapshotListener { r, e ->
+            if (r != null) {
                 val comments = r.toObjects(Comment::class.java)
                 trySend(comments)
-            }
-            else trySend(emptyList())
+            } else trySend(emptyList())
             if (e != null) {
                 Log.w("Firestore", "Error fetching comments", e)
             }
@@ -351,14 +349,16 @@ class MainApplication : Application(), ImageLoaderFactory {
         awaitClose { listener.remove() }
 
     }
-     fun uploadComment(comment: Comment) {
-         val ref = db.collection("comments").document()
-         comment.id = ref.id
-         ref.set(comment)
+
+    fun uploadComment(comment: Comment) {
+        val ref = db.collection("comments").document()
+        comment.id = ref.id
+        ref.set(comment)
             .addOnSuccessListener { Log.d("Firestore", "Comments created ") }
             .addOnFailureListener { e -> Log.w("Firestore", "Error creating a comment", e) }
 
     }
+
     private fun uploadComments(comments: List<Comment>) {
         val commentsRef = mutableListOf<DocumentReference>()
         for (comment in comments) {
@@ -367,8 +367,8 @@ class MainApplication : Application(), ImageLoaderFactory {
             comment.id = ref.id
         }
         db.runTransaction {
-            for ( i  in commentsRef.indices) {
-                it.set(commentsRef[i], comments[i] )
+            for (i in commentsRef.indices) {
+                it.set(commentsRef[i], comments[i])
             }
         }
             .addOnSuccessListener { documentReference -> Log.d("Firestore", "Comments created ") }
@@ -480,21 +480,21 @@ class MainApplication : Application(), ImageLoaderFactory {
             .addOnFailureListener { e -> Log.w("FireStorage", "errore $e file: $file") }
     }
 
-    fun uploadDocument(documentPath:String, taskId: String){
-        val file =Uri.parse(documentPath)
+    fun uploadDocument(documentPath: String, taskId: String) {
+        val file = Uri.parse(documentPath)
         val dbRef = file.lastPathSegment?.let { storage.reference.child("documents").child(it) }
         //val byteArray = context.openFileInput(documentPath).readBytes()
         //dbRef.putBytes(byteArray)
         file.lastPathSegment?.let { LocalDocuments.add(it) }
         dbRef?.putFile(file)?.addOnSuccessListener {
             Log.d("FireStorage", "documento caricato")
-            db.collection("Tasks").document(taskId).update("attachments", FieldValue.arrayUnion( file.lastPathSegment))
+            db.collection("Tasks").document(taskId).update("attachments", FieldValue.arrayUnion(file.lastPathSegment))
                 .addOnSuccessListener { Log.d("Firestore", "attachments updated") }
-                .addOnFailureListener{ Log.w("Firestore", "documento errore") }
-        }?.addOnFailureListener{Log.w("FireStorage", "documento errore $it")}
+                .addOnFailureListener { Log.w("Firestore", "documento errore") }
+        }?.addOnFailureListener { Log.w("FireStorage", "documento errore $it") }
     }
 
-    fun deleteDocument(documentPath:String, taskId: String){
+    fun deleteDocument(documentPath: String, taskId: String) {
         val dbRef = storage.reference.child("documents").child(documentPath)
         val refTask = db.collection("Tasks").document(taskId)
         refTask.update("attachments", FieldValue.arrayRemove(documentPath))
@@ -502,11 +502,12 @@ class MainApplication : Application(), ImageLoaderFactory {
                 Log.d("Firestore", "attachments updated")
                 dbRef.delete()
             }
-            .addOnFailureListener{ Log.w("Firestore", "documento errore") }
+            .addOnFailureListener { Log.w("Firestore", "documento errore") }
 
     }
-    fun downloadDocument(documentPath:String ){
-        if(documentPath.isEmpty() || LocalDocuments.contains(documentPath))
+
+    fun downloadDocument(documentPath: String) {
+        if (documentPath.isEmpty() || LocalDocuments.contains(documentPath))
             return
         val destinationFile = File(context.getExternalFilesDir(null), documentPath)
         val dbRef = storage.reference.child("documents").child(documentPath)
@@ -661,14 +662,18 @@ class ChatModel(
         Log.d("chat", "Fetching single chat of $destUserId")
         val listener = db.collection("chats")  //TODO: Attento ai fetch concatenati usa una transiction è più efficiente e semplice
             .whereEqualTo("teamId", teamId)
-            .where(Filter.or(
-                Filter.equalTo("user1Id", currentUser.value.email),
-                Filter.equalTo("user2Id", currentUser.value.email)
-            ))
-            .where(Filter.or(
-                Filter.equalTo("user1Id", destUserId),
-                Filter.equalTo("user2Id", destUserId)
-            ))
+            .where(
+                Filter.or(
+                    Filter.equalTo("user1Id", currentUser.value.email),
+                    Filter.equalTo("user2Id", currentUser.value.email)
+                )
+            )
+            .where(
+                Filter.or(
+                    Filter.equalTo("user1Id", destUserId),
+                    Filter.equalTo("user2Id", destUserId)
+                )
+            )
             .addSnapshotListener { r, e ->
                 if (r != null && r.size() > 0) {
                     val document = r.first()
@@ -896,35 +901,38 @@ class ChatModel(
             "timestamp" to Timestamp.now()
         )
 
-        db.collection("groupChats")
-            .whereEqualTo("teamId", currentTeamId.value)
-            .get()
+        // Add the new message to the chat
+        fun addMsg() {
+            db.collection("groupChats").whereEqualTo("teamId", currentTeamId.value).get()
+                .addOnSuccessListener { querySnapshot ->
+                    if (querySnapshot != null && !querySnapshot.isEmpty) {
+                        // Supponiamo che ci sia solo una chat per teamId
+                        val chatDocument = querySnapshot.documents.first()
+
+                        // Aggiungi il nuovo messaggio alla collezione "messages" di questo documento
+                        chatDocument.reference.collection("messages")
+                            .add(messageToAdd)
+                            .addOnSuccessListener {
+                                it.update("id", it.id)
+                                Log.d("Chat", "Message added successfully!")
+                            }.addOnFailureListener { e -> Log.d("Chat", "Error adding message: ", e) }
+                    }
+                }.addOnFailureListener { e -> Log.d("Chat", "Error getting chats: ", e) }
+        }
+
+        // If no chat exists for this team, create it
+        db.collection("groupChats").whereEqualTo("teamId", currentTeamId.value).get()
             .addOnSuccessListener { querySnapshot ->
-                if (querySnapshot != null && !querySnapshot.isEmpty) {
-                    // Supponiamo che ci sia solo una chat per teamId
-                    val chatDocument = querySnapshot.documents.first()
+                if (querySnapshot.isEmpty) { // Create the chat
+                    val chatData = hashMapOf("teamId" to currentTeamId.value)
 
-                    // Aggiungi il nuovo messaggio alla collezione "messages" di questo documento
-                    chatDocument.reference.collection("messages")
-                        .add(messageToAdd)
+                    db.collection("groupChats").document().set(chatData)
                         .addOnSuccessListener {
-                            it.update("id", it.id)
-                            Log.d("Chat", "Message added successfully!")
-                        }
-                        .addOnFailureListener { e ->
-                            Log.d("Chat", "Error adding message: ", e)
-                        }
-                } else {
-                    Log.d("Chat", "No chat found with teamId: ${currentTeamId.value}")
-                    // Puoi anche gestire il caso in cui non esiste una chat per il teamId
-                    // Ad esempio, puoi creare una nuova chat qui se lo desideri
-                }
-            }
-            .addOnFailureListener { e ->
-                Log.d("Chat", "Error getting chats: ", e)
-            }
-
-
+                            Log.d("Chat", "Group chat created successfully!")
+                            addMsg()
+                        }.addOnFailureListener { e -> Log.d("Chat", "Error creating group chat: ", e) }
+                } else addMsg()
+            }.addOnFailureListener { e -> Log.d("Chat", "Error getting chats: ", e) }
     }
 
     fun editGroupMessage(messageId: String, newText: String) {
