@@ -195,7 +195,7 @@ fun TopBar(
                     }
             }
             else {
-                //QUI TODO
+
 
                 if(taskVM.ActiveTask.value.isEmpty()){
                     IconButton(onClick = { navigateTo(Route.ChatScreen.name) }) {
