@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.shared
 
+import android.graphics.drawable.Icon
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DrawerState
@@ -31,14 +33,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import it.polito.workstream.Route
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
 import it.polito.workstream.ui.viewmodels.UserViewModel
@@ -55,10 +62,10 @@ fun TopBar(
     content: @Composable () -> Unit = {},
     unseenMessagesCount: Int,
     activePage: String,
-    destUser: User?
+    destUser: User?,
+    activeTeam: Team?
 ) {
     val scope = rememberCoroutineScope()
-    Log.d("topbar", "TOOOOPPPPBAAAAR: ${destUser?.email}")
 
     @Composable
     fun title() {
@@ -67,9 +74,19 @@ fun TopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable {
-                    if (activePage.contains(Route.ChatScreen.title) && destUser != null) {
-                        Log.d("chat", "Navigate to ${Route.UserView.title + "/${destUser.email}"}")
-                        navigateTo("${Route.UserView.name}/${destUser.email}")
+                    Log.d(
+                        "chat",
+                        "Active page: $activePage, chat screen name: ${Route.ChatScreen.name}, chat screen title: ${Route.ChatScreen.title}"
+                    )
+                    if (activePage.contains(Route.ChatScreen.title)) {
+                        Log.d("chat", "It did contain it")
+                        if (activeTeam != null && activePage.contains(activeTeam.name)) {
+                            Log.d("chat", "Navigate to ${Route.TeamScreen.name}")
+                            navigateTo(Route.TeamScreen.name)
+                        } else if (destUser != null) {
+                            Log.d("chat", "Navigate to ${Route.UserView.name + "/${destUser.email}"}")
+                            navigateTo("${Route.UserView.name}/${destUser.email}")
+                        }
                     }
                 }
         ) {
@@ -109,14 +126,73 @@ fun TopBar(
     @Composable
     fun actions() {
         Box {
-            if (activePage.contains(Route.ChatScreen.title))
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Localized description"
+            if (activePage.contains(Route.ChatScreen.title)){
+                if (activePage == Route.ChatScreen.title)
+                    IconButton(onClick = { navigateTo(Route.ChatScreen.name) }) {
+                        //val tintColor = if (unseenMessagesCount > 0) Color.Red else MaterialTheme.colorScheme.onSurface
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = "Localized description",
+                        )
+                    }
+                else if (activeTeam != null && activePage.contains(activeTeam.name))
+                    AsyncImage(
+                        model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(LocalContext.current.getFileStreamPath(activeTeam.photo).absolutePath)
+                            .crossfade(true)
+                            .build(), //minchia ci siamo
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .clickable {
+                                Log.d("chat", "Navigate to ${Route.TeamScreen.name}")
+                                navigateTo(Route.TeamScreen.name)
+                            }
                     )
-                }
-            else
+                else if (destUser != null && destUser.photo.isNotEmpty())
+                    AsyncImage(
+                        model =
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(LocalContext.current.getFileStreamPath(destUser.photo).absolutePath)
+                            .crossfade(true)
+                            .build(), //minchia ci siamo
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .clickable {
+                                Log.d("chat", "Navigate to ${Route.UserView.name + "/${destUser.email}"}")
+                                navigateTo("${Route.UserView.name}/${destUser.email}")
+                            }
+                    )
+                else if (destUser != null && destUser.photo.isEmpty())
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${destUser.firstName} ${destUser.lastName}".trim().split(" ").map { it.first().uppercaseChar() }.joinToString("").take(2),
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            fontSize = 16.sp
+                        )
+                    }
+            }
+            else {
                 IconButton(onClick = { navigateTo(Route.ChatScreen.name) }) {
                     //val tintColor = if (unseenMessagesCount > 0) Color.Red else MaterialTheme.colorScheme.onSurface
                     Icon(
@@ -124,6 +200,8 @@ fun TopBar(
                         contentDescription = "Localized description",
                     )
                 }
+            }
+
             if (unseenMessagesCount > 0)
                 Box(
                     contentAlignment = Alignment.Center,
@@ -131,7 +209,9 @@ fun TopBar(
                         .size(22.dp)
                         .clip(CircleShape)
                         .background(Color.Red)
-                ) { Text(text = unseenMessagesCount.toString(), fontSize = 20.sp, color = Color.White) }
+                ) {
+                    Text(text = unseenMessagesCount.toString(), fontSize = 20.sp, color = Color.White)
+                }
         }
     }
 
@@ -198,6 +278,7 @@ fun TopBarWrapper(
         unseenMessagesCount = unseenMessagesCount,
         activePage = activePage,
         destUser = destUser,
+        activeTeam = activeTeam,
         content = {
             TopAppBarSurface(
                 scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),

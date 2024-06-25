@@ -51,6 +51,8 @@ import it.polito.workstream.ui.theme.PurpleGrey80
 import it.polito.workstream.ui.theme.isLight
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
+import java.sql.Time
+import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -71,6 +73,8 @@ fun Chat(
         }
     }
 
+    var prevMexDate: Timestamp? = null
+
     Column {
         // The list of messages
         LazyColumn(
@@ -83,9 +87,17 @@ fun Chat(
             if (chat != null && chat.messages.isNotEmpty())
                 chat.messages.sortedBy { it.timestamp }.reversed().forEach { mex ->
                     val isFromMe = mex.authorId == vm.user.email
+//                    var isFirstOfDay = false
+//                    if (prevMexDate != null ) {
+//                        if (Instant.ofEpochSecond(prevMexDate!!.seconds).atZone(ZoneId.systemDefault()).toLocalDate()
+//                            != Instant.ofEpochSecond(mex.timestamp.seconds).atZone(ZoneId.systemDefault()).toLocalDate()) {
+//                            isFirstOfDay = true
+//                        }
+//                    }
                     item {
                         ChatMessageBox(mex, destUserId, vm, isFromMe);
                     }
+                    prevMexDate = mex.timestamp
                 }
             else
                 item {
@@ -111,7 +123,8 @@ fun ChatMessageBox(
     message: ChatMessage,
     destUserId: String,
     vm: UserViewModel = viewModel(factory = ViewModelFactory(LocalContext.current)),
-    isFromMe: Boolean
+    isFromMe: Boolean,
+    //isFirstOfDay: Boolean
 ) {
     var messageToEdit by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -157,7 +170,7 @@ fun ChatMessageBox(
                 Text(text = message.text, color = MaterialTheme.colorScheme.onPrimaryContainer)
                 Row(modifier = Modifier.align(if (isFromMe) Alignment.Start else Alignment.End)) {
                     Text(
-                        text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
+                        text = DateTimeFormatter.ofPattern("HH:mm dd/MM").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )

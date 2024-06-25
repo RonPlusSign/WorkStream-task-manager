@@ -158,7 +158,7 @@ fun GroupChatMessageBox(
                 ) {
                     //val isToday = SimpleDateFormat("yyyyMMdd").format(message.timestamp)
                     Text(
-                        text = DateTimeFormatter.ofPattern("HH:mm").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
+                        text = DateTimeFormatter.ofPattern("HH:mm dd/MM").format(message.timestamp.toDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )

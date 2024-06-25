@@ -3,6 +3,7 @@ package it.polito.workstream.ui.screens.chats
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,8 +42,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.google.firebase.Timestamp
+import it.polito.workstream.Route
+import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -56,8 +61,11 @@ fun SmallChatBox(
     lastMessage: String,
     timestamp: Timestamp?,
     isGroup: Boolean,
+    activeTeam: Team?,
     unseenMessages: Int
 ) {
+    val today = LocalDate.now()
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         border = BorderStroke(0.5.dp, Color.Black),
@@ -73,9 +81,27 @@ fun SmallChatBox(
             Column (
                 modifier = Modifier.padding(start = 5.dp, end = 5.dp).align(Alignment.CenterVertically)
             ) {
-                if (isGroup)
-                    Icon(Icons.Default.Groups, contentDescription = "Group Chat", modifier = Modifier.size(40.dp))
-                    //Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", modifier = Modifier.size(40.dp))
+                if (isGroup) {
+                    if (activeTeam != null) {
+                        AsyncImage(
+                            model =
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(LocalContext.current.getFileStreamPath(activeTeam.photo).absolutePath)
+                                .crossfade(true)
+                                .build(), //minchia ci siamo
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                    } else {
+                        Icon(Icons.Default.Groups, contentDescription = "Group Chat", modifier = Modifier.size(40.dp))
+                        //Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat", modifier = Modifier.size(40.dp))
+                    }
+                }
                 else {
                     if (destUser != null && destUser.photo.isNotEmpty())
                         AsyncImage(
@@ -112,7 +138,7 @@ fun SmallChatBox(
             }
 
             Column (
-                modifier = Modifier.width(250.dp)
+                modifier = Modifier.width(240.dp)
             ) {
                 Text(text = userName, fontWeight = FontWeight.Bold, fontSize = 24.sp)
                 Spacer(modifier = Modifier.weight(1f))
@@ -129,8 +155,12 @@ fun SmallChatBox(
                 modifier = Modifier.padding(end = 5.dp)
             ) {
                 if (timestamp != null) {
-                    Text(text = DateTimeFormatter.ofPattern("HH:mm").format(timestamp.toDate().toInstant().atZone(
-                        ZoneId.systemDefault()).toLocalDateTime()))
+                    if (Instant.ofEpochSecond(timestamp.seconds).atZone(ZoneId.systemDefault()).toLocalDate() == today)
+                        Text(text = DateTimeFormatter.ofPattern("HH:mm").format(timestamp.toDate().toInstant().atZone(
+                            ZoneId.systemDefault()).toLocalDateTime()))
+                    else
+                        Text(text = DateTimeFormatter.ofPattern("dd/MM").format(timestamp.toDate().toInstant().atZone(
+                            ZoneId.systemDefault()).toLocalDateTime()))
                 }
                 if (unseenMessages > 0)
                     Box (

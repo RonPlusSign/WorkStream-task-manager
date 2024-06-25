@@ -32,7 +32,7 @@ class UserViewModel(
     activeTeamFlow: Flow<Team?>,
     val chatModel: ChatModel,
     val updateUser: (firstName: String, lastName: String, email: String, location: String) -> Unit,
-    fetchActiveTeam: (String) -> Flow<Team?>,
+    val fetchActiveTeam: (String) -> Flow<Team?>,
     val activeTeamId: MutableStateFlow<String>,
     val fetchUsers: (String) -> Flow<List<User>>,
     val getTasks: (String) -> Flow<List<Task>>,

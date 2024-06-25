@@ -32,6 +32,8 @@ fun ChatList(
     onChatClick: (route: Int, taskId: String?, taskName: String?, userId: Long?, userMail: String?) -> Unit,
 ) {
     val chats = vm.chats.collectAsState(initial = listOf()).value
+    val activeTeamId = vm.activeTeamId.collectAsState().value
+    val activeTeam = vm.fetchActiveTeam(activeTeamId).collectAsState(initial = null).value
     val teamMembers = vm.teamMembers.collectAsState(initial = listOf()).value
     val groupChat = vm.fetchGroupChat().collectAsState(initial = null).value
 
@@ -71,6 +73,7 @@ fun ChatList(
                                 lastMessage = if (groupChat?.messages?.lastOrNull() != null) (lastMessageAuthor?.firstName ?: "") + " : " + groupChat.messages.lastOrNull()?.text else "No messages yet",
                                 timestamp = groupChat?.messages?.lastOrNull()?.timestamp,
                                 isGroup = true,
+                                activeTeam = activeTeam,
                                 unseenMessages = vm.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
                             )
                         }
@@ -97,6 +100,7 @@ fun ChatList(
                                     lastMessage = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.text ?: "No message",
                                     timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp,
                                     isGroup = false,
+                                    activeTeam = activeTeam,
                                     unseenMessages = vm.countUnseenChatMessages(destUserId).collectAsState(initial = 0).value
                                 )
 
