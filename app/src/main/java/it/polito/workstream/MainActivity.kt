@@ -287,10 +287,12 @@ fun ContentView(
 
                     composable(route = Route.MyTasks.name) {
                         vm.setActivePage(Route.MyTasks.title)
+                        taskVM.ActiveTask.value = ""
                         PersonalTasksScreenWrapper(onItemSelect = onItemSelect, activeUser = app.user.value.email)
                     }
 
                     composable(route = Route.ChatScreen.name) {
+                        taskVM.ActiveTask.value = ""
                         vm.setActivePage(Route.ChatScreen.title)
                         ChatList(onChatClick = onItemSelect)
                     }
@@ -313,7 +315,7 @@ fun ContentView(
                         Log.d("chat", teamMembers.toString())
 
                         userVM.setCurrDestUser(destUser?.email?:"")
-
+                        taskVM.ActiveTask.value = ""
                         if (destUser != null) {
                             vm.setActivePage(Route.ChatScreen.title + "/" + "${destUser.firstName} ${destUser.lastName}")
                             Chat(destUser.email)
@@ -322,16 +324,19 @@ fun ContentView(
 
                     composable(route = "${Route.ChatScreen.name}/group") {
                         vm.setActivePage(Route.ChatScreen.title + "/" + activeTeam.name)
+                        taskVM.ActiveTask.value = ""
                         GroupChat()
                     }
 
                     composable(route = Route.NewChat.name) {
                         vm.setActivePage(Route.NewChat.title)
+                        taskVM.ActiveTask.value = ""
                         NewChat(onChatClick = onItemSelect)
                     }
 
                     composable(route = Route.TeamScreen.name) {
                         vm.setActivePage(Route.TeamScreen.title)
+                        taskVM.ActiveTask.value = ""
                         TeamScreen(
                             onTaskClick = onItemSelect,
                             removeTeam = vm.removeTeam,
@@ -344,6 +349,7 @@ fun ContentView(
 
                     composable(route = Route.NewTask.name) {
                         vm.setActivePage(Route.NewTask.title)
+                        taskVM.ActiveTask.value = ""
                         if (taskVM.task.value.title != "New Task")
                             taskVM.setTask(Task(title = "New Task", section = sections[0]))
                         NewTaskScreen(changeRoute = onItemSelect, vm = taskVM)//app
@@ -361,7 +367,9 @@ fun ContentView(
                     ) { entry ->
                         val taskId = entry.arguments?.getString("index")
                         tasksList.value.find { it.id == taskId }?.let {
+                            Log.d("TITLE", it.toString() )
                             vm.setActivePage(it.title)
+                            taskVM.ActiveTask.value = taskId.orEmpty()
 
                             ShowTaskDetails(it, user, onComplete = { task ->
                                 val beforeUpdate = task.copy()
@@ -385,6 +393,7 @@ fun ContentView(
                     ) { entry ->
                         val index = entry.arguments?.getString("index")
                         val taskEditing = tasksList.value.find { it.id == index }
+                        taskVM.ActiveTask.value = ""
 
                         tasksList.value.find { it.id == index }?.let {
                             vm.setActivePage(it.title)
@@ -408,6 +417,7 @@ fun ContentView(
                         )
                     ) { entry ->
                         vm.setActivePage(Route.UserView.title)
+                        taskVM.ActiveTask.value = ""
                         val userId = entry.arguments?.getString("index")
                         var user = User()
                         if (userId != null) {
@@ -417,6 +427,7 @@ fun ContentView(
                     }
 
                     composable(route = Route.UserView.name) {
+                        taskVM.ActiveTask.value = ""
                         vm.setActivePage(Route.UserView.title)
                         UserScreen(user = app.user.value, personalInfo = true, onLogout = onLogout)
                     }
@@ -432,6 +443,7 @@ fun ContentView(
                             }
                         )
                     ) { entry ->
+                        taskVM.ActiveTask.value = ""
                         Log.d("confirm_join_team", "YOO")
                         val teamId = entry.arguments?.getString("teamId") ?: ""
                         ConfirmJoinTeamPage(
@@ -454,7 +466,7 @@ fun ContentView(
                             }
                         )
                     ) { entry ->
-
+                        taskVM.ActiveTask.value = ""
                         val teamId = entry.arguments?.getString("teamId") ?: ""
                         ConfirmJoinTeamPage(
                             teamId = teamId,
@@ -469,12 +481,14 @@ fun ContentView(
                     composable(
                         "/no_team/${Route.TeamTasks.name}"
                     ) {
+                        taskVM.ActiveTask.value = ""
                         vm.setActivePage("no_team")
                         NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") }, logout = onLogout)
                     }
                     composable(
                         "//${Route.TeamTasks.name}"
                     ) {
+                        taskVM.ActiveTask.value = ""
                         vm.setActivePage("no_team")
                         NoTeamsScreen(activeUser = app.user, onJoinTeam = { /* no action needed */ }, addNewTeam = app::createEmptyTeam, navigateToTeam = { navigateTo("/$it/${Route.TeamTasks.name}") }, logout = onLogout)
                     }

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.DrawerState
@@ -48,6 +49,7 @@ import it.polito.workstream.Route
 import it.polito.workstream.ui.models.Team
 import it.polito.workstream.ui.models.User
 import it.polito.workstream.ui.viewmodels.TaskListViewModel
+import it.polito.workstream.ui.viewmodels.TaskViewModel
 import it.polito.workstream.ui.viewmodels.UserViewModel
 import it.polito.workstream.ui.viewmodels.ViewModelFactory
 import kotlinx.coroutines.flow.stateIn
@@ -124,7 +126,7 @@ fun TopBar(
     }
 
     @Composable
-    fun actions() {
+    fun actions(taskVM: TaskViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))) {
         Box {
             if (activePage.contains(Route.ChatScreen.title)){
                 if (activePage == Route.ChatScreen.title)
@@ -141,7 +143,7 @@ fun TopBar(
                         ImageRequest.Builder(LocalContext.current)
                             .data(LocalContext.current.getFileStreamPath(activeTeam.photo).absolutePath)
                             .crossfade(true)
-                            .build(), //minchia ci siamo
+                            .build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -193,13 +195,27 @@ fun TopBar(
                     }
             }
             else {
-                IconButton(onClick = { navigateTo(Route.ChatScreen.name) }) {
-                    //val tintColor = if (unseenMessagesCount > 0) Color.Red else MaterialTheme.colorScheme.onSurface
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Default.Message,
-                        contentDescription = "Localized description",
-                    )
+                //QUI TODO
+
+                if(taskVM.ActiveTask.value.isEmpty()){
+                    IconButton(onClick = { navigateTo(Route.ChatScreen.name) }) {
+                        //val tintColor = if (unseenMessagesCount > 0) Color.Red else MaterialTheme.colorScheme.onSurface
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Default.Message,
+                            contentDescription = "Localized description",
+                        )
+                    }
+
+                }else {
+                    IconButton(onClick = { navigateTo("${Route.EditTask.name}/${taskVM.ActiveTask.value}") }) {
+                        //val tintColor = if (unseenMessagesCount > 0) Color.Red else MaterialTheme.colorScheme.onSurface
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Localized description",
+                        )
+                    }
                 }
+
             }
 
             if (unseenMessagesCount > 0 && activePage == Route.ChatScreen.title)

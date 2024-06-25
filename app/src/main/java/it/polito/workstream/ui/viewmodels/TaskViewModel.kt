@@ -33,6 +33,8 @@ class TaskViewModel(
     var task = mutableStateOf(Task(title = "New Task", section = activeTeam.value?.sections?.get(0) ?: "General"))
         private set
 
+    var ActiveTask = mutableStateOf("")
+
     fun setTask(value: Task) {
         task.value = value
         taskBeforeEditing = value.copy()
