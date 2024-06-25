@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -167,7 +168,8 @@ fun FilterTasksDialog(
     assignee: List<String>,
     statusList: List<String>,
     recurrentList: List<String>,
-    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))){
+    vm: TaskListViewModel = viewModel(factory = ViewModelFactory(LocalContext.current))
+) {
 
 
     val activeTeamId by vm.activeTeamId.collectAsState(initial = "")
@@ -401,16 +403,9 @@ fun FilterTasksDialog(
                             .fillMaxHeight()
                             .padding(bottom = 32.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = {
-                                closeDialog()
-                                filterParams.clear()
-                            }) {
-                            Text("Clear filters")
-                        }
-                        Button(onClick = closeDialog) {
-                            Text("Apply")
-                        }
+                        OutlinedButton(modifier = Modifier.weight(1f), onClick = { closeDialog(); filterParams.clear() }) { Text("Clear filters") }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Button(modifier = Modifier.weight(1f), onClick = closeDialog) { Text("Apply") }
                     }
                 }
             }
@@ -460,12 +455,9 @@ fun SortTasksDialog(showSortDialog: Boolean, closeDialog: () -> Unit, sortOption
                     .fillMaxWidth()
                     .padding(bottom = 32.dp)
             ) {
-                OutlinedButton(onClick = { changeSortOption("Due date"); closeDialog(); }) {
-                    Text("Reset")
-                }
-                Button(onClick = closeDialog) {
-                    Text("Apply")
-                }
+                OutlinedButton(modifier = Modifier.weight(1f), onClick = { changeSortOption("Due date"); closeDialog(); }) { Text("Reset") }
+                Spacer(modifier = Modifier.width(10.dp))
+                Button(modifier = Modifier.weight(1f), onClick = closeDialog) { Text("Apply") }
             }
         }
     }
