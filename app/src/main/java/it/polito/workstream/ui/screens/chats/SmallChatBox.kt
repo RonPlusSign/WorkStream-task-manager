@@ -65,6 +65,7 @@ fun SmallChatBox(
     unseenMessages: Int
 ) {
     val today = LocalDate.now()
+    Log.d("chat", "Conto $unseenMessages messaggi visti per $userName")
 
     Card(
         modifier = Modifier.fillMaxWidth(),

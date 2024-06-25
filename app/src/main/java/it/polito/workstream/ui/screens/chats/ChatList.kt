@@ -1,5 +1,6 @@
 package it.polito.workstream.ui.screens.chats
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -87,6 +88,7 @@ fun ChatList(
                             val destUser = teamMembers.find {
                                 it.email == destUserId
                             }
+                            val unseenMessages = vm.countUnseenChatMessages(destUserId).collectAsState(initial = 0).value
                             Column(
                                 modifier = Modifier
                                     .padding(top = 5.dp, bottom = 5.dp)
@@ -101,7 +103,7 @@ fun ChatList(
                                     timestamp = chat.messages.sortedBy { it.timestamp }.lastOrNull()?.timestamp,
                                     isGroup = false,
                                     activeTeam = activeTeam,
-                                    unseenMessages = vm.countUnseenChatMessages(destUserId).collectAsState(initial = 0).value
+                                    unseenMessages = unseenMessages
                                 )
 
                             }

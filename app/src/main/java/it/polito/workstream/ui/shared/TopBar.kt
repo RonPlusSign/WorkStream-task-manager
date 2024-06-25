@@ -202,7 +202,7 @@ fun TopBar(
                 }
             }
 
-            if (unseenMessagesCount > 0)
+            if (unseenMessagesCount > 0 && activePage == Route.ChatScreen.title)
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -268,7 +268,7 @@ fun TopBarWrapper(
     for (m in teamMembers){
         unseenMessagesCount += userVM.countUnseenChatMessages(m.email).collectAsState(initial = 0).value
     }
-    unseenMessagesCount += userVM.unseenGroupMessages.collectAsState(initial = 0).value ?: 0
+    unseenMessagesCount += userVM.countUnseenGroupMessages().collectAsState(initial = 0).value ?: 0
 
 
     TopBar(

@@ -848,7 +848,7 @@ class ChatModel(
             }
 
         awaitClose { listener.remove() }
-    }
+    }.debounce(400)
 
     fun sendTestMessage() {
 //        val list = listOf("Ciao bel maschione", "Smettila di drogarti", "Mandami il tuo numero di conto corrente, serve per salvare il paese", "Aiuto sono stato rapito.......dal tuo sguardo pupa", "Mattarella non esiste, sono il suo sostituto robotico, MatTechRella", "Fi falve buonafera, fono proprio io Fergione")
@@ -1035,7 +1035,7 @@ class ChatModel(
             }
         awaitClose { listener.remove() }// TODO : PERChE' qui awaitClose deve stare solo dentro callbackflow
         Log.d("chat", "Model found $count unseen group messages")
-    }
+    }.debounce(400)
 
     fun countAllUnseenMessages(): Int {
 //        var count = 0;
