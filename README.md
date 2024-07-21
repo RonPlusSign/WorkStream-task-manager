@@ -74,4 +74,4 @@ The app will support the following features:
 
 The following diagram shows the initial design of the database schema, however to enhance collaboration and synchronization between users, Google Firebase has been used as the main backend.
 
-<img src="readme_images/ERModel.png" />
+<img src="readme_images/ErModel.png" />
